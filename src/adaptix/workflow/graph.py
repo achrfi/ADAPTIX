@@ -28,6 +28,11 @@ class AgentState(TypedDict, total=False):
     report: dict[str, Any]
     errors: list[str]
     events: list[str]
+    max_iterations: int
+    tool_call_budget: int
+    token_budget: int
+    planner_metrics: dict[str, Any]
+    llm_model: str
 
 
 builder = StateGraph(AgentState)
