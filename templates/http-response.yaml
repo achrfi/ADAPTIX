@@ -1,0 +1,15 @@
+id: adaptix-http-baseline
+info:
+  name: ADAPTIX HTTP Reachability Baseline (Informational)
+  author: adaptix-team
+  severity: info
+  description: Confirms HTTP 200 response; this is NOT a vulnerability.
+  tags: adaptix,baseline
+http:
+  - method: GET
+    path:
+      - '{{BaseURL}}/'
+    matchers:
+      - type: status
+        status:
+          - 200

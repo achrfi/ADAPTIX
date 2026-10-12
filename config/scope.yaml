@@ -1,0 +1,20 @@
+# ADAPTIX Iterasi 3.1 — kebijakan global (BUKAN daftar setiap target).
+# Remote target membutuhkan grant bertanda tangan dari administrator lokal.
+authorization_required: true
+allow_loopback_without_grant: true
+limits:
+  max_hosts: 16
+  max_web_urls: 32
+  rate_per_second: 2
+  concurrent_requests: 2
+  timeout_seconds: 45
+  nmap_ports: '21,22,80,443,8080,8443,18080'
+# Tidak dapat dimintakan sebagai target walaupun grant ditandatangani.
+blocked_cidrs:
+  - 0.0.0.0/8
+  - 169.254.0.0/16
+  - 224.0.0.0/4
+  - 240.0.0.0/4
+  - ::/128
+  - fe80::/10
+  - ff00::/8

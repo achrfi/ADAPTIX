@@ -1,0 +1,17 @@
+tools:
+  nmap:
+    enabled: true
+    command: nmap
+    env: ADAPTIX_NMAP_PATH
+  httpx:
+    enabled: true
+    command: httpx
+    env: ADAPTIX_HTTPX_PATH
+    # Resolver mencoba httpx lalu /usr/bin/httpx2; selalu cek identitas ProjectDiscovery
+  nuclei:
+    enabled: true
+    command: nuclei
+    env: ADAPTIX_NUCLEI_PATH
+  playwright:
+    enabled: true
+    module: playwright

@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "."
+  ],
+  "graphs": {
+    "adaptix": "./src/adaptix/workflow/graph.py:graph"
+  },
+  "env": ".env"
+}

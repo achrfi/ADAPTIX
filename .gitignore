@@ -1,0 +1,65 @@
+# Python Virtual Environment
+.venv/
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Build & Distribution
+build/
+dist/
+*.whl
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+
+# LangGraph Local Runtime
+.langgraph_api/
+
+# Runtime Artifacts
+artifacts/
+
+# Logs
+*.log
+logs/
+
+# Local Database & Checkpoints
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Local Scope Configuration
+scope-*.json
+
+# Local AI Models
+*.gguf
+*.safetensors
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS Generated Files
+.DS_Store
+Thumbs.db
+
+# Test Coverage
+.coverage
+htmlcov/
+.tox/
