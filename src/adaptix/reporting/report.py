@@ -9,6 +9,9 @@ def final_report(state):
               'hosts': state.get('hosts', []), 'iterations': state.get('iterations', 0),
               'services': state.get('services', []), 'http_services': state.get('http_services', []),
               'candidates': state.get('candidates', []), 'verified_findings': state.get('verified_findings', []),
+              'rejected_findings': state.get('rejected_findings', []),
+              'inconclusive_findings': state.get('inconclusive_findings', []),
+              'stop_reason': state.get('stop_reason'),
               'browser_evidence': state.get('browser_evidence', []), 'metrics': state.get('metrics', {}),
               'errors': state.get('errors', [])}
     return {'status': report['status'], 'report': report,

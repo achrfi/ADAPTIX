@@ -22,6 +22,9 @@ class AgentState(TypedDict, total=False):
     browser_evidence: list[dict[str, Any]]
     structured_observations: dict[str, Any]
     verified_findings: list[dict[str, Any]]
+    rejected_findings: list[dict[str, Any]]
+    inconclusive_findings: list[dict[str, Any]]
+    stop_reason: str
     raw_bytes: int
     metrics: dict[str, Any]
     iterations: int
