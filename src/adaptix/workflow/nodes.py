@@ -42,3 +42,13 @@ def scope_guard(state):
 
 def state_update(state):
     return {'iterations': int(state.get('iterations', 0)) + 1, 'events': log(state, 'State Update: workflow pass recorded')}
+
+
+def advance_action(state):
+    cursor = int(state.get('action_cursor', 0))
+    actions = state.get('planned_actions', [])
+    attempted = list(state.get('attempted_actions', []))
+    if cursor < len(actions):
+        attempted.append(actions[cursor])
+    return {'action_cursor': cursor + 1, 'attempted_actions': attempted,
+            'events': log(state, f'Action completed: {cursor + 1}/{len(actions)}')}

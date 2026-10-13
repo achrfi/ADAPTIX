@@ -107,3 +107,17 @@ def allowed_url(url, hosts, ports):
         return (parsed.port or (443 if parsed.scheme == 'https' else 80)) in ports
     except ValueError:
         return False
+
+
+def endpoint_key(url):
+    """Normalize only harmless URL variations; preserve path and query identity."""
+    try:
+        parsed = urlsplit(url)
+        if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password:
+            return None
+        port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+        path = parsed.path.rstrip('/') or '/'
+        hostname = parsed.hostname.lower().rstrip('.')
+        return (parsed.scheme, hostname, port, path, parsed.query)
+    except (TypeError, ValueError):
+        return None
