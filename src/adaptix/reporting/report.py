@@ -16,6 +16,7 @@ def final_report(state):
               'inconclusive_findings': state.get('inconclusive_findings', []),
               'stop_reason': state.get('stop_reason') or (
                   'budget_exhausted' if budget_exhausted(state) else None),
+              'idor_findings': state.get('idor_findings', []),
               'browser_evidence': state.get('browser_evidence', []),
               'metrics': state.get('metrics', {}), 'errors': state.get('errors', [])}
     return {'status': report['status'], 'report': report,

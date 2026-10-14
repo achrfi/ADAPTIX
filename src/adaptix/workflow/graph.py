@@ -5,7 +5,7 @@ from src.adaptix.workflow.nodes import (
     scope_guard, reconnaissance, adaptive_planning, httpx_probe,
     nuclei_check, browser_observe, observation_processing,
     reflection_verification, state_update, final_report, blocked_report,
-    advance_action,
+    advance_action, idor_test,
 )
 from src.adaptix.agents.planner import budget_exhausted
 
@@ -28,6 +28,8 @@ class AgentState(TypedDict, total=False):
     candidates: list[dict[str, Any]]
     verification_evidence: list[dict[str, Any]]
     browser_evidence: list[dict[str, Any]]
+    idor_scenarios: list[dict[str, Any]]
+    idor_findings: list[dict[str, Any]]
     structured_observations: dict[str, Any]
     verified_findings: list[dict[str, Any]]
     rejected_findings: list[dict[str, Any]]
@@ -68,7 +70,8 @@ for name, func in (
     ('scope_guard', scope_guard), ('reconnaissance', reconnaissance),
     ('adaptive_planning', adaptive_planning), ('httpx', httpx_probe),
     ('nuclei', nuclei_check), ('playwright', browser_observe),
-    ('advance_action', advance_action), ('observation_processing', observation_processing),
+    ('advance_action', advance_action), ('idor_test', idor_test),
+    ('observation_processing', observation_processing),
     ('reflection_verification', reflection_verification),
     ('state_update', state_update), ('final_report', final_report),
     ('blocked_report', blocked_report),
@@ -80,11 +83,12 @@ builder.add_conditional_edges('scope_guard',
                               {'blocked': 'blocked_report', 'approved': 'reconnaissance'})
 builder.add_edge('reconnaissance', 'adaptive_planning')
 routes = {'httpx': 'httpx', 'nuclei': 'nuclei', 'playwright': 'playwright',
-          'done': 'observation_processing'}
+          'done': 'idor_test'}
 builder.add_conditional_edges('adaptive_planning', next_action, routes)
 for tool in ('httpx', 'nuclei', 'playwright'):
     builder.add_edge(tool, 'advance_action')
 builder.add_conditional_edges('advance_action', next_action, routes)
+builder.add_edge('idor_test', 'observation_processing')
 builder.add_edge('observation_processing', 'reflection_verification')
 builder.add_edge('reflection_verification', 'state_update')
 builder.add_conditional_edges('state_update', after_update,

@@ -9,6 +9,7 @@ from src.adaptix.tools.nmap import reconnaissance
 from src.adaptix.tools.httpx import httpx_probe
 from src.adaptix.tools.nuclei import nuclei_check
 from src.adaptix.tools.playwright import browser_observe
+from src.adaptix.tools.idor import idor_test
 from src.adaptix.agents.planner import adaptive_planning
 from src.adaptix.agents.reflector import reflection_verification
 from src.adaptix.processing.observations import observation_processing
