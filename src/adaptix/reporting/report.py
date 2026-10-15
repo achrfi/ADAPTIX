@@ -51,18 +51,12 @@ def final_report(state):
               'verified_findings': state.get('verified_findings', []),
               'rejected_findings': state.get('rejected_findings', []),
               'inconclusive_findings': state.get('inconclusive_findings', []),
-<<<<<<< HEAD
               'stop_reason': stop,
               'idor_findings': state.get('idor_findings', []),
               'api_operations': state.get('api_operations', []), 'api_observations': state.get('api_observations', []),
               'scenario_candidates': state.get('scenario_candidates', []),
               'scenario_validations': state.get('scenario_validations', []),
               'rejected_actions': state.get('rejected_actions', []), 'discovery_limitations': state.get('discovery_limitations', []),
-=======
-              'stop_reason': state.get('stop_reason') or (
-                  'budget_exhausted' if budget_exhausted(state) else None),
-              'idor_findings': state.get('idor_findings', []),
->>>>>>> origin/main
               'browser_evidence': state.get('browser_evidence', []),
               'metrics': state.get('metrics', {}), 'errors': state.get('errors', [])}
     if stop == 'human_approval_required':

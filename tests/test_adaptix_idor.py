@@ -17,11 +17,7 @@ class _FakeClient:
     def __exit__(self, *a):
         return False
 
-<<<<<<< HEAD
     def request(self, method, url, headers=None, **kwargs):
-=======
-    def request(self, method, url, headers=None):
->>>>>>> origin/main
         return self._responses.pop(0)
 
 
@@ -32,10 +28,7 @@ def _scenario():
         'owner_identity': {'name': 'userA', 'headers': {'Authorization': 'Bearer a'}},
         'other_identity': {'name': 'userB', 'headers': {'Authorization': 'Bearer b'}},
         'method': 'GET',
-<<<<<<< HEAD
         'ground_truth': {'private': True, 'identities_valid': True, 'owner': 'userA', 'object_id': '42'},
-=======
->>>>>>> origin/main
     }
 
 
