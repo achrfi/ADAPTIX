@@ -40,11 +40,13 @@ def test_baseline_is_not_vulnerability():
     assert len(result['rejected_findings']) == 1
 
 
-def test_explicit_vulnerability_specific_confirmation():
-    proof = [{'template_id': 'idor', 'url': 'http://127.0.0.1:18080',
-              'verification_method': 'deterministic_replay',
-              'evidence_ref': 'artifacts/replay/evidence.json', 'result': 'confirmed'}]
-    result = _result(template='idor', evidence=proof)
+def test_explicit_vulnerability_specific_confirmation(tmp_path, monkeypatch, verification_record):
+    from src.adaptix.security import authorization
+    from src.adaptix.evidence.verification import write_verification_record
+    monkeypatch.setattr(authorization, 'KEY_PATH', tmp_path / 'key')
+    authorization._key(create=True)
+    proof = write_verification_record({'run_id': 'test-reflector-proof'}, verification_record)
+    result = _result(template='idor', evidence=[proof])
     assert len(result['verified_findings']) == 1
 
 

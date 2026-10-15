@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep persistent VAmPI scenario tokens ready
+
+[Timer]
+OnCalendar=*-*-* *:00/15:00
+Persistent=true
+Unit=adaptix-vampi-refresh.service
+
+[Install]
+WantedBy=timers.target

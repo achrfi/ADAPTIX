@@ -54,6 +54,20 @@ def tool_registry():
     result['playwright'] = {'enabled': enabled, 'path': 'python-module' if (installed and enabled) else None,
                             'detail': 'disabled' if not enabled else ('validated' if installed else 'python package missing'),
                             'version': importlib.metadata.version('playwright') if installed else ''}
+    descriptions = {'nmap': 'Discover services on one pinned host', 'httpx': 'Observe one HTTP endpoint',
+                    'nuclei': 'Run configured Nuclei templates. Adaptive mode uses observed Nmap products/HTTPX technologies to select HTTP template tags; unknown products use native automatic detection. HTTPX first can improve selection. Matches are unverified.',
+                    'playwright': 'Observe browser page and capture screenshot without form submission'}
+    for name, description in descriptions.items():
+        result[name]['description'] = description
+    result['idor'] = {'enabled': True, 'path': 'python-module', 'detail': 'two-identity configured scenario; GET only',
+                      'description': 'Execute a named configured scenario once: GET owner and other identity, compare responses and verify against private-object ground truth. Results and verification are already in idor_findings; evaluate them in reflection, never call this tool again to evaluate its existing result.'}
+    result['api_discover'] = {'enabled': True, 'path': 'python-module',
+        'description': 'GET one observed API endpoint or listed document probe, parse OpenAPI GET routes and actual collection records. No schema examples as object data.'}
+    result['scenario'] = {'enabled': True, 'path': 'python-module',
+        'description': 'Build a scenario from a listed scenario_candidates name. Three GET requests validate two supplied sessions and owner private content; requires identity context. Produces an idor_scenarios name for the idor tool.'}
+    for name, spec in result.items():
+        spec['risk'] = 'template_dependent' if name == 'nuclei' else 'observe'
+        spec['operation'] = 'authorization_test_get' if name == 'idor' else 'observe'
     return result
 
 def run_tool(argv, timeout=45, stdin=None):
@@ -61,7 +75,26 @@ def run_tool(argv, timeout=45, stdin=None):
     try:
         completed = subprocess.run(argv, input=stdin, capture_output=True, text=True,
                                    timeout=timeout, check=False, errors='replace')
-    except (OSError, subprocess.TimeoutExpired) as exc:
+    except subprocess.TimeoutExpired as exc:
+        def decoded(value):
+            return value.decode('utf-8', errors='replace') if isinstance(value, bytes) else value or ''
+        # Nuclei emits complete JSONL findings as it runs; retain them on timeout.
+        return {'returncode': -1, 'stdout': decoded(exc.stdout)[:1_000_000],
+                'stderr': (f'Tool timed out after {timeout} seconds; partial output retained. '
+                           + decoded(exc.stderr))[-2500:]}
+    except OSError as exc:
         return {'returncode': -1, 'stdout': '', 'stderr': str(exc)}
     return {'returncode': completed.returncode, 'stdout': completed.stdout[:1_000_000],
             'stderr': completed.stderr[-2500:]}
+
+
+def tool_handlers():
+    """Capability adapters; adding tools does not change the graph topology."""
+    from src.adaptix.tools.nmap import reconnaissance
+    from src.adaptix.tools.httpx import httpx_probe
+    from src.adaptix.tools.nuclei import nuclei_check
+    from src.adaptix.tools.playwright import browser_observe
+    from src.adaptix.tools.idor import idor_test
+    from src.adaptix.tools.discovery import api_discover, build_scenario
+    return {'nmap': reconnaissance, 'httpx': httpx_probe, 'nuclei': nuclei_check,
+            'playwright': browser_observe, 'idor': idor_test, 'api_discover': api_discover, 'scenario': build_scenario}

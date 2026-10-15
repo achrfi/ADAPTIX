@@ -13,6 +13,9 @@ def test_endpoint_normalization_preserves_api_paths():
 
 
 def test_nuclei_api_path_kept_and_unrelated_path_filtered(monkeypatch):
+    original_config = nuclei_module.config
+    monkeypatch.setattr(nuclei_module, 'config', lambda name: {
+        **original_config(name), 'limits': {**original_config(name)['limits'], 'nuclei_templates': 'baseline'}})
     monkeypatch.setattr(nuclei_module, 'tool_registry', lambda: {
         'nuclei': {'enabled': True, 'path': '/bin/nuclei'}})
     def run_tool(*args, **kwargs):
@@ -34,7 +37,7 @@ def test_nuclei_api_path_kept_and_unrelated_path_filtered(monkeypatch):
 def test_graph_route_selects_llm_tool_and_stops_on_budget():
     state = {'planned_actions': [{'tool': 'nuclei', 'target': 'http://127.0.0.1'}],
              'action_cursor': 0, 'iterations': 0}
-    assert next_action(state) == 'nuclei'
+    assert next_action(state) == 'execute'
     state['execution_metrics'] = {'tool_calls_used': 20}
     assert next_action(state) == 'done'
     assert after_update(state) == 'report'
@@ -68,6 +71,8 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
         'playwright': {'path': None, 'enabled': False}}
     for mod in (nt, ht, nu, pw, planner):
         monkeypatch.setattr(mod, 'tool_registry', fake_registry)
+    from src.adaptix.tools import registry
+    monkeypatch.setattr(registry, 'tool_registry', fake_registry)
     calls = []
     def fake_run(argv, timeout=45, stdin=None):
         calls.append(argv[0])
@@ -82,15 +87,19 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
     for mod in (nt, ht, nu):
         monkeypatch.setattr(mod, 'run_tool', fake_run)
     from unittest.mock import MagicMock
-    decision = {'actions': [
-        {'tool': 'httpx', 'target': 'http://127.0.0.1:18080', 'reason': 'probe', 'priority': 1},
-        {'tool': 'nuclei', 'target': 'http://127.0.0.1:18080', 'reason': 'check', 'priority': 2}],
-        'rationale': 'use two tools'}
-    mock = MagicMock()
-    mock.choices[0].message.content = json.dumps(decision)
-    mock.usage.prompt_tokens = 40
-    mock.usage.completion_tokens = 20
-    monkeypatch.setattr(planner.litellm, 'completion', lambda **kwargs: mock)
+    decisions = iter([
+        {'actions': [{'tool': 'httpx', 'target': 'http://127.0.0.1:18080', 'reason': 'probe', 'priority': {'goal_relevance': 0.8, 'information_gain': 0.7, 'evidence_value': 0.6, 'confidence': 0.9, 'estimated_tokens': 100, 'estimated_seconds': 1, 'estimated_requests': 1}}], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'probe'},
+        {'actions': [{'tool': 'nuclei', 'target': 'http://127.0.0.1:18080', 'reason': 'inspect', 'priority': {'goal_relevance': 0.8, 'information_gain': 0.7, 'evidence_value': 0.6, 'confidence': 0.9, 'estimated_tokens': 100, 'estimated_seconds': 1, 'estimated_requests': 1}}], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'inspect'},
+        {'actions': [], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'complete'},
+    ])
+    def completion(**kwargs):
+        mock = MagicMock()
+        mock.choices[0].message.content = json.dumps(next(decisions))
+        mock.usage.total_tokens = 60
+        mock.usage.prompt_tokens = 40
+        mock.usage.completion_tokens = 20
+        return mock
+    monkeypatch.setattr(planner.litellm, 'completion', completion)
     state = graph.invoke({'target': ['127.0.0.1'], 'authorization_confirmed': True,
                           'run_id': 'test-invoke', 'errors': [], 'events': [],
                           'max_iterations': 3, 'tool_call_budget': 10, 'token_budget': 2000},
@@ -99,8 +108,8 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
     assert len(state['candidates']) == 1
     assert state['report']['stop_reason'] == 'no_new_actions'
     assert state['report']['mode'] == 'llm'
-    assert state['metrics']['tool_calls_used'] == 3
-    assert calls == ['/bin/nmap', '/bin/httpx', '/bin/nuclei']
+    assert state['metrics']['tool_calls_used'] == 2
+    assert calls == ['/bin/httpx', '/bin/nuclei']
 
 
 def test_budget_limits_tool_execution_and_report_reason(monkeypatch):

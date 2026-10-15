@@ -13,3 +13,12 @@ def record_tool_call(state, name):
     metrics['by_tool'] = by_tool
     metrics['tool_calls_used'] = int(metrics.get('tool_calls_used', 0)) + 1
     return metrics
+
+
+def remaining_seconds(state):
+    import time
+    return max(0.0, float(state.get('time_budget_seconds', 1800)) - (time.time() - float(state.get('run_started_at', time.time()))))
+
+
+def tool_timeout(state, default):
+    return max(0.001, min(float(default), remaining_seconds(state)))

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+PY=/root/miniforge3/bin/python
+COMPOSE="$ROOT/lab/vampi/compose.yaml"
+export PYTHONPATH="$ROOT${PYTHONPATH:+:$PYTHONPATH}"
+export LITELLM_LOCAL_MODEL_COST_MAP=True
+cd "$ROOT"
+start() { systemctl start adaptix-vampi.service adaptix-vampi-refresh.timer; docker compose -f "$COMPOSE" up -d --wait --wait-timeout 90; }
+case "${1:-help}" in
+  start) start ;;
+  stop) systemctl stop adaptix-vampi-refresh.timer adaptix-vampi.service; docker compose -f "$COMPOSE" stop ;;
+  status) docker compose -f "$COMPOSE" ps; systemctl is-enabled adaptix-vampi.service ;;
+  prepare) start; "$PY" lab/vampi/prepare.py ;;
+  run)
+    shift
+    start
+    "$PY" lab/vampi/prepare.py
+    target="$(cat artifacts/labs/vampi/target.txt)"
+    exec "$PY" -m src.adaptix.main --target "$target" \
+      --idor-scenarios artifacts/labs/vampi/scenarios.json \
+      --lab-manifest artifacts/labs/vampi/manifest.json \
+      --instruction 'found vulnerability idor' \
+      --max-iterations 6 --tool-call-budget 4 --token-budget 14000 --time-budget 300 "$@"
+    ;;
+  backup) exec "$PY" lab/vampi/backup.py ;;
+  *) printf '%s\n' 'Penggunaan: lab/vampi/labctl {start|stop|status|prepare|run|backup}' 'run memperbarui login lalu menjalankan Adaptix pada lab lokal.' ;;
+esac

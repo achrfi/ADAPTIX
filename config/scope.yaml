@@ -3,12 +3,16 @@
 authorization_required: true
 allow_loopback_without_grant: true
 limits:
-  max_hosts: 16
-  max_web_urls: 32
   rate_per_second: 2
   concurrent_requests: 2
   timeout_seconds: 45
-  nmap_ports: '21,22,80,443,8080,8443,18080'
+  # All TCP ports. Also accepts e.g. '22,80,443,8000-9000'.
+  nmap_ports: 'all'
+  nmap_timeout_seconds: 900
+  # Select HTTP template tags from observed products/technology. Unknown -> native -as.
+  # 'default' restores full native selection; 'baseline' or local path lists also work.
+  nuclei_templates: 'adaptive'
+  nuclei_timeout_seconds: 7200
 # Tidak dapat dimintakan sebagai target walaupun grant ditandatangani.
 blocked_cidrs:
   - 0.0.0.0/8

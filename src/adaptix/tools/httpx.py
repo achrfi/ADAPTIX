@@ -4,9 +4,10 @@ from urllib.parse import urlsplit
 from src.adaptix.config import config
 from src.adaptix.tools.registry import tool_registry, run_tool
 from src.adaptix.security.scope import allowed_url
+from src.adaptix.security.transport import bind_cli_urls, logical_url
 from src.adaptix.evidence.storage import artifact_path, save_text
 from src.adaptix.workflow.events import log
-from src.adaptix.workflow.budget import tool_budget_available, record_tool_call
+from src.adaptix.workflow.budget import tool_budget_available, record_tool_call, tool_timeout
 from src.adaptix.security.scope import endpoint_key
 
 
@@ -27,15 +28,17 @@ def httpx_probe(state):
         errors.append('ProjectDiscovery HTTPX unavailable: ' + registry['httpx']['detail'])
         return {'errors': errors, 'events': log(state, 'HTTPX: missing')}
     cfg = config('scope.yaml')['limits']
+    bound_urls, bindings, domain_flags = bind_cli_urls(urls, state)
     # Explicit on-disk input and stdin disabled: do not depend on CLI pipe/TTY behavior.
     # Only planned, scope-checked URLs are allowed into this file.
     targets_path = artifact_path(state, 'httpx-targets', urls[0], 'txt')
-    save_text(targets_path, '\n'.join(urls) + '\n')
+    save_text(targets_path, '\n'.join(bound_urls) + '\n')
     argv = [registry['httpx']['path'], '-l', str(targets_path), '-no-stdin',
-            '-j', '-silent', '-nc', '-nfs', '-duc',
+            '-j', '-silent', '-nc', '-nfs', '-duc', '-td', '-sc', '-title', '-server',
             '-t', str(cfg['concurrent_requests']), '-rl', str(cfg['rate_per_second']),
             '-timeout', '5', '-retries', '0']
-    result = run_tool(argv, timeout=max(int(cfg['timeout_seconds']), 60), stdin='')
+    argv.extend(domain_flags)
+    result = run_tool(argv, timeout=tool_timeout(state, max(int(cfg['timeout_seconds']), 60)), stdin='')
     execution_metrics = record_tool_call(state, 'httpx')
     errors_new = errors
     if result['returncode'] != 0:
@@ -48,14 +51,14 @@ def httpx_probe(state):
     for line in raw.splitlines():
         try:
             row = json.loads(line)
-            url = row.get('url', '')
-            if allowed_url(url, state['hosts'], allowed_ports) and endpoint_key(url) in approved:
+            url = logical_url(row.get('url', ''), bindings)
+            if allowed_url(url, state['hosts'], allowed_ports, state.get('scope_aliases'), state.get('scope_networks')) and endpoint_key(url) in approved:
                 found.append({'url': url, 'status_code': row.get('status_code'), 'title': row.get('title', ''),
                               'tech': row.get('tech', []), 'webserver': row.get('webserver', '')})
         except (json.JSONDecodeError, TypeError):
             continue
     previous = list(state.get('http_services', []))
-    previous_keys = {endpoint_key(item.get('url', '')) for item in previous}
-    previous.extend(item for item in found if endpoint_key(item['url']) not in previous_keys)
+    from src.adaptix.processing.normalize import deduplicate
+    previous = deduplicate('http_services', previous + found)
     return {'http_services': previous, 'execution_metrics': execution_metrics, 'raw_bytes': state.get('raw_bytes', 0) + len(raw.encode()),
             'errors': errors_new, 'events': log(state, f'HTTPX: {len(found)} live HTTP endpoints')}

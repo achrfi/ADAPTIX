@@ -1,0 +1,15 @@
+flowchart TD
+  U[Free natural-language instruction and selected target] --> S[Signed scope guard and DNS pins]
+  S -->|allowed| P[Adaptive planner: evidence, reflection, remaining budget]
+  S -->|denied| B[Blocked report]
+  P --> C[Rank feasible model candidates by benefit and cost]
+  C -->|one action| G[Execution scope, operation and human-approval gate]
+  G -->|allowed| T[Registry capability adapter]
+  G -->|denied| R[Report denial and missing approval]
+  T --> O[Parse, filter, deduplicate and summarize observations]
+  C -->|no action or budget stop| O
+  O --> V[Evidence verification and uncertainty assessment]
+  V --> K[State update and sanitized checkpoint]
+  K -->|budget remains, objective unresolved| P
+  K -->|stop condition| R
+  R --> A[Evidence index, token ledger, audit bundle and final report]

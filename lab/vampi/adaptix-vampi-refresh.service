@@ -1,0 +1,10 @@
+[Unit]
+Description=Refresh credentials for the running local VAmPI lab
+Requisite=adaptix-vampi.service
+After=adaptix-vampi.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/root/projects/adaptix
+ExecStart=/root/miniforge3/bin/python /root/projects/adaptix/lab/vampi/prepare.py
+UMask=0077

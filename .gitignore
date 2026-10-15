@@ -63,3 +63,6 @@ Thumbs.db
 .coverage
 htmlcov/
 .tox/
+
+# Worker-local signed scope key
+config/.adaptix_scope_signing_key

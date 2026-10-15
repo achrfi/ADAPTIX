@@ -1,0 +1,25 @@
+name: adaptix-vampi
+services:
+  vampi:
+    image: adaptix-vampi:persistent-20261015-075456
+    pull_policy: never
+    container_name: vampi-lab
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:5000"
+    environment:
+      vulnerable: "1"
+      tokentimetolive: "3600"
+    volumes:
+      - ../../artifacts/labs/vampi/data/database:/vampi/database
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; assert json.load(urllib.request.urlopen('http://127.0.0.1:5000/',timeout=3))['vulnerable']==1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

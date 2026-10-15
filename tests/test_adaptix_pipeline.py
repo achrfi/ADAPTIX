@@ -5,7 +5,7 @@ from src.adaptix.agents import planner
 from src.adaptix.tools import nmap as nmap_tool, httpx as httpx_tool, nuclei as nuclei_tool, playwright as browser_tool
 
 
-def test_deterministic_nodes_with_mock_tools(monkeypatch):
+def test_legacy_adapters_with_explicit_model_decision(monkeypatch):
     fake_registry = lambda: {
         'nmap': {'path': '/bin/nmap', 'enabled': True},
         'httpx': {'path': '/bin/httpx', 'enabled': True},
@@ -13,8 +13,13 @@ def test_deterministic_nodes_with_mock_tools(monkeypatch):
         'playwright': {'path': None, 'enabled': True, 'detail': 'missing'}}
     for module in (nmap_tool, httpx_tool, nuclei_tool, browser_tool, planner):
         monkeypatch.setattr(module, 'tool_registry', fake_registry)
-    monkeypatch.setattr(planner.litellm, 'completion', lambda **kw: (_ for _ in ()).throw(
-        RuntimeError('Ollama offline')))
+    from unittest.mock import MagicMock
+    response = MagicMock()
+    response.choices[0].message.content = json.dumps({'actions': [{'tool': 'httpx', 'target': 'http://127.0.0.1:18080', 'reason': 'check', 'priority': {'goal_relevance': 0.8, 'information_gain': 0.7, 'evidence_value': 0.6, 'confidence': 0.9, 'estimated_tokens': 100, 'estimated_seconds': 1, 'estimated_requests': 1}}], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'check'})
+    response.usage.total_tokens = 70
+    response.usage.prompt_tokens = 50
+    response.usage.completion_tokens = 20
+    monkeypatch.setattr(planner.litellm, 'completion', lambda **kw: response)
     xml = '<nmaprun><host><ports><port protocol="tcp" portid="18080"><state state="open"/><service name="http" product="nginx" version="1.31.6"/></port></ports></host></nmaprun>'
     calls = []
     def fake_run_tool(argv, timeout=45, stdin=None):
@@ -47,8 +52,8 @@ def test_deterministic_nodes_with_mock_tools(monkeypatch):
     assert state['report']['status'] == 'scan_completed'  # Missing tool is not chosen by planner
     assert len(state['services']) == 1
     assert len(state['http_services']) == 1
-    assert len(state['candidates']) == 1
+    assert len(state.get('candidates', [])) == 0
     assert state['verified_findings'] == []
     assert state['metrics']['llm_calls'] == 1
-    assert state['metrics']['tool_calls_used'] == 3
-    assert len(calls) == 3
+    assert state['metrics']['tool_calls_used'] == 2
+    assert len(calls) == 2

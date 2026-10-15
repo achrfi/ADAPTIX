@@ -14,7 +14,7 @@ import secrets
 import time
 
 from src.adaptix.config import ROOT, config
-from src.adaptix.security.scope import expand_targets, normalize_requests
+from src.adaptix.security.scope import resolve_scope, normalize_requests, iter_scope_units, scope_contains_ip, network_host_count
 
 KEY_PATH = ROOT / 'config' / '.adaptix_scope_signing_key'
 
@@ -47,10 +47,11 @@ def issue_grant(targets, principal, hours=24, destination=None):
         raise ValueError('Lama izin maksimal 168 jam')
     policy = config('scope.yaml')
     requested = normalize_requests(targets)
-    hosts = expand_targets(requested, policy, require_allowlist=False)
+    manifest = resolve_scope(requested, policy)
     now = int(time.time())
-    payload = {'version': 1, 'grant_id': secrets.token_hex(12), 'principal': principal,
-               'targets': requested, 'hosts': hosts, 'issued_at': now, 'expires_at': now + int(hours * 3600)}
+    payload = {'version': 2, 'grant_id': secrets.token_hex(12), 'principal': principal,
+               'targets': requested, 'hosts': manifest['hosts'], 'networks': manifest['networks'],
+               'aliases': manifest['aliases'], 'issued_at': now, 'expires_at': now + int(hours * 3600)}
     signature = hmac.new(_key(), _payload_bytes(payload), hashlib.sha256).hexdigest()
     record = {'payload': payload, 'signature': signature}
     if destination is None:
@@ -63,7 +64,7 @@ def issue_grant(targets, principal, hours=24, destination=None):
     return path, payload
 
 
-def verify_grant(path, requested, principal, policy):
+def verify_scope_grant(path, requested, principal, policy):
     """Check signer, principal, expiry, exact targets, and pinned resolved IPs."""
     if not principal:
         raise ValueError('principal wajib disediakan')
@@ -78,19 +79,39 @@ def verify_grant(path, requested, principal, policy):
     if not hmac.compare_digest(expected, provided_signature):
         raise ValueError('Grant signature tidak valid')
     now = int(time.time())
-    if payload.get('version') != 1 or payload.get('expires_at', 0) <= now or payload.get('issued_at', now+1) > now:
+    if payload.get('version') not in (1, 2) or payload.get('expires_at', 0) <= now or payload.get('issued_at', now+1) > now:
         raise ValueError('Grant sudah kadaluarsa atau waktu tidak valid')
     if payload.get('principal') != principal:
         raise ValueError('Grant principal tidak sesuai')
     canonical = normalize_requests(requested)
     if not set(canonical).issubset(set(payload['targets'])):
         raise ValueError('Ada target di luar grant')
-    # DNS re-resolution must match exactly; prevents changed/rebound destinations.
-    # Scanners receive the *pinned IPs*, never a domain for resolution again.
-    resolved = expand_targets(canonical, policy, require_allowlist=False)
-    if not set(resolved).issubset(set(payload['hosts'])):
+    resolved = resolve_scope(requested, policy)
+    pinned = set(payload['hosts'])
+    if not set(resolved['hosts']).issubset(pinned):
         raise ValueError('DNS atau IP target berubah dari saat grant diterbitkan; minta grant baru')
+    if payload['version'] == 1:
+        # Older grants explicitly list every CIDR host. Bound validation by that list.
+        for network in resolved['networks']:
+            if network_host_count(network) > len(pinned):
+                raise ValueError('CIDR outside legacy grant hosts')
+            if not all(unit in pinned for unit in iter_scope_units({'units': [], 'networks': [network]})):
+                raise ValueError('CIDR outside legacy grant hosts')
+    else:
+        signed_networks = [ipaddress.ip_network(n) for n in payload.get('networks', [])]
+        for value in resolved['networks']:
+            net = ipaddress.ip_network(value)
+            if not any(net.version == n.version and net.subnet_of(n) for n in signed_networks):
+                raise ValueError('CIDR outside signed grant')
+        if any(resolved['aliases'].get(name) != pins for name, pins in payload.get('aliases', {}).items() if name in resolved['aliases']):
+            raise ValueError('DNS changed from signed domain pins')
     return resolved, payload['grant_id']
+
+
+def verify_grant(path, requested, principal, policy):
+    """Compatibility return value for callers that only need explicit pinned IPs."""
+    manifest, grant_id = verify_scope_grant(path, requested, principal, policy)
+    return manifest['hosts'], grant_id
 
 
 def main():
@@ -109,8 +130,22 @@ def main():
     elif args.command == 'issue':
         path, payload = issue_grant(args.target, args.principal, args.hours, args.output)
         print(json.dumps({'grant_file': str(path), 'principal': payload['principal'], 'targets': payload['targets'],
-                          'pinned_hosts': payload['hosts'], 'expires_at_epoch': payload['expires_at']}, indent=2))
+                          'pinned_hosts': payload['hosts'], 'networks': payload.get('networks', []), 'expires_at_epoch': payload['expires_at']}, indent=2))
 
 
 if __name__ == '__main__':
     main()
+
+
+def authorize_cli_targets(targets, principal=None, grant=None):
+    """The local operator's CLI invocation attests permission for this run.
+
+    The signing key is worker-local. Public API callers cannot issue grants.
+    """
+    import getpass
+    principal = principal or getpass.getuser()
+    if grant:
+        return grant, principal
+    _key(create=True)
+    path, _ = issue_grant(targets, principal, hours=1)
+    return str(path), principal

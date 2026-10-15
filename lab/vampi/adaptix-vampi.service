@@ -1,0 +1,17 @@
+[Unit]
+Description=Persistent Adaptix VAmPI local lab
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/root/projects/adaptix
+ExecStart=/usr/bin/docker compose -f /root/projects/adaptix/lab/vampi/compose.yaml up -d --wait --wait-timeout 90
+ExecStartPost=/root/miniforge3/bin/python /root/projects/adaptix/lab/vampi/prepare.py
+ExecStop=/usr/bin/docker compose -f /root/projects/adaptix/lab/vampi/compose.yaml stop
+TimeoutStartSec=150
+TimeoutStopSec=45
+
+[Install]
+WantedBy=multi-user.target

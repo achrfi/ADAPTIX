@@ -1,5 +1,5 @@
 import pytest
-from src.adaptix.security.scope import expand_targets, allowed_url
+from src.adaptix.security.scope import expand_targets, allowed_url, resolve_scope, scope_window
 from src.adaptix.workflow.nodes import scope_guard
 
 SETTINGS = {'allowed_cidrs': ['127.0.0.0/8', '192.168.56.0/28'],
@@ -19,14 +19,16 @@ def test_cidr_expansion():
     assert expand_targets(['192.168.56.0/30'], SETTINGS) == ['192.168.56.1', '192.168.56.2']
 
 
-def test_large_cidr_refused():
-    with pytest.raises(ValueError, match='CIDR terlalu besar'):
-        expand_targets(['127.0.0.0/8'], SETTINGS)
+def test_large_cidr_remains_compact_and_has_budget_sized_window():
+    scope = resolve_scope(['127.0.0.0/8'], SETTINGS, require_allowlist=True)
+    assert scope['total_units'] == 16777214
+    assert scope['networks'] == ['127.0.0.0/8']
+    assert scope_window(scope, [], 2) == ['127.0.0.1', '127.0.0.2']
 
 
-def test_no_authorization_blocks():
+def test_loopback_scope_needs_no_redundant_confirmation_flag():
     response = scope_guard({'target': ['127.0.0.1'], 'events': [], 'authorization_confirmed': False})
-    assert response['status'] == 'scope_blocked'
+    assert response['status'] == 'scope_ok'
 
 
 def test_external_url_and_port_blocked():
