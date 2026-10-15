@@ -4,6 +4,10 @@ from langgraph.graph import StateGraph, END
 from src.adaptix.workflow.nodes import (
     scope_guard, adaptive_planning, observation_processing,
     reflection_verification, state_update, final_report, blocked_report,
+<<<<<<< HEAD
+=======
+    advance_action, idor_test,
+>>>>>>> origin/main
 )
 from src.adaptix.agents.planner import budget_exhausted
 
@@ -99,6 +103,7 @@ def after_update(state):
 from src.adaptix.workflow.nodes import execute_action
 builder = StateGraph(AgentState)
 for name, func in (
+<<<<<<< HEAD
     ('scope_guard', scope_guard), ('adaptive_planning', adaptive_planning),
     ('execute_action', execute_action), ('observation_processing', observation_processing),
     ('reflection_verification', reflection_verification), ('state_update', state_update),
@@ -110,6 +115,30 @@ builder.add_conditional_edges('scope_guard', lambda s: 'blocked' if s.get('statu
                               {'blocked': 'blocked_report', 'approved': 'adaptive_planning'})
 builder.add_conditional_edges('adaptive_planning', next_action, {'execute': 'execute_action', 'done': 'observation_processing'})
 builder.add_edge('execute_action', 'observation_processing')
+=======
+    ('scope_guard', scope_guard), ('reconnaissance', reconnaissance),
+    ('adaptive_planning', adaptive_planning), ('httpx', httpx_probe),
+    ('nuclei', nuclei_check), ('playwright', browser_observe),
+    ('advance_action', advance_action), ('idor_test', idor_test),
+    ('observation_processing', observation_processing),
+    ('reflection_verification', reflection_verification),
+    ('state_update', state_update), ('final_report', final_report),
+    ('blocked_report', blocked_report),
+):
+    builder.add_node(name, func)
+builder.set_entry_point('scope_guard')
+builder.add_conditional_edges('scope_guard',
+                              lambda s: 'blocked' if s.get('status') == 'scope_blocked' else 'approved',
+                              {'blocked': 'blocked_report', 'approved': 'reconnaissance'})
+builder.add_edge('reconnaissance', 'adaptive_planning')
+routes = {'httpx': 'httpx', 'nuclei': 'nuclei', 'playwright': 'playwright',
+          'done': 'idor_test'}
+builder.add_conditional_edges('adaptive_planning', next_action, routes)
+for tool in ('httpx', 'nuclei', 'playwright'):
+    builder.add_edge(tool, 'advance_action')
+builder.add_conditional_edges('advance_action', next_action, routes)
+builder.add_edge('idor_test', 'observation_processing')
+>>>>>>> origin/main
 builder.add_edge('observation_processing', 'reflection_verification')
 builder.add_edge('reflection_verification', 'state_update')
 builder.add_conditional_edges('state_update', after_update, {'replan': 'adaptive_planning', 'report': 'final_report'})
