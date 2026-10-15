@@ -67,7 +67,6 @@ htmlcov/
 # Worker-local signed scope key
 config/.adaptix_scope_signing_key
 
-/benchmarks/
 /IDOR_REPORT_FIX.md
 /INTEGRATION.md
 /NMAP_NUCLEI_COVERAGE.md
