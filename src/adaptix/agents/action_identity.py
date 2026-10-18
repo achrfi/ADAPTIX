@@ -34,6 +34,10 @@ def execution_identity(action, state):
         data['identity_revision'] = hashlib.sha256(json.dumps(state.get('identity_context', {}), sort_keys=True).encode()).hexdigest()
     if action['tool'] == 'nuclei':
         data['profile'] = nuclei_signature(state, action['target'])
+    if action['tool'] == 'http_request':
+        data['method'] = str(action.get('method') or 'GET').upper()
+        if action.get('body'):
+            data['body'] = hashlib.sha256(str(action['body']).encode()).hexdigest()
     return hashlib.sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
 
 

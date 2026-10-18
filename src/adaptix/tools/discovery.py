@@ -7,14 +7,15 @@ from urllib.parse import quote, urljoin, urlsplit, urlunsplit
 import httpx
 
 from src.adaptix.config import config
+from src.adaptix.evidence.http_response import decoded_response
 from src.adaptix.evidence.storage import artifact_path, save_text
 from src.adaptix.evidence.sanitize import sanitize, response_record, scenario_secrets
+from src.adaptix.agents.capabilities import (DOC_PATHS, document_probes, documentation_attempts,
+                                            endpoint_provenance, is_destructive)
 from src.adaptix.security.scope import allowed_url, endpoint_key
 from src.adaptix.security.ports import ports_for_state
 from src.adaptix.security.transport import bind_url
 from src.adaptix.workflow.budget import record_tool_call, tool_timeout, tool_budget_available
-
-DOC_PATHS = ('/openapi.json', '/swagger.json', '/api/openapi.json', '/api-docs')
 
 
 def origin(url):
@@ -32,31 +33,35 @@ def key(value):
 
 
 def known_endpoints(state):
-    targets = state.get('target', [])
-    targets = [targets] if isinstance(targets, str) else targets
-    urls = {u for u in targets if '://' in u}
-    for u in list(urls):
-        urls.add(origin(u) + '/')
-    for row in state.get('services', []):
-        if 'http' in row.get('service', '').lower():
-            host = row['host']
-            host = '[' + host + ']' if ':' in host else host
-            urls.add(f'{"https" if row.get("tunnel") == "ssl" or row["port"] == 443 else "http"}://{host}:{row["port"]}/')
-    for kind in ('http_services', 'browser_evidence', 'api_observations'):
-        for row in state.get(kind, []):
-            if row.get('url'):
-                urls.add(row['url'])
-            urls.update(row.get('links', []))
-    urls.update(row['url'] for row in state.get('api_operations', []) if '{' not in row['url'])
-    urls.update(row['url'] for row in state.get('scenario_candidates', []))
+    """Every in-scope endpoint this run has observed, with its provenance.
+
+    Discovered references count. A route literal found in a JavaScript bundle is
+    observed evidence that the application names the endpoint, which makes it
+    eligible for a bounded request; it is not a claim that the endpoint answered.
+    """
+    provenance = endpoint_provenance(state)
+    urls = set()
+    for row in provenance.values():
+        urls.update(row['urls'])
     return {u for u in urls if permitted(state, u)}
 
 
+def validated_endpoints(state):
+    """Endpoints for which an actual response was recorded."""
+    provenance = endpoint_provenance(state)
+    return {(row['urls'][0] if row['urls'] else '')
+            for row in provenance.values() if row['validated'] and permitted(state, row['urls'][0])}
+
+
 def discovery_targets(state):
-    """Conventional document paths are labelled probes, never claimed observations."""
-    urls = known_endpoints(state)
-    values = urls | {origin(u) + p for u in urls for p in DOC_PATHS if permitted(state, origin(u) + p)}
-    return sorted(values, key=lambda u: (not u.endswith('/openapi.json'), u))
+    """Endpoints ``api_discover`` may fetch: every observed endpoint plus labelled probes.
+
+    Conventional document paths are hypotheses, not observations; a probe that was
+    already fetched and did not yield a usable document stays visible as a recorded
+    limitation instead of silently disappearing or being fetched again.
+    """
+    values = known_endpoints(state) | set(document_probes(state))
+    return sorted(values, key=lambda u: (not u.endswith(('/openapi.json', '/openapi.yaml')), u))
 
 
 def read_get(state, url, headers=None):
@@ -75,7 +80,7 @@ def read_get(state, url, headers=None):
                 data.extend(chunk)
                 if len(data) > 1_000_000:
                     raise ValueError('API document exceeds evidence limit')
-            return httpx.Response(response.status_code, headers=response.headers, content=bytes(data), request=response.request)
+            return decoded_response(response, data)
 
 
 def records(body):
@@ -85,6 +90,24 @@ def records(body):
         found = [r for v in body.values() if isinstance(v, list) for r in v if isinstance(r, dict)]
         return found[:128] if found else [body]
     return []
+
+
+def json_links(value, base):
+    """Links must appear in actual response data, never schema example values."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key.lower() in ('url', 'href', 'openapi', 'swagger', 'docs') and isinstance(item, str):
+                yield urljoin(base, item)
+            elif isinstance(item, (dict, list)):
+                yield from json_links(item, base)
+    elif isinstance(value, list):
+        for item in value:
+            yield from json_links(item, base)
+
+
+def html_links(text, base):
+    for match in re.findall(r'''(?:href\s*=|\burl\s*:)\s*["']([^"']+)["']''', text):
+        yield urljoin(base, match)
 
 
 def derive_candidates(state):
@@ -123,8 +146,8 @@ def derive_candidates(state):
 
 def api_discover(state):
     url = state['planned_actions'][0]['target']
-    if url not in discovery_targets(state) or re.search(r'/(?:createdb|reset|delete|logout|shutdown)(?:/|$)', urlsplit(url).path, re.I):
-        raise ValueError('Unobserved endpoint; use a listed discovery target')
+    if url not in discovery_targets(state) or is_destructive(url):
+        raise ValueError('Endpoint outside the discovered set or a state-changing path')
     working = dict(state)
     try:
         response = read_get(working, url)
@@ -132,54 +155,52 @@ def api_discover(state):
         trace = response_record(response, secrets)
         path = artifact_path(state, 'api-observation', url, 'json')
         save_text(path, json.dumps({'url': sanitize(url), **trace}, ensure_ascii=False))
-        row = {'url': url, 'status_code': response.status_code, 'evidence_ref': str(path), 'links': [], 'records': []}
+        content_type = response.headers.get('content-type', '').split(';')[0].strip().lower()[:120]
+        row = {'url': url, 'status_code': response.status_code, 'content_type': content_type,
+               'evidence_ref': str(path), 'links': [], 'records': []}
         operations = list(state.get('api_operations', []))
-        if response.is_success:
-            try:
-                body = response.json()
-            except ValueError:
-                body = None
-            if isinstance(body, dict) and isinstance(body.get('paths'), dict) and ('openapi' in body or 'swagger' in body):
-                # OpenAPI servers/basePath may point elsewhere. Resolve, then pin every URL.
-                servers = body.get('servers') or []
-                base = urljoin(url, servers[0].get('url', '/')) if servers else origin(url) + body.get('basePath', '')
-                for route, methods in list(body['paths'].items())[:512]:
-                    if not isinstance(route, str) or not route.startswith('/') or not isinstance(methods, dict):
+        try:
+            body = response.json()
+        except (ValueError, httpx.HTTPError):
+            body = None
+        if not response.is_success:
+            row['document_kind'] = 'http_error'
+            row['reason'] = f'Documentation probe returned HTTP {response.status_code}; no usable API document'
+        elif isinstance(body, dict) and isinstance(body.get('paths'), dict) and ('openapi' in body or 'swagger' in body):
+            # OpenAPI servers/basePath may point elsewhere. Resolve, then pin every URL.
+            servers = body.get('servers') or []
+            base = urljoin(url, servers[0].get('url', '/')) if servers else origin(url) + body.get('basePath', '')
+            for route, methods in list(body['paths'].items())[:512]:
+                if not isinstance(route, str) or not route.startswith('/') or not isinstance(methods, dict):
+                    continue
+                for method, spec in methods.items():
+                    if method.lower() != 'get' or not isinstance(spec, dict):
                         continue
-                    for method, spec in methods.items():
-                        if method.lower() != 'get' or not isinstance(spec, dict):
-                            continue
-                        endpoint = base.rstrip('/') + route
-                        probe = re.sub(r'\{[^{}]+\}', 'placeholder', endpoint)
-                        if not permitted(state, probe):
-                            continue
-                        if re.search(r'/(?:createdb|reset|delete|logout|shutdown)(?:/|$)', route, re.I):
-                            continue
-                        operations.append({'url': endpoint, 'method': 'GET',
-                            'authenticated': bool(spec.get('security', body.get('security', []))),
-                            'summary': str(spec.get('summary', ''))[:160], 'source_ref': str(path)})
-                row['document_kind'] = 'openapi'
-            else:
-                row['records'] = sanitize(records(body), secrets)
-                # Links must appear in actual response data, never schema example values.
-                if isinstance(body, (dict, list)):
-                    def links(value):
-                        if isinstance(value, dict):
-                            for k, v in value.items():
-                                if k.lower() in ('url', 'href', 'openapi', 'swagger', 'docs') and isinstance(v, str):
-                                    yield urljoin(url, v)
-                                elif isinstance(v, (dict, list)):
-                                    yield from links(v)
-                        elif isinstance(value, list):
-                            for v in value:
-                                yield from links(v)
-                    row['links'] = [u for u in links(body) if permitted(state, u)][:64]
-                elif body is None:
-                    # Covers actual HTML links and Swagger UI's explicit document URL.
-                    for match in re.findall(r'''(?:href\s*=|\burl\s*:)\s*["']([^"']+)["']''', response.text):
-                        u = urljoin(url, match)
-                        if permitted(state, u):
-                            row['links'].append(u)
+                    endpoint = base.rstrip('/') + route
+                    probe = re.sub(r'\{[^{}]+\}', 'placeholder', endpoint)
+                    if not permitted(state, probe):
+                        continue
+                    if is_destructive(route):
+                        continue
+                    operations.append({'url': endpoint, 'method': 'GET',
+                        'authenticated': bool(spec.get('security', body.get('security', []))),
+                        'summary': str(spec.get('summary', ''))[:160], 'source_ref': str(path)})
+            row['document_kind'] = 'openapi'
+        elif isinstance(body, (dict, list)):
+            row['document_kind'] = 'json'
+            row['records'] = sanitize(records(body), secrets)
+            # Links must appear in actual response data, never schema example values.
+            row['links'] = [u for u in json_links(body, url) if permitted(state, u)][:64]
+        elif 'json' in content_type:
+            row['document_kind'] = 'invalid_json'
+            row['reason'] = 'Response declared JSON but the body could not be parsed'
+        else:
+            html = 'html' in content_type or bool(re.search(r'<\s*html', response.text[:512], re.I))
+            row['document_kind'] = 'html' if html else 'unstructured'
+            row['reason'] = ('HTML/SPA document returned for an API probe; no structured records' if html
+                             else 'Unrecognized document type; no structured records')
+            # Covers actual HTML links and Swagger UI's explicit document URL.
+            row['links'] = [u for u in html_links(response.text, url) if permitted(state, u)][:64]
         observations = state.get('api_observations', []) + [row]
         operations = list({(o['url'], o['method']): o for o in operations}.values())
         collections = {o['url'].split('/{')[0] for o in operations if '{' in o['url'] and o['authenticated']}
@@ -190,8 +211,9 @@ def api_discover(state):
         update['scenario_candidates'] = derive_candidates({**state, **update})
         return update
     except (httpx.HTTPError, ValueError) as exc:
+        reason = str(exc)[:200] if isinstance(exc, ValueError) else type(exc).__name__
         return {'execution_metrics': working.get('execution_metrics', {}),
-                'discovery_limitations': state.get('discovery_limitations', []) + [{'url': url, 'reason': type(exc).__name__}]}
+                'discovery_limitations': state.get('discovery_limitations', []) + [{'url': url, 'reason': reason}]}
 
 
 def at_path(body, parts):

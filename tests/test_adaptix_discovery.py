@@ -128,6 +128,47 @@ def test_rejection_ledger_survives_success_and_normalizes_url(monkeypatch):
     assert execution_identity(variant, s) == s['rejected_actions'][0]['execution_identity']
 
 
+def test_read_get_decodes_compressed_document_exactly_once(monkeypatch):
+    import gzip
+    s = state()
+    document = b'{"openapi": "3.0.0", "paths": {}}'
+    encoded = gzip.compress(document)
+    client = httpx.Client
+    monkeypatch.setattr(discovery.httpx, 'Client', lambda **kw: client(
+        transport=httpx.MockTransport(lambda request: httpx.Response(
+            200, headers={'content-type': 'application/json', 'content-encoding': 'gzip'}, content=encoded)), **kw))
+    response = discovery.read_get(s, BASE + '/openapi.json')
+    assert response.json() == {'openapi': '3.0.0', 'paths': {}}
+    assert 'content-encoding' not in response.headers
+
+
+def test_api_discover_records_error_document_instead_of_silent_limitation(monkeypatch, tmp_path):
+    s = state()
+    s['api_observations'], s['api_operations'] = [], []
+    s['planned_actions'] = [{'tool': 'api_discover', 'target': BASE + '/openapi.json'}]
+    page = httpx.Response(500, headers={'content-type': 'text/html; charset=utf-8'},
+                          content=b'<html><title>Error: Unexpected path</title></html>',
+                          request=httpx.Request('GET', BASE + '/openapi.json'))
+    monkeypatch.setattr(discovery, 'read_get', lambda *a: page)
+    monkeypatch.setattr(discovery, 'artifact_path', lambda *a: tmp_path / 'observed.json')
+    result = discovery.api_discover(s)
+    row = result['api_observations'][-1]
+    assert row['status_code'] == 500 and row['document_kind'] == 'http_error'
+    assert row['reason'] and 'discovery_limitations' not in result
+
+
+def test_api_discover_flags_invalid_json_without_records(monkeypatch, tmp_path):
+    s = state()
+    s['api_observations'], s['api_operations'] = [], []
+    s['planned_actions'] = [{'tool': 'api_discover', 'target': BASE + '/openapi.json'}]
+    broken = httpx.Response(200, headers={'content-type': 'application/json'},
+                            content=b'{not valid json', request=httpx.Request('GET', BASE + '/openapi.json'))
+    monkeypatch.setattr(discovery, 'read_get', lambda *a: broken)
+    monkeypatch.setattr(discovery, 'artifact_path', lambda *a: tmp_path / 'observed.json')
+    row = discovery.api_discover(s)['api_observations'][-1]
+    assert row['document_kind'] == 'invalid_json' and row['records'] == []
+
+
 def test_discovery_transport_reserves_each_request(monkeypatch):
     s = state()
     calls = []

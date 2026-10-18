@@ -25,6 +25,8 @@ def main():
     parser.add_argument('--token-budget', type=int, default=50000)
     parser.add_argument('--model-context-tokens', type=int, default=4096, help='Maximum input and reserved output context per planner call')
     parser.add_argument('--planner-retries', type=int, default=1, help='Additional bounded model attempts, 0-3')
+    parser.add_argument('--llm-timeout', type=float, default=None,
+                        help='Per-call provider window in seconds; bounded by the run time budget and ADAPTIX_LLM_TIMEOUT')
     parser.add_argument('--lab-manifest', help='Operator lab snapshot and ground-truth manifest JSON')
     parser.add_argument('--action-approval', action='append', default=[], help='Signed approval for a state-changing capability')
     parser.add_argument('--run-id', help='Operator-chosen run identity for replay/audit and exact action approval')
@@ -40,6 +42,8 @@ def main():
         parser.error('temperature must be finite and between 0 and 2')
     if not 0 <= args.planner_retries <= 3:
         parser.error('planner retries must be between 0 and 3')
+    if args.llm_timeout is not None and not math.isfinite(args.llm_timeout):
+        parser.error('llm timeout must be finite')
     if min(args.max_iterations, args.tool_call_budget, args.token_budget, args.model_context_tokens) < 1:
         parser.error('budget values must be positive')
     if not args.target:
@@ -60,6 +64,7 @@ def main():
              'llm_temperature': args.temperature,
              'model_context_tokens': args.model_context_tokens,
              'planner_retry_limit': args.planner_retries, 'action_approvals': args.action_approval,
+             'llm_timeout_seconds': args.llm_timeout,
              'lab_manifest': json.load(open(args.lab_manifest, encoding='utf-8')) if args.lab_manifest else {},
              'time_budget_seconds': args.time_budget, 'tool_call_budget': args.tool_call_budget, 'token_budget': args.token_budget}
     result = graph.invoke(state, config={'recursion_limit': max(50, 10 + args.max_iterations * (args.tool_call_budget * 2 + 5))})

@@ -206,6 +206,9 @@ def domain_aliases(requested, hosts, policy):
 def scope_ports(requested, policy):
     ports = set(parse_ports(policy['limits']['nmap_ports']))
     ports.update((80, 443))
+    web_ports = policy['limits'].get('web_ports')
+    if web_ports:
+        ports.update(parse_ports(web_ports))
     values = [requested] if isinstance(requested, str) else requested
     for value in values:
         value = str(value)

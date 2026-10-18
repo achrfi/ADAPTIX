@@ -20,8 +20,13 @@ class AgentState(TypedDict, total=False):
     planner_cache: dict[str, Any]
     planner_retry_limit: int
     consecutive_policy_rejections: int
+    consecutive_infeasible_actions: int
+    infeasible_stop_limit: int
+    consecutive_provider_failures: int
+    provider_failure_limit: int
     policy_replan_limit: int
     llm_temperature: float
+    llm_timeout_seconds: float
     model_context_tokens: int
     token_ledger: list[dict[str, Any]]
     tool_catalog: dict[str, Any]
@@ -69,6 +74,12 @@ class AgentState(TypedDict, total=False):
     browser_evidence: list[dict[str, Any]]
     idor_scenarios: list[dict[str, Any]]
     idor_findings: list[dict[str, Any]]
+    web_routes: list[dict[str, Any]]
+    discovered_documents: list[str]
+    probe_traces: list[dict[str, Any]]
+    request_audit: list[dict[str, Any]]
+    hypotheses: list[dict[str, Any]]
+    findings: list[dict[str, Any]]
     structured_observations: dict[str, Any]
     verified_findings: list[dict[str, Any]]
     rejected_findings: list[dict[str, Any]]

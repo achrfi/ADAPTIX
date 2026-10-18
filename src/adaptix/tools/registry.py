@@ -54,9 +54,14 @@ def tool_registry():
     result['playwright'] = {'enabled': enabled, 'path': 'python-module' if (installed and enabled) else None,
                             'detail': 'disabled' if not enabled else ('validated' if installed else 'python package missing'),
                             'version': importlib.metadata.version('playwright') if installed else ''}
+    for name in ('web_discover', 'http_request'):
+        result[name] = {'enabled': True, 'path': 'python-module', 'detail': 'in-process scope-pinned HTTP adapter',
+                        'version': ''}
     descriptions = {'nmap': 'Discover services on one pinned host', 'httpx': 'Observe one HTTP endpoint',
                     'nuclei': 'Run configured Nuclei templates. Adaptive mode uses observed Nmap products/HTTPX technologies to select HTTP template tags; unknown products use native automatic detection. HTTPX first can improve selection. Matches are unverified.',
-                    'playwright': 'Observe browser page and capture screenshot without form submission'}
+                    'playwright': 'Observe browser page and capture screenshot without form submission',
+                    'web_discover': 'Passive reconnaissance: GET one seed document plus robots.txt and sitemap.xml, then extract in-scope links, forms, scripts and documented routes into web_routes.',
+                    'http_request': 'Send one bounded, rate-limited HTTP request to an in-scope URL. Method GET/HEAD is non-destructive; POST/PUT/PATCH/DELETE require exact human approval. The response is reduced to a structured trace with deterministic signatures (SQL/NoSQL errors, reflected markup, traversal markers, sensitive data); a signature is not proof by itself.'}
     for name, description in descriptions.items():
         result[name]['description'] = description
     result['idor'] = {'enabled': True, 'path': 'python-module', 'detail': 'two-identity configured scenario; GET only',
@@ -69,6 +74,7 @@ def tool_registry():
         spec['risk'] = 'template_dependent' if name == 'nuclei' else 'observe'
         spec['operation'] = 'authorization_test_get' if name == 'idor' else 'observe'
     return result
+
 
 def run_tool(argv, timeout=45, stdin=None):
     """No shell interpolation; prevent unbounded output and hanging processes."""
@@ -96,5 +102,7 @@ def tool_handlers():
     from src.adaptix.tools.playwright import browser_observe
     from src.adaptix.tools.idor import idor_test
     from src.adaptix.tools.discovery import api_discover, build_scenario
+    from src.adaptix.tools.web import web_discover, http_request
     return {'nmap': reconnaissance, 'httpx': httpx_probe, 'nuclei': nuclei_check,
-            'playwright': browser_observe, 'idor': idor_test, 'api_discover': api_discover, 'scenario': build_scenario}
+            'playwright': browser_observe, 'idor': idor_test, 'api_discover': api_discover,
+            'scenario': build_scenario, 'web_discover': web_discover, 'http_request': http_request}

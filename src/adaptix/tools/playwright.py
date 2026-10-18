@@ -10,6 +10,24 @@ from src.adaptix.workflow.budget import tool_budget_available, record_tool_call,
 from src.adaptix.security.scope import endpoint_key
 
 
+def _in_scope(state, url, permitted_ports):
+    return allowed_url(url, state.get('hosts', []), permitted_ports,
+                       state.get('scope_aliases'), state.get('scope_networks'))
+
+
+def normalize_observed_url(request_url):
+    """Reduce an observed XHR/fetch URL to a routable endpoint (parameter names only).
+
+    Runtime values such as session ids and cache-busters are dropped so repeated
+    polling calls collapse to one discovered route.
+    """
+    from src.adaptix.tools.web import normalize_script_path
+    parsed = urlsplit(request_url)
+    path_and_query = parsed.path + (('?' + parsed.query) if parsed.query else '')
+    endpoint = normalize_script_path(path_and_query) or parsed.path
+    return f'{parsed.scheme}://{parsed.netloc}{endpoint}'
+
+
 def browser_observe(state):
     actions = state.get('planned_actions', [])
     cursor = int(state.get('action_cursor', 0))
@@ -29,9 +47,11 @@ def browser_observe(state):
     for url in urls:
         bind_url(url, state)
     from playwright.sync_api import sync_playwright
+    from src.adaptix.tools.web import route_row
     cfg = config('scope.yaml')['limits']
     permitted_ports = {urlsplit(url).port or (443 if url.startswith('https:') else 80) for url in urls}
     evidence = list(state.get('browser_evidence', []))
+    routes = list(state.get('web_routes', []))
     execution_metrics = dict(state.get('execution_metrics', {}))
     errors = list(state.get('errors', []))
     raw_bytes = int(state.get('raw_bytes', 0))
@@ -47,20 +67,31 @@ def browser_observe(state):
                     try:
                         page = context.new_page()
                         blocked_requests = []
+                        # Real application routes are the XHR/fetch calls the SPA
+                        # makes at runtime; observe only read-only in-scope traffic.
+                        observed_requests = {}
+
                         def route_request(route):
                             request = route.request
                             if (request.method in ('GET', 'HEAD') and remaining_seconds(state) > 0
-                                    and allowed_url(request.url, state['hosts'], permitted_ports, state.get('scope_aliases'), state.get('scope_networks'))):
+                                    and _in_scope(state, request.url, permitted_ports)):
+                                observed_requests[request.url] = request.resource_type
                                 route.continue_()
                             else:
                                 blocked_requests.append({'url': request.url, 'method': request.method,
                                                          'reason': 'read-only browser operation/scope policy'})
                                 route.abort()
+
                         page.route('**/*', route_request)
                         response = page.goto(url, wait_until='domcontentloaded', timeout=int(tool_timeout(state, 8)*1000))
                         # Abort external redirects/subresources; do not click or submit forms.
-                        if not allowed_url(page.url, state['hosts'], permitted_ports, state.get('scope_aliases'), state.get('scope_networks')):
+                        if not _in_scope(state, page.url, permitted_ports):
                             raise ValueError('Out-of-scope browser navigation blocked')
+                        # Give the SPA a bounded window to finish its initial API calls.
+                        try:
+                            page.wait_for_load_state('networkidle', timeout=int(tool_timeout(state, 6)*1000))
+                        except Exception:
+                            page.wait_for_timeout(500)
                         img = artifact_path(state, 'playwright', url, 'png')
                         raw_html = page.content()
                         raw_path = artifact_path(state, 'playwright-source', url, 'html')
@@ -69,11 +100,24 @@ def browser_observe(state):
                         page.screenshot(path=str(img), full_page=False, timeout=int(tool_timeout(state, 5)*1000))
                         img.chmod(0o600)
                         links = [link for link in page.locator('a[href]').evaluate_all('(nodes) => nodes.slice(0, 64).map(n => n.href)')
-                                 if allowed_url(link, state['hosts'], permitted_ports, state.get('scope_aliases'), state.get('scope_networks'))]
+                                 if _in_scope(state, link, permitted_ports)]
+                        api_endpoints = []
+                        for request_url, resource_type in observed_requests.items():
+                            if resource_type not in ('xhr', 'fetch'):
+                                continue
+                            # Keep parameter names but drop runtime values (session ids,
+                            # cache-busters) so one endpoint is recorded once.
+                            target = normalize_observed_url(request_url)
+                            row = route_row(state, target, 'GET', 'xhr' if resource_type == 'xhr' else 'fetch', str(raw_path))
+                            if not row or row['static_asset']:
+                                continue
+                            routes.append(row)
+                            api_endpoints.append({'url': row['url'], 'kind': row['kind'], 'api_like': row.get('api_like', False)})
                         evidence.append({'url': url, 'title': page.title()[:160],
                                          'status_code': response.status if response else None,
                                          'text_excerpt': page.locator('body').inner_text(timeout=int(tool_timeout(state, 3)*1000))[:2000],
                                          'links': list(dict.fromkeys(links)),
+                                         'api_endpoints': api_endpoints[:64],
                                          'blocked_requests': blocked_requests,
                                          'raw_ref': str(raw_path),
                                          'screenshot': str(img.relative_to(ROOT))})
@@ -85,5 +129,7 @@ def browser_observe(state):
                 browser.close()
     except Exception as exc:
         errors.append('Playwright startup: ' + str(exc)[:180])
-    return {'browser_evidence': evidence, 'execution_metrics': execution_metrics, 'raw_bytes': raw_bytes, 'errors': errors,
-            'events': log(state, f'Playwright: {len(evidence)} screenshots')}
+    routes = list({(endpoint_key(row['url']), row['method'], row['kind']): row for row in routes}.values())
+    return {'browser_evidence': evidence, 'web_routes': routes,
+            'execution_metrics': execution_metrics, 'raw_bytes': raw_bytes, 'errors': errors,
+            'events': log(state, f'Playwright: {len(evidence)} pages, {len(routes)} routes observed')}

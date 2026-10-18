@@ -70,7 +70,21 @@ def test_failed_llm_attempt_charged_without_fallback(monkeypatch):
     assert result['planner_metrics']['llm_calls'] == 1
     assert result['planner_metrics']['mode'] == 'llm_error'
     assert result['planned_actions'] == []
+    # One provider failure records the error and lets the run try again; a failed
+    # decision still authorizes nothing.
+    assert result['stop_reason'] is None
+    assert result['consecutive_provider_failures'] == 1
+    assert any('provider call failed' in message for message in result['errors'])
+
+
+def test_repeated_provider_failures_stop_the_run(monkeypatch):
+    monkeypatch.setattr(planner, 'tool_registry', _registry)
+    monkeypatch.setattr(planner.litellm, 'completion', lambda **kw: (_ for _ in ()).throw(
+        RuntimeError('Ollama unavailable')))
+    state = {**_state(), 'consecutive_provider_failures': 1}
+    result = planner.adaptive_planning(state)
     assert result['stop_reason'] == 'planner_unavailable'
+    assert result['planned_actions'] == []
 
 
 def test_repeated_actions_terminate_without_scanning_again(monkeypatch):

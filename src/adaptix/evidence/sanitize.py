@@ -38,7 +38,11 @@ def sanitize(value, secrets=()):
 def response_record(response, secrets=()):
     import hashlib
     import json
-    text = response.text
+    try:
+        text = response.text
+    except Exception:
+        # Defensive: a stale content-encoding must not lose an otherwise recorded response.
+        text = response.content.decode('utf-8', 'replace')
     try:
         body = json.dumps(sanitize(json.loads(text), secrets), ensure_ascii=False)
     except (ValueError, TypeError):

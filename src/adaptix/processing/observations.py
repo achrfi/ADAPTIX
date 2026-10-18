@@ -6,7 +6,8 @@ from src.adaptix.workflow.events import log
 
 
 def observation_processing(state):
-    kinds = ('services', 'recon_inventory', 'http_services', 'candidates', 'browser_evidence', 'idor_findings')
+    kinds = ('services', 'recon_inventory', 'http_services', 'candidates', 'browser_evidence', 'idor_findings',
+             'web_routes', 'probe_traces', 'request_audit')
     clean = {kind: deduplicate(kind, state.get(kind, [])) for kind in kinds}
     clean['hosts'] = list(dict.fromkeys(state.get('hosts', [])))
     encoded = json.dumps(clean, ensure_ascii=False, separators=(',', ':')).encode()
@@ -25,6 +26,8 @@ def observation_processing(state):
                         'size_comparison': 'no_raw_output' if not raw else 'expanded' if len(encoded) > raw else 'reduced' if len(encoded) < raw else 'unchanged',
                         'deduplicated_records': sum(len(state.get(k, [])) - len(clean[k]) for k in kinds),
                         'candidate_count': len(clean['candidates']), 'tool_failures': failures,
+                        'probe_evidence_rows': len(clean.get('probe_traces', [])),
+                        'request_attempts': len(clean.get('request_audit', [])),
                         'tool_error_rate': failures / len(outcomes) if outcomes else 0,
                         'tool_seconds': sum(o.get('seconds', 0) for o in outcomes),
                         'execution_seconds': max(0, time.time() - state.get('run_started_at', time.time())),

@@ -80,7 +80,9 @@ def test_failed_completion_reserves_token_budget(monkeypatch):
     monkeypatch.setattr(planner, 'tool_registry', lambda: {'httpx': {'enabled': True, 'path': 'cli'}})
     monkeypatch.setattr(planner.litellm, 'completion', lambda **kw: (_ for _ in ()).throw(RuntimeError('offline')))
     result = planner.adaptive_planning({'hosts': ['127.0.0.1'], 'token_budget': 2000})
-    assert result['planner_metrics']['tokens_used'] == 1124
+    envelope = result['planner_metrics']['response_envelope']
+    reserved = 100 + planner.envelope_cost(envelope)
+    assert result['planner_metrics']['tokens_used'] == reserved
     assert result['planned_actions'] == []
 
 
@@ -123,4 +125,5 @@ def test_empty_model_reflection_cannot_authorize_tool_execution(monkeypatch):
     monkeypatch.setattr(planner.litellm, 'completion', lambda **kw: response)
     result = planner.adaptive_planning({'hosts': ['127.0.0.1']})
     assert result['planned_actions'] == []
-    assert result['stop_reason'] == 'planner_unavailable'
+    assert result['consecutive_provider_failures'] == 1
+    assert result['stop_reason'] is None

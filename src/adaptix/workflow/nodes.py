@@ -116,12 +116,17 @@ def execute_action(state):
         except (OSError, ValueError) as exc:
             return {'errors': list(state.get('errors', [])) + ['Nuclei policy preflight: ' + str(exc)[:180]],
                     'attempted_actions': list(state.get('attempted_actions', [])) + [action],
-                    'policy_feedback': [{'action': action, 'reason': 'Template manifest unavailable; choose another useful tool or report the limitation'}],
+                    'policy_feedback': [{'kind': 'capability', 'code': 'template_manifest_unavailable',
+                                         'reason': 'Template manifest unavailable; choose another useful tool or report the limitation'}],
                     'events': log(state, 'Nuclei: preflight failed before any network request')}
         active_execution = scan_manifest['approval_required_count'] and (scan_manifest['approval']['result'] == 'allowed' or not scan_manifest['executable_count'])
         specification = {'risk': 'state_change' if active_execution else 'observe',
                          'manifest_sha256': scan_manifest['manifest_sha256']}
         action['manifest_sha256'] = scan_manifest['manifest_sha256']
+    else:
+        # Risk comes from what the request would actually do, not from its verb.
+        from src.adaptix.security.guard import action_effect
+        specification = {**specification, **action_effect({**state, 'tool_catalog': registry}, action)}
     approval = approval_for(state, action, specification)
     if action['tool'] == 'nuclei':
         approval['manifest_ref'] = scan_manifest['manifest_ref']

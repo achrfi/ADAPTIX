@@ -39,7 +39,7 @@ def rank_actions(state, actions, budget):
 
 
 def observation_facts(state):
-    fields = ('services', 'http_services', 'candidates', 'browser_evidence', 'idor_findings', 'verification_evidence', 'api_observations', 'scenario_validations')
+    fields = ('services', 'http_services', 'candidates', 'browser_evidence', 'idor_findings', 'verification_evidence', 'api_observations', 'scenario_validations', 'web_routes', 'probe_traces')
     facts = set()
     volatile = {'timestamp', 'evidence_id', 'evidence_ref', 'screenshot'}
     for field in fields:
