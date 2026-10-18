@@ -1,0 +1,585 @@
+{
+  "services": [],
+  "recon_inventory": [],
+  "http_services": [
+    {
+      "url": "http://127.0.0.1:3000",
+      "status_code": 200,
+      "title": "OWASP Juice Shop",
+      "tech": [],
+      "webserver": ""
+    }
+  ],
+  "candidates": [
+    {
+      "template_id": "tech-detect",
+      "url": "http://127.0.0.1:3000",
+      "severity": "info",
+      "status": "candidate_unverified",
+      "finding_type": "potential_vulnerability"
+    }
+  ],
+  "browser_evidence": [],
+  "idor_findings": [],
+  "web_routes": [
+    {
+      "url": "http://127.0.0.1:3000/assets/public/favicon_js.ico",
+      "method": "GET",
+      "kind": "link",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/styles.css",
+      "method": "GET",
+      "kind": "link",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rolldown-runtime-BoHGiXSq.js",
+      "method": "GET",
+      "kind": "script",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/chunk-DBPdFzgj.js",
+      "method": "GET",
+      "kind": "script",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/chunk-Cv2YgWUq.js",
+      "method": "GET",
+      "kind": "script",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/chunk-1qQQGal7.js",
+      "method": "GET",
+      "kind": "script",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/polyfills.js",
+      "method": "GET",
+      "kind": "script",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/scripts.js",
+      "method": "GET",
+      "kind": "script",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/main.js",
+      "method": "GET",
+      "kind": "script",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": null,
+      "static_asset": true
+    },
+    {
+      "url": "http://127.0.0.1:3000",
+      "method": "GET",
+      "kind": "document",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-039867371988.json",
+      "status_code": 200,
+      "static_asset": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/ftp",
+      "method": "GET",
+      "kind": "robots",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-7f424953d4dd.json",
+      "status_code": 200,
+      "static_asset": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/robots.txt",
+      "method": "GET",
+      "kind": "document",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-7f424953d4dd.json",
+      "status_code": 200,
+      "static_asset": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/sitemap.xml",
+      "method": "GET",
+      "kind": "document",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+      "status_code": 200,
+      "static_asset": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Feedbacks",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/web3",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Challenges/?key=",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Challenges",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/repeat-notification",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/continue-code",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/continue-code-findIt",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/continue-code-fixIt",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/continue-code/apply/",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/continue-code-findIt/apply/",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/continue-code-fixIt/apply/",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/address/edit/",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Users",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/user/authentication-details/",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/user/login",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/user/change-password?current=",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/user/reset-password",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/user/whoami",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/saveLoginIp",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/deluxe-membership",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Addresss",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/address/create",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Recycles",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/country-mapping",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/BasketItems",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/address/saved",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/i18n/",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Products",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Quantitys",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/address/select",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/track-order",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/captcha",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/SecurityAnswers",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/SecurityQuestions",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/user/security-question?email=",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/products",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/2fa/enter",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Complaints",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/image-captcha/",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/user",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/wallet/balance",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Deliverys",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Cards",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/order-history",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/track-result/new",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/memories",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Hints",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    },
+    {
+      "url": "http://127.0.0.1:3000/chatbot/conversation",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": false
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/chat",
+      "method": "GET",
+      "kind": "script_route",
+      "source": "/root/projects/adaptix/artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+      "status_code": null,
+      "static_asset": false,
+      "api_like": true
+    }
+  ],
+  "probe_traces": [],
+  "request_audit": [],
+  "hosts": [
+    "127.0.0.1"
+  ]
+}

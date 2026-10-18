@@ -1,0 +1,23 @@
+{
+  "verified": [],
+  "rejected": [],
+  "inconclusive": [
+    {
+      "evidence_id": "EV-001",
+      "source_tool": "nuclei",
+      "target": "http://127.0.0.1:3000",
+      "timestamp": 1792317528,
+      "template_id": "tech-detect",
+      "severity": "info",
+      "actual_observation": {
+        "status_code": 200,
+        "title": "OWASP Juice Shop"
+      },
+      "verification_evidence": null,
+      "confidence": "unconfirmed",
+      "verification_status": "inconclusive",
+      "reason": "HTTP status/severity do not prove or disprove a vulnerability; independent check needed"
+    }
+  ],
+  "idor": []
+}

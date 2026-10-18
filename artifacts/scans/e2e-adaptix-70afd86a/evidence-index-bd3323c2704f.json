@@ -1,0 +1,212 @@
+[
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/api-observation-a057684e6538.json",
+    "sha256": "58cfd733647d37b2ba2f36d81b33eed837b20152b0eda7f28ee767949a9e4fdf",
+    "bytes": 3065
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/approval-audit-c4eef423ec64.json",
+    "sha256": "183a48d6d35989adb3ab51fa33e778554aeb022d4ddd7b88a38b613a85544d5a",
+    "bytes": 4346
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0001-90375e8a9980.json",
+    "sha256": "42de7cb27c7be01a7d45551daf5fa15e030658d221abc32f1b80cf4f36289e2f",
+    "bytes": 746356
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0002-766be99c0885.json",
+    "sha256": "11c8483c43eb4a1fd827456c03e0ed427cd4a76eb1af769556fecce035838740",
+    "bytes": 767950
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0003-809ac0e6e2e1.json",
+    "sha256": "dfac053d83eddcf803b686f3c63e27a01fc7ec276994caf4a6e964a6190889b5",
+    "bytes": 788125
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0004-f2b498169621.json",
+    "sha256": "2c1821d6fcb0a84ce6c9a8e9b2e4e5e2398d90b63f42912f6a8b39c4c0bd0e5f",
+    "bytes": 856786
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0005-51d6abc63394.json",
+    "sha256": "d06c83a9742ea20596a0d102ddc7b25329a08299ec1a39e2aa35baaef1796161",
+    "bytes": 896391
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0006-fe1ea0375551.json",
+    "sha256": "aecc23344675a3cb75432fdd1b76511a6dbce4e4382e1b7b50e86da3b1b68366",
+    "bytes": 924800
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0007-32622725e427.json",
+    "sha256": "532aa982fe128537868a1e52669cbd2d9703eb56f45f155473f269cc7740e4a6",
+    "bytes": 952282
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0008-379db2708881.json",
+    "sha256": "0140ac1b5f7b8de3cf7adafdea91471fc98525a80d11ac97ed5415bf33d32dbc",
+    "bytes": 967004
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0009-ee4df3aa693a.json",
+    "sha256": "cdfe917a2d36adf1373c5b315998efd9a7471a0b264479ce7edb7b632067dc3b",
+    "bytes": 979093
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0010-5fed481476fe.json",
+    "sha256": "1f6e2176b1f63a4a1d7896107cf976d2178f2a83c46d4d0ec1a53febb9279a3c",
+    "bytes": 1002301
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0011-247155760c8d.json",
+    "sha256": "a76ed43fe01e3833b8d8ce296d73c691b2dac61736163a1d3b301bfd38e7cd2b",
+    "bytes": 1022197
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0012-c5caa7ea9b18.json",
+    "sha256": "00055cecb1311fb3f698fe54fc5bae51f6ee07a4937d293a421c045b88df3246",
+    "bytes": 1041973
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0013-6f3d2484e062.json",
+    "sha256": "c4cf05108870aa00b5a92c87aedcc435cd0761961009b2dc7f6f8f903aa5ac1d",
+    "bytes": 1067921
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0014-ac62db22c2e0.json",
+    "sha256": "4045aff0c02d1c976a14266e8fc73305c9b5d7630bd00b13bb8dfbba6ebd8cc0",
+    "bytes": 1085252
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0015-c9eb704c9e70.json",
+    "sha256": "6878b6508e5b8b9d19e778ef40dd39ede41080cc8c53c50fc69d8ab148233e5b",
+    "bytes": 1105248
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0016-54d742f04507.json",
+    "sha256": "78c4ef9311824e9140385bb6d12db2b86dad817da4a332a89c4bbfc7fa5cc5d5",
+    "bytes": 1124913
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0017-0f5343133eb4.json",
+    "sha256": "2342148b988f1eed9919c784afaee9d602f14b27f910bda2ee41ae3d95d0871f",
+    "bytes": 1158656
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0018-99ece0efa810.json",
+    "sha256": "5b520a4610d9a38a162dbc34ff8f846dadcc18fe461b54970227742ff648baa6",
+    "bytes": 1186311
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/checkpoint-0019-da56725fb763.json",
+    "sha256": "a0ae952eb784070fccb1867466972b5d56a498d13c3478323e38e8bc30186b25",
+    "bytes": 1199787
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/decisions-3183d37be506.json",
+    "sha256": "d7365591fbc1f0d523509bbe1200ab823e0b356c87f24e26ed476ee5e7c8c44d",
+    "bytes": 75627
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/events-862417b9e7c3.json",
+    "sha256": "271388f57b8193c7f57c9871a21ca5a1e13cbc7c88c816d739f64ee8cb527697",
+    "bytes": 4612
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/evidence-ee8250fb76e0.json",
+    "sha256": "1649377ca9e314054844cb13b0c30d1e285726fdf7707ef287731139a0299aee",
+    "bytes": 611
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/httpx-039867371988.jsonl",
+    "sha256": "45351d6e6509eb3aaf33bbb3e18502fd8ffa097476430e146610efabfba7755d",
+    "bytes": 409
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/httpx-targets-039867371988.txt",
+    "sha256": "cae384a0c1e3789db66f6f89a1c7685a82f68025bd5a4240d6630fdfa44ad0d4",
+    "bytes": 22
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/nuclei-039867371988.jsonl",
+    "sha256": "1713d0a3a94f0eeb0da8b21acf8127707661d250041283e4501777281a086495",
+    "bytes": 996
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/nuclei-manifest-311f16138e80.json",
+    "sha256": "04f7a153fcc2b43a0a7a5a270b6871f7a8d4c19491795da7b838f577478c0c5f",
+    "bytes": 1380
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/nuclei-selection-039867371988.json",
+    "sha256": "8ef86aaf711147849137c1a94e4821df782b1bd19574db6333c6d32e4b2a3624",
+    "bytes": 1041
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/observations-bfc5a6b45b6a.json",
+    "sha256": "5eb994ad08dfad8f692d62d403ee37d2d9ea6a914835a97d98960e0918e318f9",
+    "bytes": 19562
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/recon-6b7d902199e9.json",
+    "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "bytes": 2
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/reflection-f30409c51a78.json",
+    "sha256": "b8c3f12020723f735b9ecac0f978d7f698ab57bb7e6d05092faad31484aa2360",
+    "bytes": 154506
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/report-845e91831319.json",
+    "sha256": "3c8585e916a4a9ebedaca74d9b77da9a4f7ae533ac145fa4aa4bb1cd8fd9e667",
+    "bytes": 1157914
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/run-config-c7ea817b07eb.json",
+    "sha256": "a806c2bfca1343b84a8013f206d74d5dad9144871426de759215055d70e4c2e3",
+    "bytes": 4475
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/token-ledger-716752b07f75.json",
+    "sha256": "c0459c399499737cf17e8878527d9c9c1833a8dda1a3c107279e791adba2e151",
+    "bytes": 145415
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/web-bundle-0db5b222836b.js",
+    "sha256": "fbc703799bc777df67e696f42cd8889e0fdf977d0bdc19071c931f7d1501cdd1",
+    "bytes": 367621
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/web-bundle-526e268dea29.js",
+    "sha256": "acd90ffd4f65f52439a968a11ba2dcd312b0b46c26f7c2d9846e1d885262c0c3",
+    "bytes": 148929
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/web-bundle-6c315fbdf564.js",
+    "sha256": "fd3dabbc510115c30d5a27a24e6c6428b421652a375c2845e6e5ba7a17761841",
+    "bytes": 1242488
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/web-bundle-f1ad1a6d32b7.js",
+    "sha256": "f9a518486ced55510682d2a2b5896b6a1d2cb9566c46291994180863810d894b",
+    "bytes": 20700
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/web-discovery-039867371988.json",
+    "sha256": "c958b96d8469f7beb963a5c30e40823eb91fd109fe756c84dec207c033a9b615",
+    "bytes": 4904
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/web-discovery-07758dd63eeb.json",
+    "sha256": "fcccb1abc9e0642741dbb93e27c0abeff7901e6775a4c493d3a857c72451a8db",
+    "bytes": 4916
+  },
+  {
+    "path": "artifacts/scans/e2e-adaptix-70afd86a/web-discovery-7f424953d4dd.json",
+    "sha256": "b851eabd23209d2fe5ffe782a660f933b6e0c923b15ac91bf68f33f2c38fd94f",
+    "bytes": 642
+  }
+]

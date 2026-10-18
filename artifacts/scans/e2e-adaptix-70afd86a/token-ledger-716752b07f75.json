@@ -1,0 +1,4809 @@
+[
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "df6e7a8488285e06593d2a96856d8e7650f6a19082d632619409096fccacf0a3",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2724,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 5398.72,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 1837,
+    "completion_tokens": 887,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 177.032897
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "8bf867d9232ac2c337f19143b94d35e36254120a03e8db170d89455b90f1e07b",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 3484,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 5219.1,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2566,
+    "completion_tokens": 918,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 196.761581
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "2711917a197f73f7584fa4cd6e62658cb2c2a1eb6d72373ac860acade6a02859",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 3477,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 5017.97,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2865,
+    "completion_tokens": 612,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 134.753218
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "13547ea5db798b7ff335c4baf224aae667b58cc436b8d58d20c59328945d3dc2",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 4248,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 4877.94,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 3347,
+    "completion_tokens": 901,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 202.537311
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "685104cc41ad83f50390537bbf83f59fc88166300997d8ce00a101909ff7660a",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 3046,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 4661.11,
+    "generation_parameters": {
+      "max_tokens": 1113,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 996,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 207.03359
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "312d05889e2c90c586d3ec59cf67f37bbecf0a173472a46d41f776015cfc9592",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2682,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 4435.02,
+    "generation_parameters": {
+      "max_tokens": 1065,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 632,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 131.263306
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "64e43c03da12f2817fe03be3a52976000f253a8b150ada9384547af9f3f4c5bb",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2955,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 4284.79,
+    "generation_parameters": {
+      "max_tokens": 1060,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 905,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 187.553023
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "a6216958ccdab7a1b73c5e9dd24163b82ee2bab973f612ee485e4d44dba953c0",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2581,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 4078.0,
+    "generation_parameters": {
+      "max_tokens": 1059,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 531,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 106.171241
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "eb1cc964e1c5a0ce64ed08794482e87a8ab9b623af2822a54f17fd9b95accfd8",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2415,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3961.86,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 365,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 76.285489
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "22115e47ddce0c9355aed9776e66c39439dccaa383624b3f8f6e84569e045067",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2402,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3879.68,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 352,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 73.579711
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "c7f89aba9965142f10e5b0414fb9c833ec3675a45186f7ff14083bf331b345cc",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2405,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3795.99,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 355,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 74.105584
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "a92061ad687c12e8a78792fd9749925fb3cce48c302b199f3d10b5b92ac32986",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2400,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3711.84,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 350,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 69.462757
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "2f63075333aaa9f3d29c67911b535050f5c009b8750e55efddca68b427837cf7",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2489,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3632.29,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 439,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 87.658384
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "d4612477062d69420f1571a5dafe7c96686b44ce09c33314d0140375b92f5e66",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2402,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3530.01,
+    "generation_parameters": {
+      "max_tokens": 1074,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 352,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 70.13442
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "6c1cad2c39a279805a82c01a139487426c581f2fc2c399ac015724d67389a819",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2426,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3449.72,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 376,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 75.693052
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "dd13248d84bbc17aad2cd6874fd5f98141f93a236bdb05bd047834f3d5d08200",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2409,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3363.86,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 359,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 72.365362
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "14e59ffb5f470004f5c3a560cb7e03b666536779113ff3d97f82af77f700418e",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2782,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3281.49,
+    "generation_parameters": {
+      "max_tokens": 1216,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 732,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 148.347399
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "9748ed97741485a8807436e328a019c9189f31c219a5dd3457d35d874ac57515",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2995,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 3113.97,
+    "generation_parameters": {
+      "max_tokens": 1102,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 945,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 197.138888
+  },
+  {
+    "provider_call": true,
+    "attempt": 1,
+    "cache_key": "9d2899e2dc70683e01fe2c317379369c55c3b4cdef263c912b6173057ccdf51e",
+    "model": "ollama_chat/qwen3:14b",
+    "source": "provider",
+    "tokens_charged": 2509,
+    "timeout": 300.0,
+    "requested_timeout": 300.0,
+    "deadline_clamped": false,
+    "run_seconds_remaining": 2898.12,
+    "generation_parameters": {
+      "max_tokens": 1097,
+      "reasoning_effort": "none",
+      "response_format": {
+        "type": "json_schema",
+        "json_schema": {
+          "name": "PlannerDecision",
+          "strict": true,
+          "schema": {
+            "$defs": {
+              "Action": {
+                "additionalProperties": false,
+                "properties": {
+                  "tool": {
+                    "maxLength": 64,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "type": "string"
+                  },
+                  "reason": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "priority": {
+                    "$ref": "#/$defs/Priority"
+                  },
+                  "method": {
+                    "default": "GET",
+                    "maxLength": 16,
+                    "type": "string"
+                  },
+                  "body": {
+                    "anyOf": [
+                      {
+                        "maxLength": 600,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  },
+                  "hypothesis": {
+                    "anyOf": [
+                      {
+                        "maxLength": 80,
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "tool",
+                  "target",
+                  "reason",
+                  "priority"
+                ],
+                "type": "object"
+              },
+              "Hypothesis": {
+                "additionalProperties": false,
+                "properties": {
+                  "category": {
+                    "maxLength": 80,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "target": {
+                    "maxLength": 255,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "rationale": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "category",
+                  "target",
+                  "rationale"
+                ],
+                "type": "object"
+              },
+              "Priority": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_relevance": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "information_gain": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "evidence_value": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "confidence": {
+                    "maximum": 1,
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_tokens": {
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "estimated_seconds": {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  "estimated_requests": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "goal_relevance",
+                  "information_gain",
+                  "evidence_value",
+                  "confidence",
+                  "estimated_tokens",
+                  "estimated_seconds",
+                  "estimated_requests"
+                ],
+                "type": "object"
+              },
+              "ReflectionReview": {
+                "additionalProperties": false,
+                "properties": {
+                  "goal_status": {
+                    "enum": [
+                      "in_progress",
+                      "achieved",
+                      "blocked",
+                      "uncertain"
+                    ],
+                    "type": "string"
+                  },
+                  "evidence_refs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 4,
+                    "type": "array"
+                  },
+                  "uncertainty": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "failure": {
+                    "maxLength": 204,
+                    "type": "string"
+                  },
+                  "decision_change": {
+                    "maxLength": 204,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "goal_status",
+                  "evidence_refs",
+                  "uncertainty",
+                  "failure",
+                  "decision_change"
+                ],
+                "type": "object"
+              }
+            },
+            "additionalProperties": false,
+            "properties": {
+              "actions": {
+                "items": {
+                  "$ref": "#/$defs/Action"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "rationale": {
+                "maxLength": 340,
+                "type": "string"
+              },
+              "reflection": {
+                "maxLength": 340,
+                "minLength": 1,
+                "type": "string"
+              },
+              "review": {
+                "$ref": "#/$defs/ReflectionReview"
+              },
+              "hypotheses": {
+                "items": {
+                  "$ref": "#/$defs/Hypothesis"
+                },
+                "maxItems": 3,
+                "type": "array"
+              },
+              "advance_scope": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "actions",
+              "rationale",
+              "reflection",
+              "review",
+              "hypotheses"
+            ],
+            "type": "object"
+          }
+        }
+      },
+      "temperature": 0.2,
+      "api_base": "http://127.0.0.1:11434"
+    },
+    "prompt_tokens": 2050,
+    "completion_tokens": 459,
+    "result": "valid_decision",
+    "finish_reason": "stop",
+    "seconds": 97.401293
+  }
+]

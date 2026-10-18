@@ -1,0 +1,2321 @@
+[
+  {
+    "iteration": 0,
+    "scope_window": [
+      "http://127.0.0.1:3000/"
+    ],
+    "ranked_candidates": [
+      {
+        "tool": "api_discover",
+        "target": "http://127.0.0.1:3000/api/openapi.json",
+        "reason": "The API discovery tool is eligible and can help identify API endpoints and operations, which is crucial for a comprehensive assessment.",
+        "priority": {
+          "goal_relevance": 0.9,
+          "information_gain": 0.85,
+          "evidence_value": 0.8,
+          "confidence": 0.85,
+          "estimated_tokens": 100,
+          "estimated_seconds": 1.0,
+          "estimated_requests": 1,
+          "score": 0.255859,
+          "expected_progress_per_1000_tokens": 0.257348,
+          "effective_tokens": 2824,
+          "effective_seconds": 1.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.72675,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "The application may expose an OpenAPI specification at the specified endpoint, 1"
+      },
+      {
+        "tool": "nuclei",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+        "priority": {
+          "goal_relevance": 0.8,
+          "information_gain": 0.75,
+          "evidence_value": 0.7,
+          "confidence": 0.75,
+          "estimated_tokens": 80,
+          "estimated_seconds": 1.0,
+          "estimated_requests": 1,
+          "score": 0.200776,
+          "expected_progress_per_1000_tokens": 0.201944,
+          "effective_tokens": 2804,
+          "effective_seconds": 1.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.56625,
+          "rank": 2
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "The application may have known vulnerabilities that can be detected using Nuclei"
+      },
+      {
+        "tool": "httpx",
+        "target": "http://127.0.0.1:3000",
+        "reason": "HTTPX can be used to observe the HTTP endpoint and gather information about the technologies in use.",
+        "priority": {
+          "goal_relevance": 0.7,
+          "information_gain": 0.65,
+          "evidence_value": 0.6,
+          "confidence": 0.65,
+          "estimated_tokens": 70,
+          "estimated_seconds": 1.0,
+          "estimated_requests": 1,
+          "score": 0.151499,
+          "expected_progress_per_1000_tokens": 0.15238,
+          "effective_tokens": 2794,
+          "effective_seconds": 1.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.42575,
+          "rank": 3
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "The application may be using specific technologies that can be identified using "
+      }
+    ],
+    "rejections": [],
+    "selected": [
+      {
+        "tool": "api_discover",
+        "target": "http://127.0.0.1:3000/api/openapi.json",
+        "reason": "The API discovery tool is eligible and can help identify API endpoints and operations, which is crucial for a comprehensive assessment.",
+        "priority": {
+          "goal_relevance": 0.9,
+          "information_gain": 0.85,
+          "evidence_value": 0.8,
+          "confidence": 0.85,
+          "estimated_tokens": 100,
+          "estimated_seconds": 1.0,
+          "estimated_requests": 1,
+          "score": 0.255859,
+          "expected_progress_per_1000_tokens": 0.257348,
+          "effective_tokens": 2824,
+          "effective_seconds": 1.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.72675,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "The application may expose an OpenAPI specification at the specified endpoint, 1"
+      }
+    ]
+  },
+  {
+    "iteration": 1,
+    "scope_window": [
+      "http://127.0.0.1:3000/"
+    ],
+    "ranked_candidates": [
+      {
+        "tool": "httpx",
+        "target": "http://127.0.0.1:3000",
+        "reason": "HTTPX can be used to observe the HTTP endpoint and gather information about the technologies in use, which is a critical step in understanding the application's structure.",
+        "priority": {
+          "goal_relevance": 0.9,
+          "information_gain": 0.8,
+          "evidence_value": 0.7,
+          "confidence": 0.85,
+          "estimated_tokens": 50,
+          "estimated_seconds": 1.0,
+          "estimated_requests": 1,
+          "score": 0.19365,
+          "expected_progress_per_1000_tokens": 0.194822,
+          "effective_tokens": 3534,
+          "effective_seconds": 1.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.6885,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "httpx_technology"
+      },
+      {
+        "tool": "nuclei",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services, which is essential for a comprehensive security assessment.",
+        "priority": {
+          "goal_relevance": 0.85,
+          "information_gain": 0.75,
+          "evidence_value": 0.65,
+          "confidence": 0.8,
+          "estimated_tokens": 60,
+          "estimated_seconds": 2.0,
+          "estimated_requests": 1,
+          "score": 0.170517,
+          "expected_progress_per_1000_tokens": 0.171558,
+          "effective_tokens": 3544,
+          "effective_seconds": 2.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.608,
+          "rank": 2
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "nuclei_vulnerability"
+      },
+      {
+        "tool": "web_discover",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Passive reconnaissance can help extract in-scope links, which is crucial for mapping the application's structure and identifying potential endpoints for further testing.",
+        "priority": {
+          "goal_relevance": 0.8,
+          "information_gain": 0.7,
+          "evidence_value": 0.6,
+          "confidence": 0.75,
+          "estimated_tokens": 45,
+          "estimated_seconds": 1.5,
+          "estimated_requests": 1,
+          "score": 0.149982,
+          "expected_progress_per_1000_tokens": 0.150893,
+          "effective_tokens": 3529,
+          "effective_seconds": 1.5,
+          "effective_requests": 1,
+          "expected_benefit": 0.5325,
+          "rank": 3
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "web_discovery"
+      }
+    ],
+    "rejections": [],
+    "selected": [
+      {
+        "tool": "httpx",
+        "target": "http://127.0.0.1:3000",
+        "reason": "HTTPX can be used to observe the HTTP endpoint and gather information about the technologies in use, which is a critical step in understanding the application's structure.",
+        "priority": {
+          "goal_relevance": 0.9,
+          "information_gain": 0.8,
+          "evidence_value": 0.7,
+          "confidence": 0.85,
+          "estimated_tokens": 50,
+          "estimated_seconds": 1.0,
+          "estimated_requests": 1,
+          "score": 0.19365,
+          "expected_progress_per_1000_tokens": 0.194822,
+          "effective_tokens": 3534,
+          "effective_seconds": 1.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.6885,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "httpx_technology"
+      }
+    ]
+  },
+  {
+    "iteration": 2,
+    "scope_window": [],
+    "ranked_candidates": [
+      {
+        "tool": "nuclei",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+        "priority": {
+          "goal_relevance": 1.0,
+          "information_gain": 0.8,
+          "evidence_value": 0.7,
+          "confidence": 0.65,
+          "estimated_tokens": 50,
+          "estimated_seconds": 2.0,
+          "estimated_requests": 1,
+          "score": 0.15566,
+          "expected_progress_per_1000_tokens": 0.156649,
+          "effective_tokens": 3527,
+          "effective_seconds": 2.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.5525,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "nuclei_vulnerability"
+      },
+      {
+        "tool": "web_discover",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Passive reconnaissance can help map the application's structure by extracting in-scope links and documents.",
+        "priority": {
+          "goal_relevance": 0.9,
+          "information_gain": 0.7,
+          "evidence_value": 0.6,
+          "confidence": 0.6,
+          "estimated_tokens": 40,
+          "estimated_seconds": 1.5,
+          "estimated_requests": 1,
+          "score": 0.127146,
+          "expected_progress_per_1000_tokens": 0.12795,
+          "effective_tokens": 3517,
+          "effective_seconds": 1.5,
+          "effective_requests": 1,
+          "expected_benefit": 0.45,
+          "rank": 2
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "httpx_technology"
+      }
+    ],
+    "rejections": [],
+    "selected": [
+      {
+        "tool": "nuclei",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+        "priority": {
+          "goal_relevance": 1.0,
+          "information_gain": 0.8,
+          "evidence_value": 0.7,
+          "confidence": 0.65,
+          "estimated_tokens": 50,
+          "estimated_seconds": 2.0,
+          "estimated_requests": 1,
+          "score": 0.15566,
+          "expected_progress_per_1000_tokens": 0.156649,
+          "effective_tokens": 3527,
+          "effective_seconds": 2.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.5525,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "nuclei_vulnerability"
+      }
+    ]
+  },
+  {
+    "iteration": 3,
+    "scope_window": [],
+    "ranked_candidates": [
+      {
+        "tool": "web_discover",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Passive reconnaissance can help extract in-scope links, such as robots.txt and sitemap.xml, to map the application's structure and identify additional endpoints.",
+        "priority": {
+          "goal_relevance": 0.9,
+          "information_gain": 0.8,
+          "evidence_value": 0.7,
+          "confidence": 0.85,
+          "estimated_tokens": 50,
+          "estimated_seconds": 2.0,
+          "estimated_requests": 1,
+          "score": 0.159136,
+          "expected_progress_per_1000_tokens": 0.160191,
+          "effective_tokens": 4298,
+          "effective_seconds": 2.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.6885,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "web_discover_structure"
+      },
+      {
+        "tool": "playwright",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Observing the browser page and capturing a screenshot can provide visual evidence of the application's interface and potential interactive elements.",
+        "priority": {
+          "goal_relevance": 0.7,
+          "information_gain": 0.6,
+          "evidence_value": 0.6,
+          "confidence": 0.75,
+          "estimated_tokens": 40,
+          "estimated_seconds": 3.0,
+          "estimated_requests": 1,
+          "score": 0.111197,
+          "expected_progress_per_1000_tokens": 0.11194,
+          "effective_tokens": 4288,
+          "effective_seconds": 3.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.48,
+          "rank": 2
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "playwright_interface"
+      }
+    ],
+    "rejections": [
+      {
+        "action": {
+          "tool": "nmap",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Nmap can be used to discover services on the pinned host, which can help identify additional open ports and services running on the local application.",
+          "priority": {
+            "goal_relevance": 0.8,
+            "information_gain": 0.7,
+            "evidence_value": 0.6,
+            "confidence": 0.7,
+            "estimated_tokens": 30,
+            "estimated_seconds": 1.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": "nmap_service_discovery"
+        },
+        "kind": "security",
+        "code": "host_outside_scope",
+        "reason": "Host is not part of the pinned authorized scope",
+        "missing": [],
+        "alternatives": []
+      }
+    ],
+    "selected": [
+      {
+        "tool": "web_discover",
+        "target": "http://127.0.0.1:3000",
+        "reason": "Passive reconnaissance can help extract in-scope links, such as robots.txt and sitemap.xml, to map the application's structure and identify additional endpoints.",
+        "priority": {
+          "goal_relevance": 0.9,
+          "information_gain": 0.8,
+          "evidence_value": 0.7,
+          "confidence": 0.85,
+          "estimated_tokens": 50,
+          "estimated_seconds": 2.0,
+          "estimated_requests": 1,
+          "score": 0.159136,
+          "expected_progress_per_1000_tokens": 0.160191,
+          "effective_tokens": 4298,
+          "effective_seconds": 2.0,
+          "effective_requests": 1,
+          "expected_benefit": 0.6885,
+          "rank": 1
+        },
+        "method": "GET",
+        "body": null,
+        "hypothesis": "web_discover_structure"
+      }
+    ]
+  },
+  {
+    "iteration": 4,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "api_discover",
+          "target": "http://127.0.0.1:3000/api/openapi.json",
+          "reason": "The API discovery tool is eligible and can help identify API endpoints and operations, which is crucial for a comprehensive assessment.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 0.75,
+            "estimated_tokens": 1000,
+            "estimated_seconds": 10.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "already_completed",
+        "reason": "Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "httpx",
+          "target": "http://127.0.0.1:3000",
+          "reason": "HTTPX can be used to observe the HTTP endpoint and gather information about the technologies in use, which is a critical step in understanding the application's",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 0.75,
+            "estimated_tokens": 500,
+            "estimated_seconds": 5.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "already_completed",
+        "reason": "Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "nuclei",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 0.75,
+            "estimated_tokens": 1000,
+            "estimated_seconds": 10.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "already_completed",
+        "reason": "Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 5,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "nuclei",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+          "priority": {
+            "goal_relevance": 0.3,
+            "information_gain": 0.3,
+            "evidence_value": 0.3,
+            "confidence": 0.3,
+            "estimated_tokens": 131,
+            "estimated_seconds": 2.352,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "httpx",
+          "target": "http://127.0.0.1:3000",
+          "reason": "HTTPX can be used to observe the HTTP endpoint and gather information about the technologies in use.",
+          "priority": {
+            "goal_relevance": 0.15,
+            "information_gain": 0.15,
+            "evidence_value": 0.15,
+            "confidence": 0.15,
+            "estimated_tokens": 38,
+            "estimated_seconds": 1.7062,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "web_discover",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Passive reconnaissance can help extract in-scope links, such as robots.txt and sitemap.xml, to map the application's structure and identify additional endpoints.",
+          "priority": {
+            "goal_relevance": 0.3,
+            "information_gain": 0.3,
+            "evidence_value": 0.3,
+            "confidence": 0.3,
+            "estimated_tokens": 2665,
+            "estimated_seconds": 3.1552,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "already_completed",
+        "reason": "Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 6,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "nuclei",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+          "priority": {
+            "goal_relevance": 0.3,
+            "information_gain": 0.3,
+            "evidence_value": 0.3,
+            "confidence": 0.3,
+            "estimated_tokens": 131,
+            "estimated_seconds": 2.352,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "httpx",
+          "target": "http://127.0.0.1:3000",
+          "reason": "HTTPX can be used to observe the HTTP endpoint and gather information about the technologies in use.",
+          "priority": {
+            "goal_relevance": 0.15,
+            "information_gain": 0.15,
+            "evidence_value": 0.15,
+            "confidence": 0.15,
+            "estimated_tokens": 38,
+            "estimated_seconds": 1.7062,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "web_discover",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Passive reconnaissance can help extract in-scope links, such as robots.txt and sitemap.xml, to map the application's structure and identify additional endpoints.",
+          "priority": {
+            "goal_relevance": 0.3,
+            "information_gain": 0.3,
+            "evidence_value": 0.3,
+            "confidence": 0.3,
+            "estimated_tokens": 2665,
+            "estimated_seconds": 3.1552,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 7,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "The Playwright interface tool is eligible and can help capture visual evidence of the application's interface, which is crucial for a comprehensive assessment.",
+          "priority": {
+            "goal_relevance": 0.3,
+            "information_gain": 0.3,
+            "evidence_value": 0.3,
+            "confidence": 0.3,
+            "estimated_tokens": 2665,
+            "estimated_seconds": 3.1552,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "tool_unavailable",
+        "reason": "Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 8,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "reason": "Reflection cites evidence that is not present in the current scope/context",
+        "kind": "claim",
+        "code": "ungrounded_claim"
+      },
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Observing the browser page and capturing a screenshot can provide visual evidence of the application's interface and potential interactive elements.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 1.0,
+            "estimated_tokens": 1000,
+            "estimated_seconds": 5.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": []
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 9,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Observing the browser page and capturing a screenshot can provide visual evidence of the application's interface and potential interactive elements.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 1.0,
+            "estimated_tokens": 100,
+            "estimated_seconds": 5.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 10,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "The browser interface observation is eligible and can provide visual evidence of the application's interface and potential interactive elements, which is crucial for a comprehensive assessment.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 1.0,
+            "estimated_tokens": 1000,
+            "estimated_seconds": 5.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 11,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "The browser interface observation is eligible and can provide visual evidence of the application's interface and potential interactive elements, which is crucial for a comprehensive assessment.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 1.0,
+            "estimated_tokens": 100,
+            "estimated_seconds": 10.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 12,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "The previous attempt to capture a screenshot was rejected by the evidence controller; use policy_feedback to correct it.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 1.0,
+            "estimated_tokens": 100,
+            "estimated_seconds": 1.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "policy_feedback",
+          "target": "evidence_controller",
+          "reason": "The previous attempt to capture a screenshot was rejected by the evidence controller; use policy_feedback to correct it.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 1.0,
+            "estimated_tokens": 100,
+            "estimated_seconds": 1.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "security",
+        "code": "malformed_target",
+        "reason": "Target is not an http/https URL",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 13,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "The browser interface observation is eligible and can provide visual evidence of the application's interface and potential interactive elements, which is crucial for a comprehensive assessment.",
+          "priority": {
+            "goal_relevance": 1.0,
+            "information_gain": 1.0,
+            "evidence_value": 1.0,
+            "confidence": 1.0,
+            "estimated_tokens": 1000,
+            "estimated_seconds": 5.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 14,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Capturing a screenshot can provide visual evidence of the application's interface and potential interactive elements, which is crucial for understanding the user experience and identifying potential areas",
+          "priority": {
+            "goal_relevance": 0.8,
+            "information_gain": 0.7,
+            "evidence_value": 0.9,
+            "confidence": 0.75,
+            "estimated_tokens": 100,
+            "estimated_seconds": 2.5,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 15,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "The browser interface observation is eligible and can provide visual evidence of the application's interface and potential interactive elements, which is crucial for a comprehensive assessment.",
+          "priority": {
+            "goal_relevance": 0.5,
+            "information_gain": 0.5,
+            "evidence_value": 0.5,
+            "confidence": 0.5,
+            "estimated_tokens": 100,
+            "estimated_seconds": 5.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 16,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "playwright_interface",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Capturing a screenshot of the application's interface can provide visual evidence and help understand the application's structure and potential interactive elements.",
+          "priority": {
+            "goal_relevance": 0.7,
+            "information_gain": 0.6,
+            "evidence_value": 0.8,
+            "confidence": 0.65,
+            "estimated_tokens": 100,
+            "estimated_seconds": 2.5,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "capability",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Tool unavailable; select an installed registered capability",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "api_discover",
+          "target": "http://127.0.0.1:3000/api/openapi.json",
+          "reason": "The API discovery tool is eligible and can help identify API endpoints and operations, which is crucial for a comprehensive assessment.",
+          "priority": {
+            "goal_relevance": 0.8,
+            "information_gain": 0.7,
+            "evidence_value": 0.9,
+            "confidence": 0.75,
+            "estimated_tokens": 150,
+            "estimated_seconds": 3.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "nuclei",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+          "priority": {
+            "goal_relevance": 0.7,
+            "information_gain": 0.6,
+            "evidence_value": 0.8,
+            "confidence": 0.7,
+            "estimated_tokens": 200,
+            "estimated_seconds": 4.0,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 17,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "nuclei",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+          "priority": {
+            "goal_relevance": 0.3,
+            "information_gain": 0.3,
+            "evidence_value": 0.3,
+            "confidence": 0.3,
+            "estimated_tokens": 131,
+            "estimated_seconds": 2.352,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "httpx",
+          "target": "http://127.0.0.1:3000",
+          "reason": "HTTPX can be used to observe the HTTP endpoint and gather information about the technologies in use.",
+          "priority": {
+            "goal_relevance": 0.15,
+            "information_gain": 0.15,
+            "evidence_value": 0.15,
+            "confidence": 0.15,
+            "estimated_tokens": 38,
+            "estimated_seconds": 1.7062,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "action": {
+          "tool": "web_discover",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Passive reconnaissance can help extract in-scope links, such as robots.txt and sitemap.xml, to map the application's structure and identify additional endpoints.",
+          "priority": {
+            "goal_relevance": 0.3,
+            "information_gain": 0.3,
+            "evidence_value": 0.3,
+            "confidence": 0.3,
+            "estimated_tokens": 2665,
+            "estimated_seconds": 3.1552,
+            "estimated_requests": 63
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  },
+  {
+    "iteration": 18,
+    "scope_window": [],
+    "ranked_candidates": [],
+    "rejections": [
+      {
+        "action": {
+          "tool": "nuclei",
+          "target": "http://127.0.0.1:3000",
+          "reason": "Nuclei can be used to run configured templates and detect potential vulnerabilities based on the observed technologies and services.",
+          "priority": {
+            "goal_relevance": 0.7,
+            "information_gain": 0.6,
+            "evidence_value": 0.8,
+            "confidence": 0.7,
+            "estimated_tokens": 131,
+            "estimated_seconds": 2.352,
+            "estimated_requests": 1
+          },
+          "method": "GET",
+          "body": null,
+          "hypothesis": null
+        },
+        "kind": "repeat",
+        "code": "previously_rejected",
+        "reason": "Previously rejected action: Execution already completed; evaluate stored evidence without repeating it",
+        "missing": [],
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          }
+        ]
+      },
+      {
+        "kind": "replan",
+        "code": "choose_alternative",
+        "reason": "No proposed action was feasible. Propose one of the executable pairs below instead, or a different action your evidence supports; stop only when the evidence is exhausted.",
+        "alternatives": [
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/api/Addresss",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/2fa/enter",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/create",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/edit/",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/saved",
+            "http_validated": false
+          },
+          {
+            "tool": "api_discover",
+            "target": "http://127.0.0.1:3000/address/select",
+            "http_validated": false
+          }
+        ],
+        "tools_with_eligible_inputs": [
+          "api_discover",
+          "http_request",
+          "httpx",
+          "nmap",
+          "nuclei",
+          "playwright",
+          "web_discover"
+        ]
+      }
+    ],
+    "selected": []
+  }
+]
