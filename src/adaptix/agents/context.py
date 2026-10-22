@@ -275,6 +275,42 @@ def _compress_capability(payload):
         if isinstance(rows, list) and len(rows) > keep:
             payload[field] = rows[:keep]
             changed = True
+    inventory = payload.get('baseline_inventory')
+    if isinstance(inventory, dict) and isinstance(inventory.get('entry_points'), list) and len(inventory['entry_points']) > 3:
+        # Entry-point route samples repeat what observations.web_routes already
+        # carries with provenance; keep a few for the direct citation shape.
+        inventory['entry_points'] = inventory['entry_points'][:3]
+        changed = True
+    return changed
+
+
+def _compress_hypothesis_tests(payload):
+    """Shrink hypothesis evidence contracts while keeping every open question.
+
+    Each row keeps its category, target, contract basis and testability flag -
+    the fields that link an executable pair back to the hypothesis it would
+    decide. What degrades is the repeated contract prose (a copy of a shared
+    schema table) and long grounding notes, not the row itself.
+    """
+    changed = False
+    rows = payload.get('hypothesis_tests')
+    if isinstance(rows, list):
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            if not isinstance(row.get('required_evidence'), str):
+                row['required_evidence'] = 'see verification contract for its basis'
+                changed = True
+            if len(str(row.get('missing_grounding') or '')) > 140:
+                row['missing_grounding'] = _shorten(row['missing_grounding'], 140)
+                changed = True
+            probes = row.get('probed')
+            if isinstance(probes, dict) and probes.get('values_tried'):
+                probes['values_tried'] = probes['values_tried'][:2]
+                changed = True
+        if len(rows) > 6:
+            payload['hypothesis_tests'] = rows[:6]
+            changed = True
     return changed
 
 
@@ -284,6 +320,7 @@ STAGES = (
     ('summarize_routes', _summarize_routes),
     ('prioritize_endpoints', _prioritize_endpoints),
     ('compress_capability', _compress_capability),
+    ('compress_hypothesis_tests', _compress_hypothesis_tests),
     ('compress_assessment', _compress_assessment),
     ('compress_tool_catalog', _compress_tool_catalog),
     ('compress_history', _compress_history),

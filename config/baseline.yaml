@@ -1,0 +1,24 @@
+# Deterministic baseline reconnaissance: bounded, target-aware discovery
+# completed before the first model-driven planning decision. The phase never
+# sends a request outside the pinned scope, never changes state, and never
+# invokes an LLM. These limits are separate from the adaptive run budget: the
+# global tool-call budget still applies on top of max_tool_calls.
+baseline_reconnaissance:
+  enabled: true
+  # Wall-clock cap for the whole phase (bounded by the remaining run budget).
+  max_seconds: 120
+  # Phase-local tool-call cap; the run's own tool_call_budget is never exceeded.
+  max_tool_calls: 8
+  # Tool calls the adaptive planning loop may always spend: the baseline caps
+  # itself below the run budget by this reserve so model-planned work has room.
+  adaptive_tool_call_reserve: 4
+  # Hosts scanned with nmap for a host/IP/network target (URL targets skip nmap).
+  max_hosts: 4
+  # Distinct HTTP origins explored with web/ API discovery.
+  max_web_origins: 2
+  # Documentation document fetches (robots.txt/sitemap/openapi style) per origin.
+  api_document_probes: 2
+  # Cap on stored route records; overflow is recorded as a limitation, not dropped silently.
+  max_web_routes: 400
+  # Only supported value: record unavailable tools as limitations, never fabricate scans.
+  fallback_when_tool_missing: record_limitation

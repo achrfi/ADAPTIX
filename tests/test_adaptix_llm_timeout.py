@@ -378,7 +378,7 @@ def test_workflow_continues_after_a_provider_failure_and_reports_it(monkeypatch)
     monkeypatch.setattr(planner.litellm, 'completion', respond)
     result = graph.invoke(running(planner_retry_limit=0, max_iterations=3, tool_call_budget=3,
                                   scope_manifest=None, status='scope_ok', authorization={'type': 'signed_grant'},
-                                  execution_metrics={}, iterations=0),
+                                  execution_metrics={}, iterations=0, baseline_disabled=True),
                           config={'recursion_limit': 25})
     assert len(calls) >= 2
     assert result['report']['stop_reason'] != 'planner_unavailable'
@@ -391,7 +391,7 @@ def test_bounded_provider_failure_still_stops_the_run(monkeypatch):
     monkeypatch.setattr(planner.litellm, 'completion', lambda **kw: (_ for _ in ()).throw(TimeoutError()))
     result = graph.invoke(running(max_iterations=5, tool_call_budget=5, status='scope_ok',
                                   authorization={'type': 'signed_grant'}, execution_metrics={},
-                                  iterations=0, provider_failure_limit=2),
+                                  iterations=0, provider_failure_limit=2, baseline_disabled=True),
                           config={'recursion_limit': 25})
     assert result['report']['stop_reason'] == 'planner_unavailable'
     assert result['report']['termination']['provider_timeout'] is True

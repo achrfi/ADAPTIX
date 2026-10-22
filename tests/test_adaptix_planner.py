@@ -47,8 +47,13 @@ def test_llm_priority_and_target_scope(monkeypatch):
         'actions': [{'tool': 'httpx', 'target': 'http://evil.invalid:18080', 'reason': 'bad', 'priority': {'goal_relevance': 0.8, 'information_gain': 0.7, 'evidence_value': 0.6, 'confidence': 0.9, 'estimated_tokens': 100, 'estimated_seconds': 1, 'estimated_requests': 1}}],
         'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'inspect'}))
     result = planner.adaptive_planning(_state())
-    assert result['planned_actions'] == []
+    # The out-of-scope proposal is denied as a security rejection; an in-scope
+    # recovery pair may run, but nothing ever touches the invented host.
     assert all('evil.invalid' not in x['target'] for x in result['planned_actions'])
+    security = [row for row in result['policy_feedback'] if row.get('kind') == 'security']
+    assert security and 'url_outside_scope' == security[0]['code']
+    assert all('http.invalid' not in row['target']
+               for row in security[0].get('alternatives', []))
 
 
 def test_budget_stops_scanning_not_fallback(monkeypatch):
@@ -58,7 +63,7 @@ def test_budget_stops_scanning_not_fallback(monkeypatch):
     state = {**_state(), 'iterations': 3}
     result = planner.adaptive_planning(state)
     assert result['planned_actions'] == []
-    assert result['stop_reason'] == 'budget_exhausted'
+    assert result['stop_reason'] == 'iteration_budget_exhausted'
     assert result['planner_metrics']['mode'] == 'stopped_budget_exhausted'
 
 
@@ -97,4 +102,12 @@ def test_repeated_actions_terminate_without_scanning_again(monkeypatch):
     result = planner.adaptive_planning(state)
     assert result['stop_reason'] is None
     assert result['policy_feedback']
-    assert result['planned_actions'] == []
+    # The completed fetch is never re-scanned: the recovery tier executes a
+    # different, unattempted input instead of any action with that identity.
+    denial = next(row for row in result['policy_feedback'] if row.get('code') == 'already_completed')
+    assert denial['action']['target'] == 'http://127.0.0.1:18080'
+    recovery = result['planned_actions']
+    assert recovery and all(row['action_source'] == 'policy_recovery' for row in recovery)
+    from src.adaptix.agents.action_identity import execution_identity
+    assert all(execution_identity(row, state) != execution_identity(
+        {'tool': 'httpx', 'target': 'http://127.0.0.1:18080'}, state) for row in recovery)

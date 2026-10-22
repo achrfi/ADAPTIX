@@ -136,6 +136,47 @@ def test_post_only_requires_approval_and_readonly_payload_is_not_trusted(tmp_pat
     assert not nuclei_policy.inspect_template(match_only)['reasons']
 
 
+def test_observation_only_manifest_does_not_claim_a_denied_state_change(tmp_path):
+    """The e2e discrepancy: approval said required/denied while nothing was gated.
+
+    A manifest that selects only observation-class templates needs no human approval,
+    so its approval block must agree with approval_required_count=0 and full coverage
+    instead of reporting a denied state change that never applied.
+    """
+    observe = template(tmp_path / 'observe.yaml', 'GET')
+    state = {'run_id': 'observation-manifest-test'}
+    manifest = nuclei_policy.prepare_scan(state, 'http://127.0.0.1/', {'nuclei_templates': [str(observe)]})
+    assert manifest['approval_required_count'] == 0
+    assert manifest['coverage'] == 'full_selected_manifest'
+    assert manifest['executable_count'] == manifest['selected_count'] == 1
+    assert manifest['approval']['required'] is False
+    assert manifest['approval']['result'] == 'allowed'
+    # A gated manifest still demands the exact signed approval, independent of this.
+    post = template(tmp_path / 'post.yaml', 'POST')
+    gated = nuclei_policy.prepare_scan(state, 'http://127.0.0.1/', {'nuclei_templates': [str(post)]})
+    assert gated['approval_required_count'] == 1
+    assert gated['approval']['required'] is True and gated['approval']['result'] == 'denied'
+
+
+def test_selection_artifact_and_executor_agree_on_observation_only_nuclei(tmp_path, monkeypatch):
+    """The two approval records must not contradict each other for the same manifest."""
+    from src.adaptix.security import authorization as auth_module
+    monkeypatch.setattr(auth_module, 'KEY_PATH', tmp_path / 'signing-key')
+    auth_module._key(create=True)
+    observe = template(tmp_path / 'observe.yaml', 'GET')
+    state = {'run_id': 'agreement-test', 'principal': 'local-audit', 'target': ['http://127.0.0.1/'],
+             'hosts': ['127.0.0.1'], 'scope_ports': [80]}
+    manifest = nuclei_policy.prepare_scan(state, 'http://127.0.0.1/', {'nuclei_templates': [str(observe)]})
+    from src.adaptix.security.action_policy import approval_for
+    active_execution = manifest['approval_required_count'] and (
+        manifest['approval']['result'] == 'allowed' or not manifest['executable_count'])
+    spec = {'risk': 'state_change' if active_execution else 'observe',
+            'manifest_sha256': manifest['manifest_sha256']}
+    audit = approval_for(state, {'tool': 'nuclei', 'target': 'http://127.0.0.1/'}, spec)
+    assert manifest['approval']['required'] == audit['required'] is False
+    assert manifest['approval']['result'] == audit['result'] == 'allowed'
+
+
 def test_reflection_feedback_can_correct_unfounded_success_before_any_tool(monkeypatch):
     from src.adaptix.workflow.graph import graph
     from src.adaptix.tools import registry
@@ -165,7 +206,7 @@ def test_reflection_feedback_can_correct_unfounded_success_before_any_tool(monke
         return {'http_services': [{'url': target, 'status_code': 200}], 'execution_metrics': {'tool_calls_used': 1}}
     monkeypatch.setattr(planner.litellm, 'completion', complete)
     monkeypatch.setattr(registry, 'tool_handlers', lambda: {'httpx': observe})
-    result = graph.invoke({'target': [target], 'user_prompt': 'Periksa status HTTP', 'max_iterations': 5}, config={'recursion_limit': 100})
+    result = graph.invoke({'target': [target], 'user_prompt': 'Periksa status HTTP', 'max_iterations': 5, 'baseline_disabled': True}, config={'recursion_limit': 100})
     assert len(contexts) == 3 and dispatched == [target]
     assert result['report']['objective_status'] == 'achieved'
     assert result['reflection_history'][0]['assessment']['validation_errors']
@@ -233,7 +274,8 @@ def test_graph_retests_same_url_only_after_discovered_technology_changes(tmp_pat
     monkeypatch.setattr(nuclei, 'run_tool', scan)
     monkeypatch.setattr(httpx, 'run_tool', lambda *a, **kw: {'returncode': 0, 'stdout': json.dumps({'url': target, 'status_code': 200, 'tech': ['WordPress'], 'webserver': 'nginx'}), 'stderr': ''})
     result = graph.invoke({'target': [target], 'max_iterations': 6, 'tool_call_budget': 6,
-        'services': [{'host': '127.0.0.1', 'port': 18080, 'service': 'http', 'product': 'nginx'}]}, config={'recursion_limit': 100})
+        'services': [{'host': '127.0.0.1', 'port': 18080, 'service': 'http', 'product': 'nginx'}],
+        'baseline_disabled': True, 'scanner_disabled': True}, config={'recursion_limit': 100})
     assert profiles == ['nginx', 'nginx,wordpress,wp']
     assert [row['tool'] for row in result['attempted_actions']] == ['nuclei', 'httpx', 'nuclei']
 

@@ -18,8 +18,21 @@ def write_json(state, stage, value):
 def checkpoint(state):
     if not state.get('run_id'):
         return None
+    stage = f'checkpoint-{state.get("iterations", 0):04d}'
+    path = Path(artifact_path(state, stage, stage, 'json'))
+    try:
+        if path.is_file():
+            existing = json.loads(path.read_text()).get('run_started_at') or 'unknown'
+        else:
+            existing = None
+    except (OSError, ValueError):
+        existing = 'unreadable'
+    if existing is not None and existing != state.get('run_started_at'):
+        # The directory holds another run's evidence. Rewriting it would destroy an
+        # audit trail; a diagnostic replay must carry a fresh run ID.
+        return None
     safe = {k: v for k, v in state.items() if k not in ('planner_cache', 'idor_scenarios', 'identity_context', 'grant', 'action_approvals')}
-    return str(write_json(state, f'checkpoint-{state.get("iterations", 0):04d}', safe))
+    return str(write_json(state, stage, safe))
 
 
 def export_bundle(state, report, events):
@@ -49,7 +62,8 @@ def export_bundle(state, report, events):
                        'git_base_commit': git_head, 'source_tree_sha256': source_digest.hexdigest(),
                        'python': platform.python_version(), 'platform': platform.platform(),
                        'requirements_lock_sha256': hashlib.sha256((ROOT / 'requirements.lock').read_bytes()).hexdigest() if (ROOT / 'requirements.lock').is_file() else None,
-                       'budgets': {k: state.get(k, default) for k, default in {
+                       'budgets': {k: ('unlimited' if state.get(k, default) is None else state.get(k, default))
+                                   for k, default in {
                            'max_iterations': 20, 'token_budget': 50000, 'tool_call_budget': 20,
                            'time_budget_seconds': 1800, 'planner_retry_limit': 0,
                            'model_context_tokens': 4096, 'policy_replan_limit': 2}.items()}},

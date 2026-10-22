@@ -11,6 +11,11 @@ limits:
   # Extra ports trusted for in-process web_discover/http_request probing.
   web_ports: '80,443,3000,8080,8000-8099'
   nmap_timeout_seconds: 900
+  # Scheme heuristic for deriving base URLs from observed services: a service
+  # whose label names http always wins; otherwise these are the fallback ports.
+  # Editable because deciding which ports deserve a base URL is operator policy.
+  http_service_ports: '80,443,8080,8443,9443,18080'
+  https_service_ports: '443,8443,9443'
   # Select HTTP template tags from observed products/technology. Unknown -> native -as.
   # 'default' restores full native selection; 'baseline' or local path lists also work.
   nuclei_templates: 'adaptive'

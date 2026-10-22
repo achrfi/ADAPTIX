@@ -1,6 +1,9 @@
 """ADAPTIX unified module. Migrated from tested running code."""
+import hashlib
 import json
+import re
 import time
+from pathlib import Path
 from src.adaptix.config import config, ROOT
 from src.adaptix.tools.registry import tool_registry, run_tool
 from src.adaptix.evidence.storage import artifact_path, save_text
@@ -50,6 +53,12 @@ def nuclei_check(state):
         errors.append('Nuclei unavailable: ' + registry['nuclei']['detail'])
         return {'errors': errors, 'events': log(state, 'Nuclei: missing')}
     cfg = config('scope.yaml')['limits']
+    # The automatic scanner phase may pin the template mode for its own run
+    # without touching global configuration; explicit operator settings win.
+    if state.get('nuclei_template_mode') in ('adaptive', 'observation', 'assessment'):
+        cfg = {**cfg, 'nuclei_templates': state['nuclei_template_mode']}
+        if isinstance(state.get('nuclei_template_cap'), int):
+            cfg = {**cfg, 'nuclei_template_cap': state['nuclei_template_cap']}
     adaptive = cfg.get('nuclei_templates') == 'adaptive'
     # A tag observed at one origin must never select templates for another origin.
     grouped = {}
@@ -63,6 +72,11 @@ def nuclei_check(state):
     candidates = []
     technologies = {}
     events = list(state.get('events', []))
+    scanner_findings = []
+    scanner_observations = []
+    seen_finding_ids = {row.get('finding_id') for row in state.get('verified_findings', []) if isinstance(row, dict)}
+    seen_observation_ids = {row.get('observation_id') for row in state.get('nuclei_observations', [])
+                            if isinstance(row, dict)}
     for group in groups:
         working = {**state, 'execution_metrics': execution_metrics}
         if not tool_budget_available(working) or remaining_seconds(working) <= 0:
@@ -92,50 +106,128 @@ def nuclei_check(state):
                 return {'stop_reason': 'human_approval_required', 'errors': errors + ['Nuclei manifest approval was already consumed'],
                         'events': log({'events': events}, 'Nuclei: single-use manifest approval cannot be replayed')}
         selection['targets'] = group
-        argv = [registry['nuclei']['path'], *template_flags, '-j', '-silent', '-duc',
+        # -silent is deliberately absent: dropping it keeps the engine banner
+        # (loaded-template count, load warnings) and -stats request accounting
+        # on stderr, so telemetry reports approved vs loaded vs executed vs
+        # matched instead of inferring them. JSONL findings stay on stdout.
+        argv = [registry['nuclei']['path'], *template_flags, '-j', '-duc', '-stats', '-si', '15',
                 '-c', str(cfg['concurrent_requests']), '-rl', str(cfg['rate_per_second']), '-timeout', '5', '-dr', '-or', '-ot']
         argv.extend(domain_flags)
         events = log({'events': events}, f'Nuclei selection: {selection["strategy"]}, tags={selection["tags"]}, target={group[0]}')
         timeout = tool_timeout(working, int(cfg.get('nuclei_timeout_seconds', max(int(cfg['timeout_seconds']), 60))))
-        if manifest['approval']['result'] == 'allowed':
+        if manifest['approval']['result'] == 'allowed' and manifest['approval'].get('expires_at'):
             timeout = min(timeout, max(.001, manifest['approval']['expires_at'] - time.time()))
+        # Exact request budgets are not enforceable inside the engine; the only
+        # honest guarantee is a wall-clock bound derived from the approved
+        # ceiling itself: rate*seconds + at most concurrency in-flight requests
+        # (each spanning at most one 5s timeout) plus engine startup margin.
+        room = int(cfg.get('concurrent_requests', 10)) * 5 + 25
+        by_budget = (manifest['request_ceiling_per_target'] / max(1, int(cfg['rate_per_second']))) + room
+        timeout = min(timeout, max(30, by_budget))
         argv.extend(['-retries', '0'])
-        result = run_tool(argv, timeout=timeout, stdin='\n'.join(bound_urls) + '\n')
+        result = run_tool(argv, timeout=timeout, stdin='\n'.join(bound_urls) + '\n', stderr_limit=200_000)
         execution_metrics = record_tool_call(working, 'nuclei')
         raw = result['stdout']
         raw_bytes += len(raw.encode())
         selection['execution_status'] = 'completed' if result['returncode'] == 0 else 'error_or_partial'
+        # Verified accounting vs the approved manifest:
+        # selected_count/approved(executable) are fixed by the manifest;
+        # loaded/executed/requested come from engine output; matches from JSONL.
+        loaded = re.search(r'Templates loaded for current scan: (\d+)', result['stderr'])
+        requested = re.findall(r'Requests: (\d+)/', result['stderr'])
+        warn_errors = re.findall(r'templates with runtime error', result['stderr'])
+        selection['loaded_templates'] = int(loaded.group(1)) if loaded else None
+        selection['requests_issued'] = int(requested[-1]) if requested else None
+        if selection['loaded_templates'] is not None and selection['loaded_templates'] != manifest['executable_count']:
+            errors.append(f"Nuclei loaded {selection['loaded_templates']} templates for the approved manifest of "
+                          f"{manifest['executable_count']}; engine caching or runtime errors may skew coverage")
+        if selection['requests_issued'] is not None and selection['requests_issued'] > manifest['request_ceiling_per_target']:
+            errors.append(f"Nuclei issued {selection['requests_issued']} requests against the approved ceiling "
+                          f"of {manifest['request_ceiling_per_target']}; observed for the audit trail")
+        if warn_errors:
+            errors.append('Nuclei reported templates could not execute due to runtime errors; '
+                          'they are excluded from loaded counts and were not executed')
+        # The invocation must not have mutated the snapshot it was authorized to
+        # run (the -ud vector did exactly that in a manual benchmark); every file
+        # is re-hashed against the approved manifest after execution. A directory
+        # that was never a materialized snapshot is skipped: nothing was bound.
+        snapshot = Path(template_flags[template_flags.index('-t') + 1])
+        materialized = (snapshot / 'isolated-config.yml').is_file() or \
+            any((snapshot / (row['sha256'] + '.yaml')).is_file() for row in manifest['_chosen'])
+        integrity = content_check = []
+        if materialized:
+            integrity = ['missing template ' + (row['id'] or row['sha256'][:12]) for row in manifest['_chosen']
+                         if not (snapshot / (row['sha256'] + '.yaml')).is_file()]
+            content_check = [row['id'] or row['sha256'][:12] for row in manifest['_chosen']
+                             if (snapshot / (row['sha256'] + '.yaml')).is_file() and
+                             hashlib.sha256((snapshot / (row['sha256'] + '.yaml')).read_bytes()).hexdigest() != row['sha256']]
+        if integrity or content_check:
+            errors.append('Nuclei snapshot integrity violation detected after execution; replan required: '
+                          + ', '.join(sorted(integrity + content_check))[:400])
+        observation_ids = {row['id'] for row in manifest['_chosen'] if 'tech' in row['tags']}
+        template_tags = {row['id']: row.get('tags', []) for row in manifest['_chosen']}
+        # The policy labels travel on the manifest itself (prepare_scan names them
+        # when it authorizes the selection); falling back to re-reading
+        # configuration only covers hand-built manifests in tests.
+        configured_tags = manifest.get('observation_tags')
+        if configured_tags is None:
+            configured_tags = config('nuclei.yaml')['policy']['observation_tags']
+        observation_tags = set(configured_tags)
         selections.append(selection)
-        save_text(artifact_path(state, 'nuclei-selection', group[0], 'json'), json.dumps(selection, indent=2))
+        # The raw JSONL on disk is the Nuclei evidence every registration points at;
+        # both the file reference and its content hash are fixed before the result
+        # rows are parsed so a match can never outlive its evidence.
+        jsonl_ref = str(artifact_path(state, 'nuclei', group[0], 'jsonl'))
+        jsonl_canon = hashlib.sha256(raw.encode()).hexdigest()
         save_text(artifact_path(state, 'nuclei', group[0], 'jsonl'), raw)
         if result['returncode'] != 0:
             errors.append('Nuclei: ' + result['stderr'][:200])
         approved = {endpoint_key(url) for url in group}
+        matched_rows = 0
         approved_origins = {key[:3] for key in approved if key}
         allowed_ports = {key[2] for key in approved if key}
-        for line in raw.splitlines():
+        for evidence_line, line in enumerate(raw.splitlines(), start=1):
             try:
                 row = json.loads(line)
                 if not isinstance(row, dict):
                     continue
+                matched_rows += 1
                 url = logical_url(row.get('matched-at') or row.get('host', ''), bindings, allow_paths=not exact_path)
                 key = endpoint_key(url)
                 selected = key in approved if exact_path else bool(key and key[:3] in approved_origins)
                 if not selected or not allowed_url(url, state['hosts'], allowed_ports, state.get('scope_aliases'), state.get('scope_networks')):
                     continue
-                candidates.append({'template_id': row.get('template-id', ''),
-                                   'url': url, 'severity': row.get('info', {}).get('severity', 'info'),
+                template_id = row.get('template-id', '')
+                # Technology fingerprints are inventory observations: they prove
+                # what is running, not a vulnerability, so they must not enter
+                # the vulnerability verification lifecycle as such.
+                finding_type = ('service_reachability' if template_id == 'adaptix-http-baseline'
+                                else 'service_observation' if template_id in observation_ids
+                                else 'potential_vulnerability')
+                info = row.get('info') or {}
+                severity = str(info.get('severity', 'info')).lower() or 'info'
+                candidates.append({'template_id': template_id,
+                                   'url': url, 'severity': severity,
                                    'status': 'candidate_unverified',
-                                   'finding_type': ('service_reachability' if row.get('template-id') == 'adaptix-http-baseline'
-                                                    else 'potential_vulnerability')})
+                                   'finding_type': finding_type})
                 if selection.get('strategy') == 'native_automatic':
                     from src.adaptix.tools.nuclei_profiles import _product
                     mapping = config('nuclei.yaml')['technology_tags']
                     match = _product(row.get('matcher-name', ''))
                     if match in {_product(value) for value in mapping}:
                         technologies.setdefault(group[0], set()).add(match)
+                if finding_type != 'potential_vulnerability':
+                    continue
+                _register_nuclei_match(row, template_id, url, severity, evidence_line,
+                                       jsonl_ref, jsonl_canon, str(state.get('run_id', '')),
+                                       template_tags, observation_ids, observation_tags,
+                                       seen_finding_ids, seen_observation_ids,
+                                       scanner_findings, scanner_observations)
             except (json.JSONDecodeError, TypeError, ValueError, AttributeError):
                 continue
+        selection['matched_templates'] = matched_rows
+        selections[-1] = selection
+        save_text(artifact_path(state, 'nuclei-selection', group[0], 'json'), json.dumps(selection, indent=2))
     previous = list(state.get('candidates', []))
     from src.adaptix.processing.normalize import deduplicate
     previous = deduplicate('candidates', previous + candidates)
@@ -148,4 +240,84 @@ def nuclei_check(state):
     return {'candidates': previous, 'execution_metrics': execution_metrics, 'raw_bytes': raw_bytes,
             'http_services': http_services,
             'nuclei_template_selections': selections,
-            'errors': errors, 'events': log({'events': events}, f'Nuclei: {len(candidates)} unverified matches')}
+            # Scanner verdicts ride out of the adapter in the state keys the whole
+            # workflow already carries: the findings bucket is what the reports,
+            # checkpoints and audit bundle preserve, whatever planning does next.
+            'verified_findings': list(state.get('verified_findings', [])) + scanner_findings,
+            'nuclei_observations': list(state.get('nuclei_observations', [])) + scanner_observations,
+            'errors': errors, 'events': log({'events': events}, f'Nuclei: {len(candidates)} unverified matches, {len(scanner_findings)} scanner-verified findings')}
+
+
+def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl_ref, jsonl_canon, run_id,
+                           template_tags, observation_ids, observation_tags,
+                           seen_finding_ids, seen_observation_ids, findings, observations):
+    """Attach a Nuclei template match to the state in the role the engine decided.
+
+    The template matchers are the evaluation: a positive vulnerability match
+    registers immediately as a scanner-verified finding (no replay, no review,
+    no second request), while an informational match or a template whose
+    matchers reported false is recorded as an observation. Registration anchors
+    the row to the approved manifest: a template id the run never authorized, an
+    inventory-class template (observation tags or tech detections), or an
+    informational-severity match never becomes a vulnerability finding - they
+    are observations. Nuclei's own evidence (the raw JSONL artifact and the row
+    it came from) is carried verbatim as provenance; the finding id itself is
+    derived only from the identity tuple, so the same match discovered by a
+    different scan resolves to the same record id.
+    """
+    matched_location = row.get('matched-at') or row.get('host', '')
+    matcher_name = row.get('matcher-name', '')
+    matcher_status = row.get('matcher-status')
+    positive = matcher_status is not False
+    # The identity is the (template, matched location, matcher) tuple, with the
+    # evidence artifact deliberately excluded: re-scanning the same surface with
+    # a different run, engine version or JSONL ordering must resolve to the same
+    # finding id, both inside a single run (dedupe) and across runs (stable
+    # identity for report consumers). The raw row and its artifact remain the
+    # provenance record per scan, carried on the instance's verification_evidence.
+    id_source = f'{template_id}|{matched_location}|{matcher_name}'
+    record_id = 'NUC-' + hashlib.sha256(id_source.encode()).hexdigest()[:12]
+    info = row.get('info') or {}
+    metadata = {'template_id': template_id, 'template_path': str(row.get('template-path', ''))[:240],
+                'type': row.get('type'), 'host': row.get('host'), 'ip': row.get('ip'),
+                'name': info.get('name'), 'tags': info.get('tags'),
+                'classification': info.get('classification')}
+    evidence = {'result': 'confirmed' if positive else 'inconclusive', 'run_id': run_id,
+                'timestamp': row.get('timestamp'), 'verification_level': 'scanner_verified',
+                'verification_method': 'nuclei_template_match', 'evidence_ref': jsonl_ref,
+                'evidence_sha256': jsonl_canon, 'evidence_line': evidence_line,
+                'matcher_name': matcher_name, 'matcher_status': matcher_status}
+    if not positive or template_id not in template_tags or severity in ('info', 'unknown', '') \
+            or template_id in observation_ids or set(template_tags.get(template_id) or ()) & observation_tags:
+        if record_id in seen_observation_ids:
+            return
+        seen_observation_ids.add(record_id)
+        observations.append({
+            'observation_id': record_id, 'tool_source': 'nuclei', 'template_id': template_id,
+            'severity': severity, 'target': url, 'matched_location': matched_location,
+            'matcher_name': matcher_name, 'matcher_status': matcher_status,
+            'kind': 'informational_nuclei_match', 'evidence_ref': jsonl_ref,
+            'evidence_sha256': jsonl_canon, 'evidence_line': evidence_line,
+            'nuclei_metadata': metadata,
+            'reason': ('Informational Nuclei match, an observation-class template, or a template outside the '
+                       'approved manifest; matcher status ' + str(matcher_status))})
+        return
+    if record_id in seen_finding_ids:
+        return
+    seen_finding_ids.add(record_id)
+    findings.append({
+        'finding_id': record_id, 'tool_source': 'nuclei', 'source_tool': 'nuclei',
+        'vulnerability_name': str(info.get('name') or template_id)[:160],
+        'template_id': template_id, 'severity': severity,
+        'target': url, 'matched_location': str(matched_location)[:240], 'matched_at': matched_location,
+        'matcher_name': matcher_name, 'matcher_status': bool(matcher_status),
+        'category': 'nuclei_template_match', 'finding_type': 'potential_vulnerability',
+        'verification_method': 'nuclei_template_match', 'verification_level': 'scanner_verified',
+        'independently_verified': False, 'verification_status': 'verified',
+        'confidence': 'scanner_confirmed',
+        'actual_observation': {'vulnerability_name': str(info.get('name', ''))[:160],
+                               'severity': severity, 'matcher': matcher_name,
+                               'host': row.get('host'), 'engine_type': row.get('type')},
+        'nuclei_metadata': metadata, 'verification_evidence': evidence,
+        'reason': 'Nuclei template matchers evaluated this template as a match; '
+                  'scanner-verified, not independently verified'})

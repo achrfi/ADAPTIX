@@ -82,13 +82,13 @@ def test_budget_window_advances_and_report_preserves_unprocessed_scope(monkeypat
         used=state.get('execution_metrics',{}).get('tool_calls_used',0)
         return {'services':[{'host':host,'port':80,'service':'http'}], 'execution_metrics':{'tool_calls_used':used+1}}
     monkeypatch.setattr(registry,'tool_handlers',lambda:{'nmap':execute})
-    result=graph.invoke({'target':['127.0.0.0/24'],'tool_call_budget':2,'max_iterations':5},config={'recursion_limit':100})
+    result=graph.invoke({'target':['127.0.0.0/24'],'tool_call_budget':2,'max_iterations':5, 'baseline_disabled': True, 'scanner_disabled': True},config={'recursion_limit':100})
     assert windows[0]==['127.0.0.1','127.0.0.2']
     assert windows[1]==['127.0.0.2']
     progress=result['report']['scope_progress']
     assert progress['total_target_units']==254 and progress['touched_target_units']==2
     assert progress['untouched_target_units']==252
-    assert result['report']['stop_reason']=='budget_exhausted'
+    assert result['report']['stop_reason']=='tool_call_budget_exhausted'
     assert len(result['report']['planning_history'])==2
 
 
@@ -110,7 +110,7 @@ def test_unaffordable_candidates_return_feedback_for_replanning(monkeypatch):
 def test_expired_time_budget_prevents_model_call(monkeypatch):
     monkeypatch.setattr(planner.litellm,'completion',lambda **kw:(_ for _ in ()).throw(AssertionError('must not call')))
     result=planner.adaptive_planning({'run_started_at':time.time()-10,'time_budget_seconds':1})
-    assert result['stop_reason']=='budget_exhausted'
+    assert result['stop_reason']=='time_budget_exhausted'
 
 
 def test_scope_defer_advances_without_claiming_it_was_tested(monkeypatch):
@@ -121,7 +121,7 @@ def test_scope_defer_advances_without_claiming_it_was_tested(monkeypatch):
         ctx=json.loads(kw['messages'][1]['content']); contexts.append(ctx)
         return response([],advance=len(contexts)==1)
     monkeypatch.setattr(planner.litellm,'completion',completion)
-    result=graph.invoke({'target':['127.0.0.0/24'],'tool_call_budget':2,'max_iterations':4},config={'recursion_limit':100})
+    result=graph.invoke({'target':['127.0.0.0/24'],'tool_call_budget':2,'max_iterations':4, 'baseline_disabled': True, 'scanner_disabled': True},config={'recursion_limit':100})
     assert contexts[0]['scope_window']==['127.0.0.1','127.0.0.2']
     assert contexts[1]['scope_window']==['127.0.0.3','127.0.0.4']
     assert result['report']['scope_progress']['deferred_target_units']==2

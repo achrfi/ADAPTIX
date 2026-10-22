@@ -11,6 +11,7 @@ A route extracted from a JavaScript bundle is real observed evidence of an endpo
 existing in the application, so it is eligible for a bounded, authorized request
 that establishes whether it answers; it is not eligible for a claim about it.
 """
+import re
 from urllib.parse import urlsplit
 
 from src.adaptix.config import config
@@ -35,6 +36,19 @@ VALIDATION_FIELDS = frozenset({'status_code', 'validated'})
 NAMED_TOOLS = frozenset({'scenario', 'idor'})
 
 
+def permitted_tools(state=None):
+    """The tool names the runtime actually holds, derived from the live registry.
+
+    This is the single source of the planner's tool vocabulary. It is computed from
+    the same registry the executor dispatches from, so a name the run cannot execute
+    can never be proposed as if it were available. No static list of tool names is
+    duplicated here: an unknown tool is not a tool.
+    """
+    from src.adaptix.tools.registry import tool_registry
+    return tuple(sorted(name for name, spec in tool_registry().items()
+                        if spec.get('enabled') and spec.get('path')))
+
+
 def origin(url):
     parsed = urlsplit(url)
     return f'{parsed.scheme}://{parsed.netloc}'
@@ -47,6 +61,36 @@ def permitted(state, url):
     networks = manifest.get('networks') if manifest else state.get('scope_networks', [])
     return allowed_url(url, hosts or [], set(ports_for_state(state, config('scope.yaml')['limits'])),
                        aliases or {}, networks or [])
+
+
+def resolve_target(state, target):
+    """Resolve a model-authored relative path against the run's authorized origin.
+
+    Scope is a property of the destination (scheme, host, port), never of the path:
+    a test value or endpoint path the model constructs for an observed, authorized
+    surface is not a new authorization question. A leading-slash relative path is
+    resolved against the origins the operator pinned in ``state['target']`` and kept
+    only when the absolute result passes the same scope check the executor applies.
+    Protocol-relative and host-bearing forms are never resolved: changing the
+    origin is always a new authorization question.
+    """
+    if not isinstance(target, str) or not target.startswith('/') or target.startswith('//'):
+        return target if target and '://' in str(target) else None
+    parsed = urlsplit(target)
+    if parsed.netloc or parsed.scheme:
+        return None
+    targets = state.get('target') or []
+    targets = [targets] if isinstance(targets, str) else list(targets)
+    for value in targets:
+        if '://' not in str(value or ''):
+            continue
+        absolute = origin(value).rstrip('/') + target
+        try:
+            if permitted(state, absolute):
+                return absolute
+        except (ValueError, KeyError):
+            continue
+    return None
 
 
 def endpoint_provenance(state):
@@ -270,12 +314,22 @@ def missing_prerequisites(state, action, evidence=None):
                         'idor_scenario_name')
         return missing
 
-    if tool in ('nmap', 'httpx', 'playwright', 'nuclei', 'http_request', 'web_discover', 'api_discover'):
-        if tool != 'nmap' and not endpoint_key(target):
-            require('malformed_target', 'Target must be an http/https URL in scope', 'in_scope_url')
+    if tool in ('nmap', 'httpx', 'playwright', 'browser_test', 'nuclei', 'http_request', 'web_discover', 'api_discover'):
+        # Path-only relative targets are model-authored construction for an
+        # in-scope surface, resolved against the authorized origin; only a form
+        # scope can express (an absolute URL) is required here.
+        resolved = resolve_target(state, target)
+        if tool != 'nmap' and not endpoint_key(resolved):
+            require('malformed_target', 'Target must be an http/https URL in scope: observed absolute URLs are eligible, '
+                                        'and a relative test path is eligible with a leading slash (for example /api/v1/status) '
+                                        'which the runtime resolves against the authorized origin', 'in_scope_url')
             return missing
+        if tool != 'nmap':
+            target = resolved
         methods = sorted((provenance.get(endpoint_key(target)) or {}).get('methods', ())) if endpoint_key(target) else []
-        if methods and not set(methods) & {'GET', 'HEAD'}:
+        # http_request carries its own method field, so a route only ever observed
+        # as POST is actionable for it; GET-only tools issue GETs they did not choose.
+        if tool != 'http_request' and methods and not set(methods) & {'GET', 'HEAD'}:
             require('method_mismatch',
                     f'This route was only ever observed as {"/".join(methods)}; these tools issue a GET',
                     'get_capable_route')
@@ -284,6 +338,19 @@ def missing_prerequisites(state, action, evidence=None):
         # it, and is re-opened by any new reference from the application itself.
         prior = evidence.attempts.get(target)
         external = evidence.external_sources(target)
+        if tool == 'browser_test':
+            marker = str(action.get('marker') or '')
+            if not re.fullmatch(r'[A-Za-z0-9_.-]{6,64}', marker) or marker not in target:
+                require('marker_required',
+                        'The action must carry a 6-64 character marker that appears inside the URL: the browser test '
+                        'signs execution from the marker dialog on the payload navigation and its absence on a '
+                        'control navigation of the marker-stripped URL', 'marker_in_url')
+                return missing
+        if prior is not None and not prior['usable'] and not external:
+            require('already_fetched_unusable',
+                    f'This URL was already fetched and returned HTTP {prior.get("status_code")}'
+                    f' ({prior.get("document_kind")}); fetching it again adds nothing without new evidence',
+                    'new_evidence')
         if prior is not None and not prior['usable'] and not external:
             require('already_fetched_unusable',
                     f'This URL was already fetched and returned HTTP {prior.get("status_code")}'
@@ -299,6 +366,17 @@ def missing_prerequisites(state, action, evidence=None):
                     'new_evidence')
     if tool == 'http_request':
         method = str(action.get('method') or 'GET').upper()
+        identity = str(action.get('identity') or '').strip()
+        if identity:
+            names = {row.get('name') for row in (state.get('identity_context') or {}).get('identities', [])
+                     if isinstance(row, dict) and row.get('name')}
+            if identity not in names:
+                require('unknown_identity',
+                        'Unknown identity: capability inputs list identity_names from operator configuration; '
+                        'its headers cannot be invented by the model', 'identity_name')
+            elif method not in ('GET', 'HEAD'):
+                require('identity_safe_method_only',
+                        'A selected identity accompanies read-only requests only', 'identity_safe_method')
         if method in ('GET', 'HEAD'):
             proposed = tuple(payload_candidates(target))
             if not proposed:
@@ -359,6 +437,8 @@ def missing_prerequisites(state, action, evidence=None):
 def eligible_targets(state, tool, limit=8, evidence=None):
     """Inputs that currently satisfy ``tool``'s prerequisites, best evidenced first."""
     evidence = evidence or Evidence(state)
+    if tool == 'browser_test':
+        return []  # markers are model-authored payloads; static endpoint examples cannot carry them
     provenance = evidence.provenance
     rows = []
     for key in provenance:
@@ -367,8 +447,11 @@ def eligible_targets(state, tool, limit=8, evidence=None):
         if row and permitted(state, row['url']):
             rows.append(row)
     # Examples are ranked by what they teach the planner: an application route the
-    # application itself references beats another copy of the site root.
-    rows.sort(key=lambda row: (not _api_like(row), row['url']))
+    # application itself references beats another copy of the site root, and among
+    # API-like routes one carrying an input surface (query parameters the JS
+    # references, or an attached form) is a stateful probe rather than another
+    # parameterless fetch of a page whose response is already stored.
+    rows.sort(key=lambda row: (not _api_like(row), not _has_inputs(row), row['url']))
     from src.adaptix.agents.action_identity import already_completed
     candidates = []
     for row in rows:
@@ -399,6 +482,72 @@ def _api_like(row):
     return any(str(k).lower() in ('xhr', 'fetch', 'api', 'script_route') for k in row.get('kinds', []))
 
 
+def _has_inputs(row):
+    return '?' in row['url'] or any(str(k).lower() == 'form' for k in row.get('kinds', []))
+
+
+def _tool_inputs(tool, state=None):
+    """Input affordances the runtime tool contract actually supports, not tactics.
+
+    These are re-read from the runtime schema and tool module on every call, so the
+    contract never drifts from what dispatch can execute. Tactics - which URL to
+    hit, which body value to send - are deliberately absent: they belong to the
+    model, and no list of them lives here. Identity names are the one exception:
+    selecting *which* operator-configured session to send is an input decision the
+    model legitimately makes; the credential values behind a name stay hidden.
+    """
+    try:
+        if tool == 'browser_test':
+            return {'supports': 'one payload navigation + one control navigation (target url carrying your marker; marker 6-64 chars [A-Za-z0-9_.-] inside the url)',
+                    'marker_field': 'marker',
+                    'behavior': 'dialogs are captured and dismissed; nothing is clicked; the payload/control dialog comparison is signed as the browser_execution proof',
+                    'hypothesis_field': 'category the action tests; declare it when the evidence suggests a class'}
+        if tool == 'http_request':
+            from src.adaptix.tools.web import MUTATING_METHODS, SAFE_METHODS
+            from src.adaptix.agents.schema import Action
+            properties = Action.model_json_schema().get('properties', {})
+            body_schema = (properties.get('body') or {}).get('anyOf', [{}])[0]
+            body_cap = body_schema.get('maxLength')
+            context = (state or {}).get('identity_context') or {}
+            names = sorted({row.get('name') for row in (context.get('identities') or [])
+                            if isinstance(row, dict) and row.get('name')})
+            inputs = {'supports': 'one bounded request (url, query on the url, optional request body)',
+                      'methods_without_approval': list(SAFE_METHODS),
+                      'methods_with_human_approval': list(MUTATING_METHODS),
+                      'body_max_chars': body_cap,
+                      'hypothesis_field': 'category the action tests; declare it when the evidence suggests a class',
+                      'headers_field': 'model headers (up to 4, e.g. Content-Type); transport/identity headers are not yours',
+                      'controls': 'detection-bearing probes get a runtime-issued clean control'}
+            if names:
+                inputs['identity_names'] = names[:8]
+                inputs['identity_field'] = ('name of an operator-configured identity; its headers arrive from '
+                                            "operator configuration - the model sends only the name, and only "
+                                            'on non-destructive methods')
+            return inputs
+    except (ImportError, AttributeError, KeyError, ValueError, IndexError, TypeError):
+        return None
+    return None
+
+
+def named_tool_targets(state, tool):
+    """Executable scenario names a configured named tool is actually ready to run.
+
+    Named tools take an operator- or evidence-derived scenario name, not an endpoint,
+    so a URL-driven target scan never surfaces them. Each row pairs the executable
+    name with the endpoint the scenario names (its ``base_url``), so an alternative
+    can be linked to the hypothesis about that same path.
+    """
+    rows = []
+    if tool == 'scenario':
+        from src.adaptix.tools.discovery import derive_candidates
+        rows = [{'name': row['name'], 'url': row.get('url')} for row in derive_candidates(state)]
+    elif tool == 'idor':
+        rows = [{'name': row.get('name'), 'url': row.get('base_url')}
+                for row in state.get('idor_scenarios', []) if row.get('name')]
+    return [row for row in rows
+            if not missing_prerequisites(state, {'tool': tool, 'target': row['name'], 'method': 'GET'})]
+
+
 def capability_contract(state, tools, limit=4):
     """Per-tool capability summary for the planner: prerequisites, counts, examples.
 
@@ -411,16 +560,25 @@ def capability_contract(state, tools, limit=4):
     contract = {}
     for tool in sorted(tools):
         declared = TOOL_REQUIREMENTS.get(tool, {})
-        targets = eligible_targets(state, tool, limit=limit, evidence=evidence)
-        row = {'requires': list(declared.get('requires', []))}
-        if targets:
-            row['eligible'] = len(targets)
-            row['targets'] = [item['url'] for item in targets[:2]]
+        named = named_tool_targets(state, tool) if tool in NAMED_TOOLS else []
+        if named:
+            contract[tool] = {'requires': list(declared.get('requires', [])),
+                              'eligible': len(named),
+                              'targets': [row['name'] for row in named[:limit]]}
         else:
-            codes = sorted({code for code in _missing_codes(state, tool, evidence)})
-            row['eligible'] = 0
-            row['missing'] = codes[:3] or ['no_observed_input']
-        contract[tool] = row
+            targets = [] if tool in NAMED_TOOLS else eligible_targets(state, tool, limit=limit, evidence=evidence)
+            row = {'requires': list(declared.get('requires', []))}
+            if targets:
+                row['eligible'] = len(targets)
+                row['targets'] = [item['url'] for item in targets[:2]]
+            else:
+                codes = sorted({code for code in _missing_codes(state, tool, evidence)})
+                row['eligible'] = 0
+                row['missing'] = codes[:3] or ['no_observed_input']
+            contract[tool] = row
+        inputs = _tool_inputs(tool, state)
+        if inputs:
+            contract[tool]['inputs'] = inputs
     return contract
 
 
@@ -458,6 +616,8 @@ TOOL_REQUIREMENTS = {
               'purpose': 'One HTTP observation with technology and title metadata.'},
     'playwright': {'takes': 'url', 'requires': ['in_scope_url'],
                    'purpose': 'Rendered page observation, screenshot and discovered XHR/fetch routes.'},
+    'browser_test': {'takes': 'url', 'requires': ['in_scope_url', 'marker_in_url'],
+                     'purpose': 'Deterministic browser-execution proof for a candidate XSS surface: the URL carries the run marker, the payload and marker-stripped control navigations are compared by captured dialogs.'},
     'web_discover': {'takes': 'seed_document_url', 'requires': ['in_scope_url', 'undiscovered_seed_document'],
                      'purpose': 'Retrieve a seed document plus robots/sitemap and extract in-scope routes and forms.'},
     'http_request': {'takes': 'url_or_seed_url', 'requires': ['in_scope_url', 'novel_request'],

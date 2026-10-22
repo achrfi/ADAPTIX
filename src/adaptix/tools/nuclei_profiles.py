@@ -54,5 +54,7 @@ def adaptive_profile(state, target):
     tags = sorted(selected)
     return {'target': target, 'mode': 'adaptive', 'strategy': 'observed_tags' if tags else 'native_automatic',
             'tags': tags, 'evidence': evidence,
-            'reason': 'Templates filtered by observed product tags' if tags else 'No mapped product evidence; native Nuclei detects technology before selecting templates',
+            'reason': 'Templates filtered by observed product tags' if tags else
+            'No mapped product evidence: discovery seeds plus the generic observation families are selected, '
+            'and native Nuclei auto-detects technology within the exact snapshot',
             'flags': ['-tags', ','.join(tags), '-pt', 'http'] if tags else ['-as', '-pt', 'http']}

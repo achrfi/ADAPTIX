@@ -74,7 +74,7 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
     from src.adaptix.tools import registry
     monkeypatch.setattr(registry, 'tool_registry', fake_registry)
     calls = []
-    def fake_run(argv, timeout=45, stdin=None):
+    def fake_run(argv, timeout=45, stdin=None, stderr_limit=2500):
         calls.append(argv[0])
         if 'nmap' in argv[0]:
             payload = '<nmaprun><host><ports><port protocol="tcp" portid="18080"><state state="open"/><service name="http"/></port></ports></host></nmaprun>'
@@ -91,6 +91,7 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
         {'actions': [{'tool': 'httpx', 'target': 'http://127.0.0.1:18080', 'reason': 'probe', 'priority': {'goal_relevance': 0.8, 'information_gain': 0.7, 'evidence_value': 0.6, 'confidence': 0.9, 'estimated_tokens': 100, 'estimated_seconds': 1, 'estimated_requests': 1}}], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'probe'},
         {'actions': [{'tool': 'nuclei', 'target': 'http://127.0.0.1:18080', 'reason': 'inspect', 'priority': {'goal_relevance': 0.8, 'information_gain': 0.7, 'evidence_value': 0.6, 'confidence': 0.9, 'estimated_tokens': 100, 'estimated_seconds': 1, 'estimated_requests': 1}}], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'inspect'},
         {'actions': [], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'complete'},
+        {'actions': [], 'reflection': 'Assess current evidence and limits before deciding', 'rationale': 'complete'},
     ])
     def completion(**kwargs):
         mock = MagicMock()
@@ -100,13 +101,20 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
         mock.usage.completion_tokens = 20
         return mock
     monkeypatch.setattr(planner.litellm, 'completion', completion)
+    # Research configuration A (fully LLM-driven reconnaissance): the deterministic
+    # baseline stays off so this fixture exercises only model-selected actions.
     state = graph.invoke({'target': ['127.0.0.1'], 'authorization_confirmed': True,
-                          'run_id': 'test-invoke', 'errors': [], 'events': [],
-                          'max_iterations': 3, 'tool_call_budget': 10, 'token_budget': 2000},
+                          'run_id': 'test-invoke', 'errors': [], 'events': [], 'baseline_disabled': True, 'scanner_disabled': True,
+                          'max_iterations': 4, 'tool_call_budget': 10, 'token_budget': 4000},
                          config={'recursion_limit': 100})
     assert len(state['verified_findings']) == 0
+    print('DBGSTOP', state['report']['stop_reason']); print('DBGEV', state['events'][-6:]); print('DBGMODE', state['planner_metrics'].get('mode'))
     assert len(state['candidates']) == 1
-    assert state['report']['stop_reason'] == 'no_new_actions'
+    # Two consecutive empty decisions with authorized alternatives remain a planning
+    # failure, never an honest completion.
+    assert state['report']['stop_reason'] == 'planning_failure_no_decision'
+    assert state['report']['termination']['cause'] == 'planning_stagnation'
+    assert state['report']['planning_diagnostics']['zero_action_passes'] == 2
     assert state['report']['mode'] == 'llm'
     assert state['metrics']['tool_calls_used'] == 2
     assert calls == ['/bin/httpx', '/bin/nuclei']
@@ -129,4 +137,4 @@ def test_budget_limits_tool_execution_and_report_reason(monkeypatch):
     assert invocations == ['127.0.0.1']
     assert state['execution_metrics']['tool_calls_used'] == 1
     report = final_report(state)['report']
-    assert report['stop_reason'] == 'budget_exhausted'
+    assert report['stop_reason'] == 'tool_call_budget_exhausted'

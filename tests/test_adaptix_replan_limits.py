@@ -41,7 +41,8 @@ def install_model(monkeypatch, choose):
 
 def run():
     return graph.invoke({'target': ['127.0.0.1'], 'max_iterations': 10,
-                         'tool_call_budget': 10, 'token_budget': 10000},
+                         'tool_call_budget': 10, 'token_budget': 10000,
+                         'baseline_disabled': True, 'scanner_disabled': True},
                         config={'recursion_limit': 100})
 
 
@@ -86,7 +87,7 @@ def test_candidate_alternative_executes_without_counting_a_rejection(monkeypatch
 
 def test_graph_honors_input_context_limit_before_provider_or_tool(monkeypatch):
     contexts, dispatched = install_model(monkeypatch, lambda call, context: ['http://127.0.0.1'])
-    result = graph.invoke({'target': ['127.0.0.1'], 'model_context_tokens': 50})
+    result = graph.invoke({'target': ['127.0.0.1'], 'model_context_tokens': 50, 'baseline_disabled': True, 'scanner_disabled': True})
     assert contexts == [] and dispatched == []
     assert result['report']['stop_reason'] == 'context_budget_exhausted'
     assert result['report']['status'] == 'completed_partial'

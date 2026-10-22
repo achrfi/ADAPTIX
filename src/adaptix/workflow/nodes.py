@@ -31,7 +31,16 @@ def scope_guard(state):
                 raise ValueError('Target non-loopback membutuhkan signed grant (--grant).')
             authorization = {'type': 'local_loopback'}
         # A context window scales with run budget, never with a fixed target cap.
-        count = max(1, min(int(state.get('tool_call_budget', 20)), int(state.get('max_iterations', 20)), max(1, min(int(state.get('token_budget', 50000)), int(state.get('model_context_tokens', 4096))) // 128)))
+        from src.adaptix.workflow.budget import budget_limit, DEFAULT_TOOL_CALL_BUDGET, DEFAULT_MAX_ITERATIONS, DEFAULT_TOKEN_BUDGET
+        def _room(key, default):
+            limit = budget_limit(state, key, default)
+            return None if limit is None else max(1, limit)
+        model_context = int(state.get('model_context_tokens', 4096))
+        token_room = _room('token_budget', DEFAULT_TOKEN_BUDGET)
+        token_floor = max(1, min(token_room, model_context) // 128) if token_room is not None else model_context // 128
+        rooms = [room for room in (_room('tool_call_budget', DEFAULT_TOOL_CALL_BUDGET),
+                                   _room('max_iterations', DEFAULT_MAX_ITERATIONS), token_floor) if room]
+        count = max(1, min(rooms))
         window = scope_window(manifest, [], count)
         hosts = list(manifest['hosts']) + [unit_host(u) for u in window if scope_contains_ip(unit_host(u), manifest)]
         return {'scope_manifest': manifest, 'scope_networks': manifest['networks'],
@@ -53,6 +62,10 @@ def state_update(state):
         path = checkpoint({**state, **update})
         if path:
             update['checkpoint_ref'] = path
+        else:
+            update['events'] = list(update['events']) + ['Checkpoint: skipped; existing artifacts for this '
+                                                        'run directory belong to a different session'
+                                                        ' (diagnostic replays need a fresh run ID)']
     except OSError:
         update['stop_reason'] = 'evidence_storage_unavailable'
         update['errors'] = list(state.get('errors', [])) + ['Checkpoint storage unavailable; execution stopped']
@@ -71,10 +84,11 @@ def advance_action(state):
 
 def execute_action(state):
     """Revalidate at execution boundary, dispatch one registered capability."""
-    from src.adaptix.agents.planner import _approved_actions, budget_exhausted
+    from src.adaptix.agents.planner import _approved_actions, budget_stop_reason
     from src.adaptix.tools.registry import tool_registry, tool_handlers
-    if budget_exhausted(state):
-        return {'stop_reason': 'budget_exhausted'}
+    stop = budget_stop_reason(state)
+    if stop:
+        return {'stop_reason': stop}
     if state.get('status') != 'scope_ok' or not state.get('authorization'):
         return {'stop_reason': 'execution_not_authorized'}
     try:
@@ -100,9 +114,15 @@ def execute_action(state):
     from src.adaptix.agents.priority import rank_actions
     from src.adaptix.agents.planner import _budget
     if actions[0].get('priority') is not None:
-        feasible, _ = rank_actions(state, actions, _budget(state, state.get('planner_metrics', {})))
+        feasible, deferred = rank_actions(state, actions, _budget(state, state.get('planner_metrics', {})))
         if not feasible:
-            return {'stop_reason': 'budget_insufficient_for_candidates'}
+            from src.adaptix.workflow.budget import remaining_seconds
+            from src.adaptix.agents.planner import MIN_PROVIDER_SECONDS
+            reason = ('time_budget_exhausted' if remaining_seconds(state) < MIN_PROVIDER_SECONDS
+                      else 'budget_insufficient_for_candidates')
+            why = '; '.join(str(d.get('reason', ''))[:120] for d in deferred) or 'no reason recorded'
+            return {'stop_reason': reason,
+                    'errors': list(state.get('errors', [])) + ['Planned action refused: ' + why]}
     action = actions[0]
     from src.adaptix.agents.action_identity import execution_identity
     action = {**action, 'execution_identity': execution_identity(action, state)}
@@ -123,6 +143,34 @@ def execute_action(state):
         specification = {'risk': 'state_change' if active_execution else 'observe',
                          'manifest_sha256': scan_manifest['manifest_sha256']}
         action['manifest_sha256'] = scan_manifest['manifest_sha256']
+        # The manifest is now a fact: its request ceiling gives the engine's fastest
+        # possible finish at the configured rate. A scan whose honest floor exceeds
+        # the remaining run time is deferred, not executed past the deadline - the
+        # execution that consumed a whole short run before input testing deserves
+        # the same working estimate at ranking and execution time.
+        from src.adaptix.workflow.budget import remaining_seconds as _remaining_seconds
+        from src.adaptix.config import config as _config
+        limits = _config('scope.yaml')['limits']
+        from src.adaptix.agents.priority import nuclei_seconds_floor
+        manifest_wall = (
+            scan_manifest['request_ceiling_per_target'] / max(1, int(limits['rate_per_second']))
+            + int(limits.get('concurrent_requests', 10)) * 5 + 25
+            if scan_manifest['request_ceiling_per_target'] else nuclei_seconds_floor(state))
+        left = _remaining_seconds(state)
+        if manifest_wall and left > 0 and manifest_wall > left:
+            summary = {key: value for key, value in scan_manifest.items() if key not in ('_chosen', 'templates')}
+            summary['execution_status'] = 'deferred_time_budget'
+            return {'nuclei_template_selections': list(state.get('nuclei_template_selections', [])) + [summary],
+                    'policy_feedback': [{'kind': 'budget', 'code': 'manifest_would_not_fit_deadline',
+                                         'action': action,
+                                         'reason': f'The approved manifest of {scan_manifest["executable_count"]} executable '
+                                                   f'templates needs about {int(manifest_wall)} seconds at the configured rate '
+                                                   f'but about {int(left)} seconds remain. Propose a scan with a smaller '
+                                                   'template set or use request-level checks instead.'}],
+                    'approval_audit': list(state.get('approval_audit', [])) + [{
+                        'action': action, 'result': 'deferred',
+                        'reason': 'manifest would exceed the remaining run time'}],
+                    'events': log(state, 'Nuclei: deferred before execution; manifest floor exceeds the remaining run time')}
     else:
         # Risk comes from what the request would actually do, not from its verb.
         from src.adaptix.security.guard import action_effect

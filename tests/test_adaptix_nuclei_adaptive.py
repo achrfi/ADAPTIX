@@ -48,7 +48,7 @@ def test_unknown_or_untrusted_labels_never_become_arbitrary_template_filters(tec
 def test_adaptive_batches_are_isolated_and_respect_actual_tool_call_budget(monkeypatch):
     monkeypatch.setattr(nuclei, 'tool_registry', lambda: {'nuclei': {'enabled': True, 'path': '/bin/nuclei'}})
     calls = []
-    def run(argv, timeout, stdin):
+    def run(argv, timeout, stdin, **kwargs):
         calls.append((argv, stdin))
         return {'returncode': 0, 'stdout': '', 'stderr': ''}
     monkeypatch.setattr(nuclei, 'run_tool', run)
@@ -70,8 +70,7 @@ def test_adaptive_batches_are_isolated_and_respect_actual_tool_call_budget(monke
 def test_unknown_origin_requests_native_automatic_selection(monkeypatch):
     monkeypatch.setattr(nuclei, 'tool_registry', lambda: {'nuclei': {'enabled': True, 'path': '/bin/nuclei'}})
     def run(argv, **kwargs):
-        assert '-as' in argv and '-t' in argv and '-ud' in argv and '-tags' not in argv
-        assert argv[argv.index('-t') + 1] == argv[argv.index('-ud') + 1]
+        assert '-as' in argv and '-t' in argv and '-ud' not in argv and '-tags' not in argv
         assert argv[argv.index('-pt') + 1] == 'http'
         return {'returncode': 0, 'stdout': '', 'stderr': ''}
     monkeypatch.setattr(nuclei, 'run_tool', run)
@@ -109,7 +108,7 @@ def test_graph_uses_httpx_technology_and_preserves_selection_in_report_and_plann
         return {'returncode': 0, 'stdout': json.dumps(row), 'stderr': ''}
     monkeypatch.setattr(httpx, 'run_tool', run)
     monkeypatch.setattr(nuclei, 'run_tool', run)
-    result = graph.invoke({'target': ['127.0.0.1'], 'max_iterations': 5, 'tool_call_budget': 4}, config={'recursion_limit': 100})
+    result = graph.invoke({'target': ['127.0.0.1'], 'max_iterations': 5, 'tool_call_budget': 4, 'baseline_disabled': True, 'scanner_disabled': True}, config={'recursion_limit': 100})
     assert len(calls) == 2
     selection = result['report']['nuclei_template_selections'][0]
     assert selection['tags'] == ['nginx', 'wordpress', 'wp'] and selection['execution_status'] == 'completed'

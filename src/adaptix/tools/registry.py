@@ -54,12 +54,13 @@ def tool_registry():
     result['playwright'] = {'enabled': enabled, 'path': 'python-module' if (installed and enabled) else None,
                             'detail': 'disabled' if not enabled else ('validated' if installed else 'python package missing'),
                             'version': importlib.metadata.version('playwright') if installed else ''}
-    for name in ('web_discover', 'http_request'):
+    for name in ('web_discover', 'http_request', 'browser_test'):
         result[name] = {'enabled': True, 'path': 'python-module', 'detail': 'in-process scope-pinned HTTP adapter',
                         'version': ''}
     descriptions = {'nmap': 'Discover services on one pinned host', 'httpx': 'Observe one HTTP endpoint',
                     'nuclei': 'Run configured Nuclei templates. Adaptive mode uses observed Nmap products/HTTPX technologies to select HTTP template tags; unknown products use native automatic detection. HTTPX first can improve selection. Matches are unverified.',
                     'playwright': 'Observe browser page and capture screenshot without form submission',
+                    'browser_test': 'Navigate one in-scope URL carrying a run marker in its query in a read-only browser session, then a control navigation without the marker; captured and dismissed dialogs on the payload navigation but never from the control are the deterministic browser-execution proof for XSS candidates. Nothing is clicked or submitted.',
                     'web_discover': 'Passive reconnaissance: GET one seed document plus robots.txt and sitemap.xml, then extract in-scope links, forms, scripts and documented routes into web_routes.',
                     'http_request': 'Send one bounded, rate-limited HTTP request to an in-scope URL. Method GET/HEAD is non-destructive; POST/PUT/PATCH/DELETE require exact human approval. The response is reduced to a structured trace with deterministic signatures (SQL/NoSQL errors, reflected markup, traversal markers, sensitive data); a signature is not proof by itself.'}
     for name, description in descriptions.items():
@@ -76,7 +77,7 @@ def tool_registry():
     return result
 
 
-def run_tool(argv, timeout=45, stdin=None):
+def run_tool(argv, timeout=45, stdin=None, stderr_limit=2500):
     """No shell interpolation; prevent unbounded output and hanging processes."""
     try:
         completed = subprocess.run(argv, input=stdin, capture_output=True, text=True,
@@ -87,11 +88,13 @@ def run_tool(argv, timeout=45, stdin=None):
         # Nuclei emits complete JSONL findings as it runs; retain them on timeout.
         return {'returncode': -1, 'stdout': decoded(exc.stdout)[:1_000_000],
                 'stderr': (f'Tool timed out after {timeout} seconds; partial output retained. '
-                           + decoded(exc.stderr))[-2500:]}
+                           + decoded(exc.stderr))[-stderr_limit:]}
     except OSError as exc:
         return {'returncode': -1, 'stdout': '', 'stderr': str(exc)}
+    # Callers requesting a larger limit need the banner/accounting lines that
+    # appear at the start of the stream, before periodic progress output.
     return {'returncode': completed.returncode, 'stdout': completed.stdout[:1_000_000],
-            'stderr': completed.stderr[-2500:]}
+            'stderr': completed.stderr[-stderr_limit:]}
 
 
 def tool_handlers():
@@ -103,6 +106,7 @@ def tool_handlers():
     from src.adaptix.tools.idor import idor_test
     from src.adaptix.tools.discovery import api_discover, build_scenario
     from src.adaptix.tools.web import web_discover, http_request
+    from src.adaptix.tools.playwright import browser_test
     return {'nmap': reconnaissance, 'httpx': httpx_probe, 'nuclei': nuclei_check,
-            'playwright': browser_observe, 'idor': idor_test, 'api_discover': api_discover,
+            'playwright': browser_observe, 'browser_test': browser_test, 'idor': idor_test, 'api_discover': api_discover,
             'scenario': build_scenario, 'web_discover': web_discover, 'http_request': http_request}

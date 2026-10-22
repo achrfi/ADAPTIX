@@ -226,20 +226,24 @@ def _install(monkeypatch, decisions):
 def test_recoverable_capability_rejection_does_not_stop_the_run(monkeypatch):
     rejected = {'tool': 'api_discover', 'target': BASE + '/api/guessed', 'method': 'GET',
                 'reason': 'probe', 'priority': _priority()}
-    chosen = {'tool': 'http_request', 'target': BASE + '/api/Addresss', 'method': 'GET',
+    chosen = {'tool': 'http_request', 'target': BASE + '/api/BasketItems', 'method': 'GET',
               'reason': 'validate a discovered route', 'priority': _priority(0.9)}
     contexts = _install(monkeypatch, [_decision([rejected]), _decision([chosen])])
     state = js_state(max_iterations=6, token_budget=20000)
     first = planner.adaptive_planning(state)
-    assert first['planned_actions'] == []
+    # The decision is denied, but the pass no longer idles: the recovery tier
+    # executes the top evidence-ranked alternative the feedback names.
     assert first['stop_reason'] is None
     assert first['consecutive_policy_rejections'] == 0
-    assert first['consecutive_infeasible_actions'] == 1
     assert first['policy_feedback'][0]['kind'] == 'capability'
     assert 'endpoint_provenance' in first['policy_feedback'][0]['missing']
+    recovery = first['planned_actions']
+    assert [row['tool'] for row in recovery] == ['api_discover']
+    assert recovery[0]['action_source'] == 'policy_recovery'
+    assert recovery[0]['target'] != BASE + '/api/guessed'
     second = planner.adaptive_planning({**state, **first})
     assert [(a['tool'], a['target']) for a in second['planned_actions']] == [
-        ('http_request', BASE + '/api/Addresss')]
+        ('http_request', BASE + '/api/BasketItems')]
     directive = contexts[1]['policy_feedback'][-1]
     assert directive['code'] == 'choose_alternative'
     assert all(row['target'] != BASE + '/api/guessed' for row in directive['alternatives'])
@@ -250,13 +254,25 @@ def test_repeated_identical_rejection_does_not_terminate_and_reoffers_a_route(mo
                 'reason': 'probe', 'priority': _priority()}
     contexts = _install(monkeypatch, [_decision([rejected])])
     state = js_state(max_iterations=8, token_budget=20000)
+    executed_targets = []
     updates = {}
     for _ in range(3):
         updates = planner.adaptive_planning({**state, **updates})
         assert updates['stop_reason'] is None
         assert updates['consecutive_policy_rejections'] == 0
+        assert updates['consecutive_infeasible_actions'] == 0
+        # Every rejected identical proposal is answered by a different recovery pair,
+        # never the refused input and never the same completed one twice.
+        executed_target = updates['planned_actions'][0]['target']
+        assert 'api/guessed' not in executed_target
+        assert executed_target not in executed_targets
+        executed_targets.append(executed_target)
+        # The executor records what ran; without that the planner cannot know it is done.
+        from src.adaptix.agents.action_identity import execution_identity
+        action = updates['planned_actions'][0]
+        state = {**state, 'attempted_actions': list(state.get('attempted_actions', []))
+                 + [{**action, 'execution_identity': execution_identity(action, state)}]}
     assert len(state.get('rejected_actions', [])) == 0  # nothing proposed before the first call
-    assert updates['consecutive_infeasible_actions'] == 3
     assert contexts[2]['policy_feedback'][0]['kind'] == 'capability'
     assert contexts[2]['policy_feedback'][0]['code'] == 'previously_rejected'
     assert contexts[2]['rejected_actions'][0]['target'] == BASE + '/api/guessed'
@@ -267,7 +283,10 @@ def test_capability_rejection_loop_stops_at_its_own_bounded_limit(monkeypatch):
     rejected = {'tool': 'api_discover', 'target': BASE + '/api/guessed', 'method': 'GET',
                 'reason': 'probe', 'priority': _priority()}
     _install(monkeypatch, [_decision([rejected])])
-    state = js_state(max_iterations=10, token_budget=100000, infeasible_stop_limit=3)
+    # recovery_enabled=false: this test pins the infeasibility bound itself, so the
+    # complementary recovery tier that would otherwise absorb such passes is off.
+    state = js_state(max_iterations=10, token_budget=100000, infeasible_stop_limit=3,
+                     recovery_limit=0)
     updates = {}
     for _ in range(3):
         updates = planner.adaptive_planning({**state, **updates})
@@ -450,3 +469,41 @@ def test_offered_endpoints_are_never_simultaneously_refused():
         assert planner.action_rejection(state, action('http_request', row['url']), TOOLS) is None, row
         assert planner.action_rejection(state, action('api_discover', row['url']), TOOLS) is None, row
     assert BASE + '/api/openapi.json' not in {row['url'] for row in planner.available_endpoints(state)}
+
+
+# --- 11. The tool vocabulary is the live registry, not a fixed list -------------
+
+def test_permitted_tools_are_derived_from_the_live_registry(monkeypatch):
+    from src.adaptix.tools import registry
+    catalog = {'nmap': {'enabled': True, 'path': '/bin/nmap'},
+               'httpx': {'enabled': False, 'path': None},
+               'playwright': {'enabled': True, 'path': 'python-module'}}
+    monkeypatch.setattr(registry, 'tool_registry', lambda: catalog)
+    assert capabilities.permitted_tools('state') == ('nmap', 'playwright')
+
+
+def test_decision_schema_constrains_tool_names_to_the_registry(monkeypatch):
+    from src.adaptix.tools import registry
+    catalog = {'nmap': {'enabled': True, 'path': '/bin/nmap', 'description': 'x'},
+               'web_discover': {'enabled': True, 'path': 'python-module', 'description': 'x'},
+               'httpx': {'enabled': False, 'path': None, 'description': 'x'}}
+    monkeypatch.setattr(registry, 'tool_registry', lambda: catalog)
+    available = {name for name, spec in catalog.items() if spec.get('enabled') and spec.get('path')}
+    schema = planner._decision_schema(available)
+    tool_spec = schema['$defs']['Action']['properties']['tool']
+    assert tool_spec['enum'] == ['nmap', 'web_discover']
+    assert 'web_exploit' not in tool_spec['enum']
+    # The enum survives every envelope rung, so tightening never widens the vocabulary.
+    for envelope in planner.OUTPUT_ENVELOPES:
+        rung = planner.envelope_schema(schema, envelope)
+        assert rung['$defs']['Action']['properties']['tool']['enum'] == tool_spec['enum']
+
+
+def test_an_unregistered_tool_name_is_rejected_as_unknown_not_recoverable():
+    state = js_state(tool_catalog={'nmap': {'enabled': True, 'path': '/bin/nmap'}})
+    item = planner.action_assessment(state, action('web_exploit', BASE + '/api/Addresss'),
+                                     {'nmap', 'http_request'})
+    assert item['code'] == 'unknown_tool'
+    assert 'registered tool' in item['reason']
+
+

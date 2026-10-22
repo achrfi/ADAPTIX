@@ -8,13 +8,14 @@ from src.adaptix.workflow.graph import graph
 
 def test_instruction_reaches_planner_state_unchanged(monkeypatch, capsys):
     instruction = 'Periksa kontrol akses API. Jelaskan bukti, kegagalan, dan langkah berikutnya.'
-    invoke = MagicMock(return_value={'report': {}, 'events': []})
-    monkeypatch.setattr(graph, 'invoke', invoke)
+    updates = ['scope-ok', {'report': {}, 'events': []}]
+    stream = MagicMock(return_value=iter(updates[1:]))
+    monkeypatch.setattr(graph, 'stream', stream)
     monkeypatch.setattr(cli, 'authorize_cli_targets', lambda *a: ('operator-grant.json', 'operator'))
     monkeypatch.setattr(sys, 'argv', ['adaptix', '--instruction', instruction,
                                     '--target', '127.0.0.1'])
     main()
-    state = invoke.call_args.args[0]
+    state = stream.call_args.args[0]
     assert state['user_prompt'] == instruction
     assert state['target'] == ['127.0.0.1']
     assert 'authorization_confirmed' not in state
@@ -22,13 +23,13 @@ def test_instruction_reaches_planner_state_unchanged(monkeypatch, capsys):
 
 
 def test_cli_exposes_context_budget_and_sampling(monkeypatch):
-    invoke = MagicMock(return_value={'report': {}, 'events': []})
-    monkeypatch.setattr(graph, 'invoke', invoke)
+    stream = MagicMock(return_value=iter([{'report': {}, 'events': []}]))
+    monkeypatch.setattr(graph, 'stream', stream)
     monkeypatch.setattr(cli, 'authorize_cli_targets', lambda *a: ('operator-grant.json', 'operator'))
     monkeypatch.setattr(sys, 'argv', ['adaptix', '--instruction', 'Observe', '--target', '127.0.0.1',
                                     '--model-context-tokens', '2048', '--temperature', '0.1'])
     main()
-    state = invoke.call_args.args[0]
+    state = stream.call_args.args[0]
     assert state['model_context_tokens'] == 2048 and state['llm_temperature'] == 0.1
 
 

@@ -247,7 +247,8 @@ def build_scenario(state):
         check = context['identity_url']
         if origin(check) != origin(candidate['url']):
             raise ValueError('Identity endpoint must belong to the candidate origin')
-        if int(working.get('execution_metrics', {}).get('tool_calls_used', 0)) + 3 > int(state.get('tool_call_budget', 20)):
+        limit = state.get('tool_call_budget', 20)
+        if limit is not None and int(working.get('execution_metrics', {}).get('tool_calls_used', 0)) + 3 > limit:
             raise ValueError('Three validation requests must fit remaining budget')
         for identity in identities:
             r = read_get(working, check, identity['headers'])

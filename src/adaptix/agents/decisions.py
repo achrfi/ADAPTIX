@@ -6,7 +6,7 @@ import time
 import litellm
 from pydantic import ValidationError
 from src.adaptix.agents.schema import PlannerDecision
-from src.adaptix.workflow.budget import remaining_seconds
+from src.adaptix.workflow.budget import remaining_seconds, remaining_tokens, STORE_CACHE_BOUND
 
 
 TIMEOUT_ERRORS = ('Timeout', 'ReadTimeout', 'ConnectTimeout')
@@ -22,6 +22,19 @@ PLANNING_OUTPUT_RATE = 4.8
 MIN_RETRY_OUTPUT = 160
 # Fallback shrink for callers that supply no tighter envelope of their own.
 ENVELOPE_SHRINK = 0.5
+# The smallest decision the strict native JSON schema has ever needed. A retry
+# with less room than this is misclassifying exhaustion as an output constraint;
+# refusing it prevents a doomed truncated call and preserves budget.
+MIN_VIABLE_OUTPUT = 500
+
+
+def context_limited(state, attempt_prompt_cost):
+    """True when this prompt cannot fit any honest decision in the model context."""
+    try:
+        measure = int(state.get('model_context_tokens', 4096)) - int(attempt_prompt_cost)
+    except (TypeError, ValueError):
+        return False
+    return measure < MIN_VIABLE_OUTPUT
 
 
 def configured_timeout(state):
@@ -79,6 +92,57 @@ def is_timeout_error(name):
     return text in {alias.lower() for alias in TIMEOUT_ERRORS} or 'timeout' in text
 
 
+VALIDATION_HINTS = {
+    'less_than_equal': 'value exceeds the allowed maximum; priority scores must be within 0.0 to 1.0',
+    'greater_than_equal': 'value is below the allowed minimum',
+    'greater_than': 'value must be greater than the minimum',
+    'less_than': 'value must be less than the maximum',
+    'int_parsing': 'expected an integer',
+    'int_type': 'expected an integer',
+    'float_parsing': 'expected a number',
+    'float_type': 'expected a number',
+    'string_type': 'expected a string',
+    'string_too_short': 'text must not be empty',
+    'string_too_long': 'text exceeds the allowed length',
+    'too_long': 'too many items',
+    'list_type': 'expected an array',
+    'dict_type': 'expected an object',
+    'bool_type': 'expected a boolean',
+    'missing': 'required field is missing',
+    'extra_forbidden': 'unknown field is not allowed',
+    'literal_error': 'value is not one of the allowed choices',
+    'json_invalid': 'response was not valid JSON',
+}
+
+
+def validation_fields(exc, limit=6):
+    """Bounded, JSON-safe description of a schema failure for repair feedback."""
+    return [{'field': '.'.join(str(part) for part in item['loc']), 'type': item['type']}
+            for item in exc.errors(include_input=False, include_url=False)[:limit]]
+
+
+def validation_repair(fields, total=None):
+    """Explain a schema failure without turning it into a security conclusion.
+
+    The model sees the offending fields plus a plain-language meaning. Validation
+    types such as ``less_than_equal`` are not JSON Schema keywords, so naming them
+    alone invites the model to repeat the same out-of-range value or to stop.
+    """
+    explained = '; '.join(f"{row['field']}: {VALIDATION_HINTS.get(row['type'], row['type'])}" for row in fields)
+    more = f' (+{total - len(fields)} more errors)' if total and total > len(fields) else ''
+    return (
+        'Schema repair only: the assessment objective and observed evidence in the original request are unchanged. '
+        'The previous response failed Pydantic validation, not authorization: ' + explained + more + '. '
+        'These are validation error types, not JSON Schema keywords; for example less_than_equal means a numeric '
+        'value exceeded its allowed maximum. Return one complete JSON object with the required types and ranges, and '
+        'priority scores must be within 0.0 to 1.0. Do not fabricate security observations and do not treat this '
+        'formatting error as a reason to stop the assessment: re-propose the action you intended with corrected '
+        'values. reflection and review.decision_change must contain nonempty text: decision_change states what to do '
+        'next, including stopping after sufficient evidence or reporting a limitation. Empty strings are allowed only '
+        'for absent failure/uncertainty. Use evidence_refs=[] before observations.'
+    )
+
+
 def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
     def cache_key(parameters):
         return hashlib.sha256(json.dumps({k: v for k, v in parameters.items() if k not in ('timeout', 'num_retries')},
@@ -103,34 +167,57 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
     decision = None
     repair = None
     envelope_too_large = False
+    compat_stripped = False
+    reported_prompt_tokens = 0
     for attempt in range(retries + 1):
-        remaining = int(state.get('token_budget', 50000)) - tokens
+        remaining = remaining_tokens(state, tokens)
         parameters = dict(kwargs)
         attempt_prompt_cost = prompt_cost
+        attempt_state = {**state, 'token_ledger': ledger, 'planner_cache': cache}
         if repair:
             parameters['messages'] = [*kwargs['messages'], {'role': 'user', 'content': repair}]
             try:
                 attempt_prompt_cost = litellm.token_counter(model=kwargs['model'], messages=parameters['messages'])
             except Exception:
-                attempt_prompt_cost = prompt_cost + len(repair.encode()) + 32
+                attempt_prompt_cost = prompt_cost + len(repair.encode('utf-8')) // 3 + 32
+        if attempt and reported_prompt_tokens:
+            # The provider is the ground truth on prompt size: its own count of
+            # the previous request dominates any local tokenizer estimate, so a
+            # retry can never underreserve and truncate by surprise.
+            attempt_prompt_cost = max(attempt_prompt_cost, reported_prompt_tokens
+                                      + (len(repair.encode('utf-8')) // 3 + 32 if repair else 0))
         if attempt and envelope_too_large:
             # Snapshot the cap first: tighten() may edit the mapping it is given, and
             # comparing a value against itself would look like "unchanged".
             previous_cap = int(parameters.get('max_tokens', kwargs['max_tokens']))
             tightened = dict(tighten(dict(parameters), attempt) if tighten else parameters)
             # The cap must match the tightened envelope: a cap below what the smaller
-            # envelope needs truncates a decision that would now have fitted.
+            # envelope needs truncates a decision that would now have fitted. A
+            # schema-constrained decision can never validate under the schema's own
+            # minimum, so shrinking further than that is misclassifying completion
+            # as an output constraint and asks a doomed identical question.
             if tightened.get('max_tokens') in (None, previous_cap):
-                tightened['max_tokens'] = max(MIN_RETRY_OUTPUT, int(previous_cap * ENVELOPE_SHRINK))
+                schema_floor = (MIN_VIABLE_OUTPUT if parameters.get('response_format')
+                                and isinstance(parameters.get('response_format'), dict)
+                                else MIN_RETRY_OUTPUT)
+                tightened['max_tokens'] = max(schema_floor, int(previous_cap * ENVELOPE_SHRINK))
             parameters = tightened
             attempt_prompt_cost = prompt_cost
         output_limit = min(max(0, int(parameters.get('max_tokens', kwargs['max_tokens']))),
                            max(0, int(state.get('model_context_tokens', 4096)) - attempt_prompt_cost))
         remaining_run = remaining_seconds(state)
-        if (output_limit < 32 or remaining < attempt_prompt_cost + min(128, output_limit)
+        token_room_short = remaining is not None and remaining < attempt_prompt_cost + min(128, output_limit)
+        if (context_limited(state, attempt_prompt_cost) or output_limit < 32
+                or token_room_short
                 or remaining_run <= 0 or (attempt > 0 and remaining_run < MIN_PROVIDER_SECONDS)):
+            # A truncated retry that cannot carry MIN_VIABLE_OUTPUT is context
+            # exhaustion, not a schema or output problem: refuse it and report
+            # the class honestly instead of burning tokens on an identical doomed ask.
+            if context_limited(state, attempt_prompt_cost):
+                last_error = 'ContextHeadroomInsufficient'
             break
-        actual_kwargs = {**parameters, 'max_tokens': min(output_limit, remaining - attempt_prompt_cost),
+        actual_kwargs = {**parameters, 'max_tokens': min(output_limit, remaining - attempt_prompt_cost
+                                                           if remaining is not None else output_limit),
                          'timeout': min(kwargs['timeout'], remaining_run), 'num_retries': 0}
         reserved = attempt_prompt_cost + actual_kwargs['max_tokens']
         actual_key = cache_key(actual_kwargs)
@@ -153,6 +240,7 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
             prompt_tokens = int(getattr(usage, 'prompt_tokens', 0) or 0)
             completion_tokens = int(getattr(usage, 'completion_tokens', 0) or 0)
             actual = int(getattr(usage, 'total_tokens', 0) or 0) or prompt_tokens + completion_tokens
+            reported_prompt_tokens = max(reported_prompt_tokens, prompt_tokens)
             if actual:
                 tokens += actual - reserved
                 entry.update(source='provider', prompt_tokens=prompt_tokens,
@@ -168,8 +256,11 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
             entry['result'] = 'valid_decision'
             entry['finish_reason'] = finish_reason
             cache[actual_key] = decision.model_dump()
-            # Bound resident cache by this run's planning budget, not a global store.
-            while len(cache) > max(1, int(state.get('max_iterations', 20))):
+            # Bound the resident cache for memory safety even when no cumulative
+            # budget exists: this is a storage bound, not an execution budget.
+            cache_bound = (STORE_CACHE_BOUND if state.get('max_iterations') is None
+                           else max(1, int(state.get('max_iterations'))))
+            while len(cache) > cache_bound:
                 cache.pop(next(iter(cache)))
             last_error = None
             envelope_too_large = False
@@ -178,18 +269,32 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
             # Do not persist provider errors that may echo prompt credentials.
             last_error = type(exc).__name__
             entry.update(result='failed', error_type=last_error)
+            if not compat_stripped and 'response_format' in str(exc).lower() and 'response_format' in parameters:
+                # A provider that refuses the declared response_format is a
+                # compatibility fact, not a failure of the decision; strip the
+                # parameter once at the base kwargs (the per-attempt copy is
+                # rebuilt from them) and let strict local schema validation
+                # carry the contract. Recorded, never silent.
+                compat_stripped = True
+                parameters.pop('response_format', None)
+                kwargs.pop('response_format', None)
+                entry['result'] = 'compat_fallback'
+                metrics['response_format_compat_fallback'] = metrics.get('response_format_compat_fallback', 0) + 1
             if is_timeout_error(last_error) or isinstance(exc, TimeoutError) or finish_reason == 'length':
                 # Cut off at the output limit means the envelope, not the schema, was
                 # too large for the window; the next attempt must be smaller.
                 envelope_too_large = True
                 entry['envelope'] = 'too_large'
             if isinstance(exc, ValidationError):
-                fields = [{'field': '.'.join(str(part) for part in item['loc']), 'type': item['type']}
-                          for item in exc.errors(include_input=False, include_url=False)]
+                errors = exc.errors(include_input=False, include_url=False)
+                fields = validation_fields(exc, limit=len(errors))
                 entry['validation_fields'] = fields
+                entry['error_class'] = 'validation'
                 if finish_reason:
                     entry['finish_reason'] = finish_reason
-                repair = 'Correct these JSON schema errors: ' + json.dumps(fields) + '. Return the required types and complete JSON only. reflection and review.decision_change must contain nonempty text: decision_change states what to do next, including stopping after sufficient evidence or reporting a limitation. Empty strings are allowed only for absent failure/uncertainty. Use evidence_refs=[] before observations.'
+                repair = validation_repair(fields[:6], total=len(errors))
+            else:
+                entry['error_class'] = 'provider'
         entry['seconds'] = round(time.monotonic() - started, 6)
         ledger.append(entry)
         metrics['seconds'] = metrics.get('seconds', 0) + entry['seconds']

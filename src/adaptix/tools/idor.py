@@ -51,7 +51,8 @@ def idor_test(state):
                 continue
             # Reserve both requests before starting an identity comparison.
             used = int(execution_metrics.get('tool_calls_used', 0))
-            if used + 2 > int(state.get('tool_call_budget', 20)):
+            limit = state.get('tool_call_budget', 20)
+            if limit is not None and used + 2 > int(limit):
                 errors.append('IDOR: insufficient request budget')
                 break
             execution_metrics = record_tool_call({**state, 'execution_metrics': execution_metrics}, 'idor')

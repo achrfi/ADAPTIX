@@ -45,7 +45,7 @@ def _probe(state, url, method='GET'):
 # --- R1/R2: per-request evidence and separate request audit -----------------
 
 def test_distinct_query_requests_are_separate_traces(monkeypatch):
-    monkeypatch.setattr(web, '_request', lambda state, url, method='GET', body=None: _response(url, '[]'))
+    monkeypatch.setattr(web, '_request', lambda state, url, method='GET', body=None, identity_headers=None: _response(url, '[]'))
     state = _state()
     for key in range(1, 7):
         state.update(_probe(state, f'{BASE}/api/Challenges/?key={key}'))
@@ -57,7 +57,7 @@ def test_distinct_query_requests_are_separate_traces(monkeypatch):
 
 
 def test_exact_repeat_request_is_deduplicated(monkeypatch):
-    monkeypatch.setattr(web, '_request', lambda state, url, method='GET', body=None: _response(url, 'ok'))
+    monkeypatch.setattr(web, '_request', lambda state, url, method='GET', body=None, identity_headers=None: _response(url, 'ok'))
     state = _state()
     state.update(_probe(state, f'{BASE}/p?x=1'))
     state.update(_probe(state, f'{BASE}/p?x=1'))

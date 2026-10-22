@@ -84,6 +84,10 @@ NOSQL_ERROR_RULES = [
 TRAVERSAL_MARKERS = ('root:x:0:0:', 'daemon:x:', 'nobody:x:', '[boot loader]', '[extensions]',
                      'BEGIN OPENSSH PRIVATE KEY', '; for 16-bit app support')
 
+# Credential-shaped values that documentation itself publishes as examples. They
+# match the detection rules but are sample text, never evidence of a real leak.
+PLACEHOLDER_MATERIAL = ('AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY')
+
 SENSITIVE_RULES = [
     ('private_key', re.compile(r'-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP )?PRIVATE KEY-----')),
     ('aws_access_key', re.compile(r'\bAKIA[0-9A-Z]{16}\b')),
@@ -147,6 +151,35 @@ def detect(text, content_type, payloads):
     return unique
 
 
+def control_detections(text):
+    """Differential signatures present in a control response's own body.
+
+    ``detect`` evaluates the SQL/NoSQL/traversal rules only for crafted payload
+    values, so a control trace's own ``detected`` list can never contain them:
+    a control that emits a database error or a traversal marker by itself would
+    otherwise always look clean. This applies the same rule families to the
+    control's stored body excerpt so endpoint-inherent behaviour is not lost.
+    """
+    text = text or ''
+    detections = []
+    for name, rule in SQL_ERROR_RULES:
+        if rule.search(text):
+            detections.append({'category': 'sql_injection', 'signature': name})
+    for name, rule in NOSQL_ERROR_RULES:
+        if rule.search(text):
+            detections.append({'category': 'nosql_injection', 'signature': name})
+    for marker in TRAVERSAL_MARKERS:
+        if marker in text:
+            detections.append({'category': 'path_traversal', 'signature': marker})
+    seen, unique = set(), []
+    for item in detections:
+        key = (item['category'], item['signature'])
+        if key not in seen:
+            seen.add(key)
+            unique.append(item)
+    return unique
+
+
 def _controls(group):
     return [trace for trace in group if trace.get('control')]
 
@@ -154,8 +187,10 @@ def _controls(group):
 def _control_clean(category, group):
     controls = _controls(group)
     return bool(controls) and not any(
-        detection['category'] == category
-        for trace in controls for detection in trace.get('detected', []))
+        trace.get('excerpt_truncated')  # a truncated control cannot prove absence
+        or detection['category'] == category
+        for trace in controls
+        for detection in list(trace.get('detected', [])) + control_detections(trace.get('body_excerpt', '')))
 
 
 def _status_for(category, group):
@@ -174,8 +209,12 @@ def _status_for(category, group):
     if category == 'path_traversal':
         return CONFIRMED if _control_clean(category, group) else POTENTIAL
     if category == 'sensitive_information_exposure':
-        # Unambiguous secret material is confirmed; ambiguous tokens may be legitimate.
-        return CONFIRMED if signatures & {'private_key', 'aws_access_key'} else POTENTIAL
+        # Unambiguous secret material is confirmed; ambiguous tokens may be legitimate,
+        # and values documentation itself publishes are sample text, never proof.
+        if not signatures & {'private_key', 'aws_access_key'}:
+            return POTENTIAL
+        text = ' '.join(trace.get('body_excerpt', '') for trace in group)
+        return POTENTIAL if any(marker in text for marker in PLACEHOLDER_MATERIAL) else CONFIRMED
     return POTENTIAL
 
 

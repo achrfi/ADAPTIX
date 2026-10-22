@@ -27,7 +27,7 @@ def test_browser_pins_dns_and_denies_other_names():
 @pytest.mark.parametrize('module,name,function', [(ht,'httpx',ht.httpx_probe),(nt,'nuclei',nt.nuclei_check)])
 def test_cli_adapters_connect_to_pins_and_restore_logical_evidence(monkeypatch,module,name,function):
     monkeypatch.setattr(module,'tool_registry',lambda:{name:{'enabled':True,'path':'/bin/'+name}})
-    def run(argv, timeout, stdin):
+    def run(argv, timeout, stdin, **kwargs):
         assert argv[argv.index('-H')+1] == 'Host: lab.example:9443'
         assert argv[argv.index('-sni')+1] == 'lab.example'
         if name=='httpx':

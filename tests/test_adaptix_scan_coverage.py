@@ -29,7 +29,7 @@ def test_invalid_port_selection_rejected(spec):
 @pytest.mark.parametrize('selected,expected', [(None, '1-65535'), ([22, 80, 443], '22,80,443')])
 def test_nmap_compact_command_preserves_scope_and_global_time_budget(monkeypatch, selected, expected):
     monkeypatch.setattr(nmap, 'tool_registry', lambda: {'nmap': {'enabled': True, 'path': '/bin/nmap'}})
-    def run(argv, timeout):
+    def run(argv, timeout, **kwargs):
         assert argv[argv.index('-p') + 1] == expected
         assert '-sT' in argv and argv[-1] == '127.0.0.1'
         assert 0 < timeout <= 120
@@ -47,7 +47,7 @@ def _mock_nuclei(monkeypatch, rows, mode='default'):
     monkeypatch.setattr(nuclei, 'config', lambda name: {
         **original_config(name), 'limits': {**original_config(name)['limits'], 'nuclei_templates': mode}})
     calls = []
-    def run(argv, timeout, stdin):
+    def run(argv, timeout, stdin, **kwargs):
         calls.append((argv, timeout, stdin))
         return {'returncode': 0, 'stdout': '\n'.join(json.dumps(row) for row in rows), 'stderr': ''}
     monkeypatch.setattr(nuclei, 'run_tool', run)
@@ -65,7 +65,7 @@ def test_native_templates_keep_generated_paths_but_reject_other_origins(monkeypa
     assert [x['url'] for x in result['candidates']] == urls[:2]
     assert all(x['status'] == 'candidate_unverified' for x in result['candidates'])
     argv, timeout, _ = calls[0]
-    assert '-t' in argv and '-ud' in argv and '-tags' not in argv and '-severity' not in argv
+    assert '-t' in argv and '-ud' not in argv and '-tags' not in argv and '-severity' not in argv
     assert '-code' not in argv and '-headless' not in argv
     assert '-dr' in argv and '-rl' in argv and '-c' in argv
     assert 0 < timeout <= 200

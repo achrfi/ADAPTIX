@@ -75,7 +75,7 @@ def _target_key(value):
     return key[:4] if key else None
 
 
-def merge_hypotheses(existing, proposed, valid_refs=None):
+def merge_hypotheses(existing, proposed, valid_refs=None, scope_filter=None):
     """Append novel (category, target) hypotheses; drop unknown evidence refs.
 
     Model-supplied category spellings are canonicalized so the same class is not
@@ -83,6 +83,9 @@ def merge_hypotheses(existing, proposed, valid_refs=None):
     hypothesis when they share a canonical category and a path-level target, so
     ``?key=1``..``?key=6`` collapse to one entry. A proposal whose every cited
     evidence_ref is unknown is dropped rather than recorded without provenance.
+    A proposal whose URL target fails the authorized-scope check is also dropped:
+    recording an invented out-of-scope host would resurface it as an open question
+    in later passes and sustain the very loop the scope guard rejects.
     """
     hypotheses = [dict(h) for h in existing]
     seen = {(h.get('category'), _target_key(h.get('target')) or h.get('target')) for h in hypotheses}
@@ -92,6 +95,9 @@ def merge_hypotheses(existing, proposed, valid_refs=None):
         # here. A reconnaissance task is the one thing that is filtered out.
         category = categorize(item.get('category')) or normalize_class(item.get('category'))
         if RECON_TASK.search(category):
+            continue
+        target = item.get('target')
+        if scope_filter and '://' in str(target or '') and not scope_filter(target):
             continue
         key = (category, _target_key(item.get('target')) or item.get('target'))
         if key in seen:
@@ -125,6 +131,43 @@ def hypotheses_from_actions(actions):
     return derived
 
 
+def _scanner_template_hypotheses(state, valid_refs, seen):
+    """Seed hypotheses from unverified Nuclei template matches.
+
+    A scanner candidate is an evidence-grounded reason to investigate a class at
+    a path: it names the template and the evaluated endpoint. Every seed keeps
+    the 'candidate' status, cites its scanner row, and never claims confirmation -
+    a scan match alone proves nothing until a category-specific verification
+    contract produces independent signed proof.
+    """
+    derived = []
+    from src.adaptix.agents.evidence_context import evidence_key
+    for row in state.get('candidates', []):
+        if not isinstance(row, dict) or row.get('finding_type') == 'service_reachability':
+            continue
+        target = str(row.get('url') or '')
+        template = str(row.get('template_id') or '')
+        if not target or not template:
+            continue
+        category = categorize(template)
+        if not category or not target:
+            continue
+        key = (category, target)
+        if key in seen:
+            continue
+        seen.add(key)
+        refs = [evidence_key('candidates', row)] if valid_refs is None \
+            else [ref for ref in [evidence_key('candidates', row)] if ref in valid_refs]
+        if not refs:
+            continue
+        derived.append({'category': category, 'target': target,
+                        'rationale': f'Unverified scanner match ({template}) at {target}; '
+                                     'decide it with a bounded category-specific test, never from the match alone',
+                        'evidence_refs': refs, 'source': 'scanner_candidate',
+                        'severity': row.get('severity', 'info')})
+    return derived
+
+
 def evidence_hypotheses(state, valid_refs=None):
     """Derive candidate hypotheses from deterministic signatures already recorded.
 
@@ -155,6 +198,7 @@ def evidence_hypotheses(state, valid_refs=None):
                             'rationale': f'Observed deterministic signature(s) {signatures} at {target}; '
                                          f'status {trace.get("status_code")} corroborates testing, not exploitation',
                             'evidence_refs': refs})
+    derived.extend(_scanner_template_hypotheses(state, valid_refs, seen))
     return derived
 
 

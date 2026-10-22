@@ -6,6 +6,7 @@ import os
 import secrets
 import time
 from pathlib import Path
+from urllib.parse import urlsplit
 from src.adaptix.security.authorization import _key, _payload_bytes
 from src.adaptix.config import ROOT
 
@@ -35,8 +36,27 @@ def issue_action_approval(run_id, principal, tool, target, change_limit, ttl_sec
     return path
 
 
+def _origin(url):
+    try:
+        parsed = urlsplit(str(url or ''))
+        if not parsed.hostname:
+            return None
+        port = parsed.port or (443 if parsed.scheme == 'https' else 80)
+        return (parsed.scheme.lower(), parsed.hostname.lower().rstrip('.'), port)
+    except (TypeError, ValueError):
+        return None
+
+
 def approval_for(state, action, specification):
-    """Risk comes from the trusted registry, never from the planner's claim."""
+    """Risk comes from the trusted registry, never from the planner's claim.
+
+    An approval names its authorized reach: an exact URL match keeps working, and
+    for a tool (e.g. ``http_request``) an approval issued for the origin itself
+    covers paths under that same origin - exactly the reach the operator signed,
+    exactly once, inside the approval's TTL. Nothing else is broadened: a different
+    origin, tool, run or principal never matches, and scope containment is still
+    enforced independently.
+    """
     if specification.get('risk', 'observe') != 'state_change':
         return {'required': False, 'result': 'allowed', 'operation': specification.get('operation', 'observe')}
     for path in state.get('action_approvals', []):
@@ -50,9 +70,20 @@ def approval_for(state, action, specification):
                 continue
             if specification.get('manifest_sha256') and p.get('change_limit') != 'execute_manifest_once':
                 continue
+            target_match = p.get('target') == action.get('target')
+            if not target_match:
+                approved = urlsplit(str(p.get('target') or ''))
+                # An origin-level approval names an origin (no path of its own);
+                # anything with a specific path is an exact-target approval only.
+                if approved.path in ('', '/'):
+                    origin_target = _origin(p.get('target'))
+                    if origin_target is not None and origin_target == _origin(action.get('target')):
+                        target_match = True
+                if not target_match:
+                    continue
             if (p.get('kind') == 'state_change_approval' and p.get('run_id') == state.get('run_id')
                     and p.get('principal') == state.get('principal')
-                    and p.get('tool') == action['tool'] and p.get('target') == action['target']
+                    and p.get('tool') == action['tool']
                     and p.get('issued_at', float('inf')) <= time.time() < p.get('expires_at', 0)
                     and p.get('change_limit')):
                 return {'required': True, 'result': 'allowed', 'approval_id': p['approval_id'],

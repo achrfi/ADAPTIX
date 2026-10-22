@@ -57,7 +57,7 @@ def test_no_new_payload_probe_on_same_path_is_allowed():
 
 
 def _sql_injection_state(monkeypatch):
-    def fake(state, url, method='GET', body=None):
+    def fake(state, url, method='GET', body=None, identity_headers=None):
         return _response(url, "You have an error in your SQL syntax" if "'" in url else 'ok')
     monkeypatch.setattr(web, '_request', fake)
     state = {'run_id': 'web-assessment', 'hosts': ['127.0.0.1'], 'scope_ports': [18080], 'target': [BASE + '/'],

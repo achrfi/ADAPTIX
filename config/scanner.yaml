@@ -1,0 +1,32 @@
+# Automatic deterministic Nuclei scanning between baseline reconnaissance and
+# the model-driven adaptive phase. The phase never involves an LLM decision,
+# only requests observation-class (policy-permitted) plus operator-review-hash
+# allowlisted templates, never downloads or updates templates, degrades to an
+# honest limitation when Nuclei or its template catalog is absent, and caps
+# wall clock, origins, and HTTP requests with policy-enforced conservative
+# limits (exact per-request counts are not observable through Nuclei JSONL).
+nuclei_scan:
+  enabled: true
+  # Wall-clock cap for the whole phase (bounded by the remaining run budget).
+  max_seconds: 180
+  # Distinct in-scope origins scanned in one run.
+  max_origins: 2
+  # Tool-call reserve the adaptive loop may always spend afterwards; the scan
+  # phase caps its process invocations at the run budget minus this reserve.
+  adaptive_tool_call_reserve: 4
+  # Template selection: 'observation' runs the policy-permitted plus reviewed
+  # allowlist; 'adaptive' additionally filters by detected technology tags.
+  # 'assessment' selects operator-authorized active vulnerability-probe families
+  # (sqli/xss/exposures/cves) that stay mechanically inspectable; every active
+  # template still requires the exact-manifest single-use approval.
+  # 'off' disables the phase for adaptive-only or recon-only research modes.
+  template_mode: adaptive
+  # Whether the operator authorizes the assessment profile at all; the per-run
+  # --assessment flag only opens it when this is true. Destructive/out-of-band
+  # classes stay permanently denied regardless of this setting.
+  vulnerability_assessment: true
+  # Deterministic cap on templates selected per origin (sorted-path order);
+  # overflow is recorded as a limitation, never silently done.
+  template_cap: 160
+  # Per-origin processing ceiling; overflow is recorded, never silently done.
+  max_candidates_per_origin: 40

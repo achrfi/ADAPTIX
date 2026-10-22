@@ -163,6 +163,75 @@ def test_signed_manual_review_requires_attribution_and_full_trace(signing_key, v
     assert valid_proof(record, proof)
 
 
+# --- The verification engine is a registry of objective evidence contracts, not IDOR-only ---
+
+def _differential_probe(record_basis, detected, controls, status_code=200, body='syntax error'):
+    return {'verification_method': 'deterministic_replay', 'verification_basis': record_basis,
+            'signature_category': detected[0]['category'] if detected else None,
+            'detected': detected, 'controls': controls, 'url': 'http://127.0.0.1:18080/search',
+            'requests': [{'method': 'GET', 'url': 'http://127.0.0.1:18080/search?q=1', 'identity': None}],
+            'responses': [{'status_code': status_code, 'headers': {}, 'body_excerpt': body, 'body_sha256': 'a' * 64}],
+            'steps': ['Issue probe', 'Compare against control'], 'expected_behavior': 'independent of input',
+            'actual_behavior': body}
+
+
+def test_differential_injection_confirms_only_with_a_clean_control():
+    from src.adaptix.evidence.verification import replay_result
+    detected = [{'category': 'sql_injection', 'signature': 'mysql_syntax'}]
+    clean = [{'detected': [], 'control': True}]
+    dirty = [{'detected': [{'category': 'sql_injection', 'signature': 'mysql_syntax'}], 'control': True}]
+    assert replay_result(_differential_probe('differential_injection', detected, clean)) == 'confirmed'
+    # Without a control that is clean of this category the input did not cause it.
+    assert replay_result(_differential_probe('differential_injection', detected, dirty)) is None
+    assert replay_result(_differential_probe('differential_injection', detected, [])) is None
+
+
+def test_reflected_markup_contract_distinguishes_encoded_from_unencoded():
+    from src.adaptix.evidence.verification import replay_result
+    unencoded = [{'category': 'cross_site_scripting', 'signature': 'reflected_html_markup'}]
+    encoded = [{'category': 'cross_site_scripting', 'signature': 'html_encoded_reflection'}]
+    assert replay_result(_differential_probe('reflected_markup', unencoded, [])) == 'confirmed'
+    assert replay_result(_differential_probe('reflected_markup', encoded, [])) == 'refuted'
+
+
+def test_path_traversal_contract_requires_a_clean_control():
+    from src.adaptix.evidence.verification import replay_result
+    detected = [{'category': 'path_traversal', 'signature': 'root:x:0:0:'}]
+    assert replay_result(_differential_probe('path_traversal', detected, [{'detected': [], 'control': True}])) == 'confirmed'
+    assert replay_result(_differential_probe('path_traversal', detected, [{'detected': detected, 'control': True}])) is None
+
+
+def test_unknown_basis_never_confirms():
+    from src.adaptix.evidence.verification import replay_result
+    record = {**verification_record_placeholder(), 'verification_basis': 'severity_high'}
+    assert replay_result(record) is None
+
+
+def verification_record_placeholder():
+    return {'requests': [{'method': 'GET', 'url': 'http://127.0.0.1:18080/x', 'identity': None}],
+            'responses': [{'status_code': 200, 'headers': {}, 'body_excerpt': '', 'body_sha256': 'a' * 64}]}
+
+
+def test_signed_web_verification_record_round_trips(signing_key):
+    from src.adaptix.evidence.verification import record_probe_verification, valid_proof
+    state = {'run_id': 'test-web-contract'}
+    detected = [{'category': 'sql_injection', 'signature': 'mysql_syntax'}]
+    controls = [{'detected': [], 'url': 'http://127.0.0.1:18080/search?q=apple', 'control': True}]
+    proof = record_probe_verification(state, 'adaptix-probe-abc', 'http://127.0.0.1:18080/search?q=1', 'GET',
+        {'method': 'GET', 'url': 'http://127.0.0.1:18080/search?q=1', 'identity': None},
+        {'status_code': 500, 'headers': {}, 'body_excerpt': 'sql syntax', 'body_sha256': 'a' * 64},
+        detected, controls)
+    assert proof and proof['result'] == 'confirmed'
+    candidate = {'template_id': proof['template_id'], 'url': proof['url']}
+    assert valid_proof(candidate, proof, 'test-web-contract')
+    # A probe with no applicable contract produces no record at all.
+    assert record_probe_verification(state, 't', 'http://127.0.0.1:18080/x', 'GET',
+        {'method': 'GET', 'url': 'http://127.0.0.1:18080/x', 'identity': None},
+        {'status_code': 200, 'headers': {}, 'body_excerpt': '', 'body_sha256': 'a' * 64},
+        [{'category': 'unknown_class', 'signature': 'x'}], []) is None
+
+
+
 def test_audit_bundle_has_checkable_hashes_and_detects_changes():
     state = {'run_id': 'test-audit-integrity', 'token_ledger': [{'tokens_charged': 30}]}
     paths = export_bundle(state, {'status': 'test'}, ['event'])

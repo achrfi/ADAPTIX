@@ -20,7 +20,7 @@ BASE = 'http://127.0.0.1:18080'
 MODEL_CONTEXT_TOKENS = 4096
 TOKEN_BUDGET = 35000
 TOKENS_USED = 2156
-CONTEXT_BUDGET = MODEL_CONTEXT_TOKENS - 1024  # planner reserve for completion tokens
+CONTEXT_BUDGET = MODEL_CONTEXT_TOKENS - planner.OUTPUT_ENVELOPES[-1]['tokens']  # smallest planner output envelope
 
 
 def _byte_counter(system, content):

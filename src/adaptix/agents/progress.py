@@ -34,8 +34,16 @@ def stagnation_report(state, limit=5):
         else:
             break
     zero_gain = sum(1 for o in outcomes if float(o.get('goal_progress') or 0) <= 0)
+    # Planning attempts are part of the run's progress: a pass that selected no action
+    # measured nothing, and several in a row is a decision failure to report, not a
+    # completed assessment.
+    planning = [row for row in state.get('planning_history', []) if isinstance(row, dict)]
+    empty_plans = sum(1 for row in planning if not row.get('selected'))
     return {'recent': recent, 'consecutive_no_gain': streak, 'no_gain_actions': zero_gain,
-            'actions_measured': len(outcomes)}
+            'actions_measured': len(outcomes),
+            'planning_passes': len(planning), 'zero_action_plans': empty_plans,
+            'consecutive_empty_plans': int(state.get('consecutive_empty_plans', 0) or 0),
+            'consecutive_schema_failures': int(state.get('consecutive_schema_failures', 0) or 0)}
 
 
 def parameter_variation_no_gain(state, action):
