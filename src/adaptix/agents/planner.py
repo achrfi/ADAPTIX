@@ -436,6 +436,10 @@ def _alternatives(state, action, available=None, limit=6):
             key = endpoint_key(row.get('url')) if row.get('url') else None
             category = hyp_by_key.get(key[:4] if key else None) or hyp_any
             pairs.append({'tool': tool, 'target': name, 'http_validated': False,
+                          # A named authorization scenario is a new evidence modality,
+                          # even if its underlying URL was previously observed by GET.
+                          # already_completed() above excludes any repeated scenario.
+                          '_novel': True,
                           '_rank': len(ranking), '_section': 0 if category else 1,
                           '_hypothesis': category})
     # Sections in evidential-specificity order, then by observed endpoint rank.
