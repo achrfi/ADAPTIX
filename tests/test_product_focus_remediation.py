@@ -268,8 +268,13 @@ def test_graph_retests_same_url_only_after_discovered_technology_changes(tmp_pat
                          'estimated_tokens': 10, 'estimated_seconds': .1, 'estimated_requests': 1}}]
         return model_response({'actions': actions, 'reflection': 'Use the changed profile to select new tests.', 'rationale': 'Adaptive test'})
     monkeypatch.setattr(planner.litellm, 'completion', complete)
+    original_prepare = nuclei.prepare_scan
+    def prepare_spy(state, target, cfg):
+        manifest = original_prepare(state, target, cfg)
+        profiles.append(','.join(manifest['tags']))
+        return manifest
+    monkeypatch.setattr(nuclei, 'prepare_scan', prepare_spy)
     def scan(argv, **kwargs):
-        profiles.append(argv[argv.index('-tags') + 1])
         return {'returncode': 0, 'stdout': '', 'stderr': ''}
     monkeypatch.setattr(nuclei, 'run_tool', scan)
     monkeypatch.setattr(httpx, 'run_tool', lambda *a, **kw: {'returncode': 0, 'stdout': json.dumps({'url': target, 'status_code': 200, 'tech': ['WordPress'], 'webserver': 'nginx'}), 'stderr': ''})

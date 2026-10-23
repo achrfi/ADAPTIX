@@ -28,6 +28,55 @@ def normalize_observed_url(request_url):
     return f'{parsed.scheme}://{parsed.netloc}{endpoint}'
 
 
+def _form_surfaces(page, state, base_url, permitted_ports):
+    """Read the DOM's form and interactive-input structure without interacting.
+
+    This is passive observation of what the application rendered: form actions,
+    methods and field names/types. Values are never filled, no submit/click is
+    performed, and the result is bounded so a malicious DOM cannot inflate it.
+    Only in-scope form actions are retained; the model decides what to send later.
+    """
+    try:
+        raw = page.evaluate('''() => {
+            const forms = Array.from(document.forms).slice(0, 16).map(f => ({
+                action: f.getAttribute('action') || '',
+                method: (f.getAttribute('method') || 'GET').toUpperCase(),
+                enctype: f.getAttribute('enctype') || '',
+                fields: Array.from(f.elements).slice(0, 32).map(e => ({
+                    name: e.getAttribute('name') || '',
+                    type: (e.getAttribute('type') || e.tagName || '').toLowerCase(),
+                    id: e.getAttribute('id') || ''
+                })).filter(x => x.name || x.id)
+            }));
+            const standalone = Array.from(document.querySelectorAll('input, textarea, select'))
+                .filter(e => !e.form).slice(0, 32).map(e => ({
+                    name: e.getAttribute('name') || '',
+                    type: (e.getAttribute('type') || e.tagName || '').toLowerCase(),
+                    id: e.getAttribute('id') || ''
+                })).filter(x => x.name || x.id);
+            return {forms, standalone};
+        }''')
+    except Exception:
+        return []
+    from urllib.parse import urljoin
+    surfaces = []
+    for form in (raw or {}).get('forms', []):
+        action = form.get('action') or base_url
+        resolved = urljoin(base_url, action)
+        if not _in_scope(state, resolved, permitted_ports):
+            continue
+        fields = [{'name': f['name'] or f['id'], 'type': f['type']}
+                  for f in form.get('fields', []) if (f.get('name') or f.get('id'))]
+        surfaces.append({'kind': 'form', 'url': resolved, 'method': form.get('method', 'GET'),
+                         'enctype': form.get('enctype', ''), 'fields': fields[:32]})
+    standalone = [{'name': f['name'] or f['id'], 'type': f['type']}
+                  for f in (raw or {}).get('standalone', []) if (f.get('name') or f.get('id'))]
+    if standalone:
+        surfaces.append({'kind': 'standalone_inputs', 'url': base_url, 'method': 'GET',
+                         'fields': standalone[:32]})
+    return surfaces
+
+
 def browser_observe(state):
     actions = state.get('planned_actions', [])
     cursor = int(state.get('action_cursor', 0))
@@ -75,7 +124,8 @@ def browser_observe(state):
                             request = route.request
                             if (request.method in ('GET', 'HEAD') and remaining_seconds(state) > 0
                                     and _in_scope(state, request.url, permitted_ports)):
-                                observed_requests[request.url] = request.resource_type
+                                observed_requests[request.url] = {'resource_type': request.resource_type,
+                                                                  'method': request.method}
                                 route.continue_()
                             else:
                                 blocked_requests.append({'url': request.url, 'method': request.method,
@@ -102,22 +152,31 @@ def browser_observe(state):
                         links = [link for link in page.locator('a[href]').evaluate_all('(nodes) => nodes.slice(0, 64).map(n => n.href)')
                                  if _in_scope(state, link, permitted_ports)]
                         api_endpoints = []
-                        for request_url, resource_type in observed_requests.items():
+                        for request_url, observed in observed_requests.items():
+                            resource_type, method = observed['resource_type'], observed['method']
                             if resource_type not in ('xhr', 'fetch'):
                                 continue
                             # Keep parameter names but drop runtime values (session ids,
                             # cache-busters) so one endpoint is recorded once.
                             target = normalize_observed_url(request_url)
-                            row = route_row(state, target, 'GET', 'xhr' if resource_type == 'xhr' else 'fetch', str(raw_path))
+                            row = route_row(state, target, method, 'xhr' if resource_type == 'xhr' else 'fetch', str(raw_path))
                             if not row or row['static_asset']:
                                 continue
                             routes.append(row)
-                            api_endpoints.append({'url': row['url'], 'kind': row['kind'], 'api_like': row.get('api_like', False)})
+                            api_endpoints.append({'url': row['url'], 'kind': row['kind'],
+                                                  'method': method, 'api_like': row.get('api_like', False)})
+                        # Deterministic read-only input-surface discovery: the DOM
+                        # form/field structure is evidence the application itself
+                        # emits. Forms are never filled, clicked or submitted here;
+                        # the model later chooses inputs and the execution goes
+                        # through the authorized http_request path.
+                        inputs = _form_surfaces(page, state, url, permitted_ports)
                         evidence.append({'url': url, 'title': page.title()[:160],
                                          'status_code': response.status if response else None,
                                          'text_excerpt': page.locator('body').inner_text(timeout=int(tool_timeout(state, 3)*1000))[:2000],
                                          'links': list(dict.fromkeys(links)),
                                          'api_endpoints': api_endpoints[:64],
+                                         'input_surfaces': inputs[:32],
                                          'blocked_requests': blocked_requests,
                                          'raw_ref': str(raw_path),
                                          'screenshot': str(img.relative_to(ROOT))})

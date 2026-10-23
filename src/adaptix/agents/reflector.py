@@ -90,9 +90,18 @@ def collect_findings(state):
     # signed 'nuclei' key keeps them distinct from every independently verified
     # record instead of merging with it.
     for prior in state.get('verified_findings', []):
-        if isinstance(prior, dict) and prior.get('verification_level') == 'scanner_verified' \
-                and prior.get('tool_source') == 'nuclei' and prior.get('finding_id'):
+        if (isinstance(prior, dict) and prior.get('tool_source') == 'nuclei' and prior.get('finding_id')
+                and prior.get('verification_status') == 'verified'
+                and (prior.get('verification_level') == 'scanner_verified'
+                     or prior.get('verification_method') == 'nuclei_template_match')):
             findings[('nuclei', prior['finding_id'])] = prior
+    # A Nuclei match that the adapter already verified must not reappear below as
+    # an unverified candidate: the candidate bucket is for evidence still needing
+    # an independent check, not a second copy of an already-verified match.
+    verified_nuclei = {(row.get('template_id'), endpoint_key(row.get('target', '')))
+                       for row in state.get('verified_findings', []) if isinstance(row, dict)
+                       and row.get('tool_source') == 'nuclei'
+                       and row.get('verification_method') == 'nuclei_template_match'}
 
     def add(entry):
         if entry.get('finding_type') == 'broken_object_level_authorization':
@@ -106,6 +115,12 @@ def collect_findings(state):
         findings[key] = entry
 
     for idx, candidate in enumerate(state.get('candidates', []), start=1):
+        if (candidate.get('template_id'), endpoint_key(candidate.get('url', ''))) in verified_nuclei:
+            continue
+        # Inventory observations (technology fingerprints, informational matches)
+        # belong to recon_inventory, not to the vulnerability finding buckets.
+        if candidate.get('finding_type') == 'service_observation':
+            continue
         observation = http_by_url.get(endpoint_key(candidate.get('url', '')))
         proof, record = _proof_for(candidate, state.get('verification_evidence', []), state.get('run_id'))
         private = _private_object_evidence(record)

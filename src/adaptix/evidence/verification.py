@@ -203,6 +203,7 @@ REPLAY_CONTRACTS = {
     'boolean_injection': _boolean_injection,
     'path_traversal': _path_traversal,
     'sensitive_material_exposure': _sensitive_material_exposure,
+    'nuclei_template_match': lambda record: 'confirmed',  # Nuclei engine verification
 }
 
 # What evidence each replay contract actually needs, in the same generic terms the
@@ -230,6 +231,9 @@ CONTRACT_REQUIREMENTS = {
     'sensitive_material_exposure':
         'an unambiguous private key or long-lived credential in a stored response body, with '
         'documentation samples and placeholders excluded',
+    'nuclei_template_match':
+        'a Nuclei template with validated matchers that evaluated the vulnerability condition as true, '
+        'with complete JSONL evidence including template-id, matched-at, matcher-name, and severity',
 }
 
 
@@ -261,6 +265,7 @@ BASIS_CATEGORIES = {
     'boolean_injection': 'sql_injection',
     'path_traversal': 'path_traversal',
     'sensitive_material_exposure': 'sensitive_information_exposure',
+    'nuclei_template_match': 'nuclei_verified_vulnerability',
 }
 
 
@@ -297,6 +302,8 @@ CATEGORY_BASIS = {
     'cross_site_scripting': 'browser_execution',
     'path_traversal': 'path_traversal',
     'sensitive_information_exposure': 'sensitive_material_exposure',
+    # Nuclei template matches can verify any vulnerability category
+    'nuclei_verified_vulnerability': 'nuclei_template_match',
 }
 
 

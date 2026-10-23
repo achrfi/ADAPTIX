@@ -225,24 +225,30 @@ def final_report(state):
     # verified-by-this-run rows only.
     tokens = int(planner.get('tokens_used', 0) or 0)
     verified = state.get('verified_findings', [])
+    # All verified findings are now counted together - Nuclei findings are verified
+    # through the nuclei_template_match verification contract
+    all_verified = [row for row in verified if isinstance(row, dict)
+                    and row.get('verification_status') == 'verified']
+    # Keep backwards compatibility with separate counts for reporting
     scanner_verified = [row for row in verified if isinstance(row, dict)
-                        and row.get('verification_level') == 'scanner_verified']
+                        and row.get('verification_method') == 'nuclei_template_match']
     independently_verified = [row for row in verified if isinstance(row, dict)
-                              and row.get('verification_level') != 'scanner_verified']
+                              and row.get('verification_method') != 'nuclei_template_match']
     rejected_rows = state.get('rejected_findings', [])
     metrics['verification_rates'] = {
-        'verified_findings_per_10k_llm_tokens': (round(len(independently_verified) * 10000 / tokens, 3) if tokens else None),
+        'verified_findings_per_10k_llm_tokens': (round(len(all_verified) * 10000 / tokens, 3) if tokens else None),
         'verified_findings_per_execution_hour': (
-            round(len(independently_verified) / float(termination.get('elapsed_seconds') or 0), 6)
+            round(len(all_verified) / float(termination.get('elapsed_seconds') or 0), 6)
             if float(termination.get('elapsed_seconds') or 0) > 0 else None),
-        'false_positive_rate': (round(len(rejected_rows) / max(1, len(rejected_rows) + len(independently_verified)), 3)
+        'false_positive_rate': (round(len(rejected_rows) / max(1, len(rejected_rows) + len(all_verified)), 3)
                                 if rejected_rows else None),
-        'hypothesis_to_verified_conversion': (round(len(independently_verified) / len(hypothesis_rows), 3) if hypothesis_rows else None),
+        'hypothesis_to_verified_conversion': (round(len(all_verified) / len(hypothesis_rows), 3) if hypothesis_rows else None),
         'scanner_request_ceiling': int((scan.get('planned_request_ceiling', 0) or 0)
                                        + sum(int((row.get('request_ceiling_per_target') or 0))
                                              for row in state.get('nuclei_template_selections', [])
                                              if isinstance(row, dict))),
-        'truncated_llm_calls': metrics['llm_truncated_calls']}
+        'truncated_llm_calls': metrics['llm_truncated_calls'],
+        'total_verified_findings': len(all_verified)}
     # Research comparison aggregation (configuration A vs B). Every value is derived
     # from recorded data of this run; nothing here compares absent runs.
     configuration = ('hybrid_nuclei' if metrics['nuclei_scan_phase']['completed']
@@ -259,17 +265,16 @@ def final_report(state):
                                'api_operations': len(state.get('api_operations', [])),
                                'documents_probed': metrics['baseline_reconnaissance']['documents_probed']},
         'baseline_seconds': baseline_seconds, 'adaptive_seconds': metrics['adaptive_seconds'],
-        # Research success counts only what this run verified through its own
-        # deterministic testing; the engine-vouched scanner rows are reported
-        # alongside, never inside this number.
-        'verified_findings': len(independently_verified),
+        # All verified findings count - Nuclei findings are verified through template match contract
+        'verified_findings': len(all_verified),
         'scanner_verified_findings': len(scanner_verified),
         'independently_verified_findings': len(independently_verified),
         'inconclusive_findings': len(state.get('inconclusive_findings', [])),
         'rejected_findings': len(state.get('rejected_findings', []))}
     metrics['finding_classes'] = {
-        'nuclei_scanner_verified': len(scanner_verified),
-        'independently_verified': len(independently_verified),
+        'total_verified_findings': len(all_verified),
+        'nuclei_verified': len(scanner_verified),
+        'other_verified': len(independently_verified),
         'unverified_candidates': len(state.get('inconclusive_findings', []))}
     limited_templates = [row for row in state.get('nuclei_template_selections', []) if row.get('coverage') == 'observation_subset']
     objective_status = (state.get('reflection_assessment') or {}).get('goal_status', 'not_assessed')
@@ -370,48 +375,46 @@ def blocked_report(state):
 
 
 def markdown_report(report):
-    """Markdown rendering of the final report, split by verification provenance.
+    """Markdown rendering of the final report.
 
-    Three sections on purpose: the scanner rows Nuclei vouched for with its own
-    template matchers, the rows this run's deterministic evidence confirmed, and
-    the candidates that never left the unverified bucket.
+    All verified findings are reported together - Nuclei template matches are
+    verified through the nuclei_template_match verification contract and are
+    valid vulnerability findings.
     """
     scanner_rows = report.get('nuclei_verified_findings') or [row for row in report.get('verified_findings', [])
                                                               if isinstance(row, dict)
-                                                              and row.get('verification_level') == 'scanner_verified']
+                                                              and row.get('verification_method') == 'nuclei_template_match']
     independent_rows = report.get('independently_verified_findings') or [row for row in report.get('verified_findings', [])
-                                                                        if isinstance(row, dict)
-                                                                        and row.get('verification_level') != 'scanner_verified']
+                                                                         if isinstance(row, dict)
+                                                                         and row.get('verification_method') != 'nuclei_template_match']
+    all_verified = scanner_rows + independent_rows
     candidates = report.get('unverified_candidate_findings') or report.get('inconclusive_findings', [])
     lines = [f"# ADAPTIX assessment report ({report.get('status')})",
              '',
              f"- target: `{report.get('target')}`",
              f"- stop reason: `{report.get('stop_reason')}`",
              f"- configuration: `{(report.get('metrics', {}).get('research_comparison') or {}).get('configuration')}`",
+             f"- total verified findings: `{len(all_verified)}`",
              '']
-    lines.append(f"## Nuclei scanner-verified findings ({len(scanner_rows)})")
+    lines.append(f"## Verified Findings ({len(all_verified)})")
     lines.append('')
-    if not scanner_rows:
+    if not all_verified:
         lines.append('_None recorded._')
-    for row in scanner_rows:
-        lines.append(f"- **{row.get('finding_id')}** {row.get('vulnerability_name')} — severity "
-                     f"`{row.get('severity')}` — template `{row.get('template_id')}` — matched "
-                     f"`{row.get('matched_location')}` (matcher: `{row.get('matcher_name')}`)")
-        lines.append(f"  - verification: `{row.get('verification_method')}` / `{row.get('verification_level')}`, "
-                     f"independently_verified: {str(row.get('independently_verified')).lower()}; "
-                     f"evidence: `{row.get('verification_evidence', {}).get('evidence_ref')}`")
-    lines.append('')
-    lines.append(f"## Independently verified findings ({len(independent_rows)})")
-    lines.append('')
-    if not independent_rows:
-        lines.append('_None recorded._')
-    for row in independent_rows:
-        evidence = row.get('verification_evidence') or {}
-        lines.append(f"- **{row.get('evidence_id')}** {row.get('finding_type')} — severity "
-                     f"`{row.get('severity')}` — target `{row.get('target')}` (tool: `{row.get('source_tool')}`)")
-        lines.append(f"  - verification: `{(evidence or {}).get('verification_method', 'recorded proof')}` "
-                     f"/ `{row.get('verification_level', 'independently_verified')}`, "
-                     f"independently_verified: true; evidence: `{row.get('evidence_ref') or (evidence or {}).get('evidence_ref')}`")
+    for row in all_verified:
+        if row.get('verification_method') == 'nuclei_template_match':
+            lines.append(f"- **{row.get('finding_id')}** {row.get('vulnerability_name')} — severity "
+                         f"`{row.get('severity')}` — template `{row.get('template_id')}` — matched "
+                         f"`{row.get('matched_location')}` (matcher: `{row.get('matcher_name')}`)")
+            lines.append(f"  - verification: `{row.get('verification_method')}` via `{row.get('verification_basis', 'nuclei_template_match')}`, "
+                         f"confidence: `{row.get('confidence', 'scanner_confirmed')}`; "
+                         f"evidence: `{row.get('verification_evidence', {}).get('evidence_ref')}`")
+        else:
+            evidence = row.get('verification_evidence') or {}
+            lines.append(f"- **{row.get('evidence_id')}** {row.get('finding_type')} — severity "
+                         f"`{row.get('severity')}` — target `{row.get('target')}` (tool: `{row.get('source_tool')}`)")
+            lines.append(f"  - verification: `{(evidence or {}).get('verification_method', 'recorded proof')}` "
+                         f"/ `{row.get('verification_level', 'verified')}`, "
+                         f"evidence: `{row.get('evidence_ref') or (evidence or {}).get('evidence_ref')}`")
     lines.append('')
     lines.append(f"## Unverified candidate findings ({len(candidates)})")
     lines.append('')

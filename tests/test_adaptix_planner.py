@@ -111,3 +111,48 @@ def test_repeated_actions_terminate_without_scanning_again(monkeypatch):
     from src.adaptix.agents.action_identity import execution_identity
     assert all(execution_identity(row, state) != execution_identity(
         {'tool': 'httpx', 'target': 'http://127.0.0.1:18080'}, state) for row in recovery)
+
+
+def _truncated_response():
+    msg = MagicMock()
+    msg.content = '{"actions": [{"tool": "httpx", "target": "/api/Users", "reason": "trunc'
+    usage = MagicMock(prompt_tokens=50, completion_tokens=20, total_tokens=70)
+    return MagicMock(choices=[MagicMock(message=msg)], usage=usage)
+
+
+def _valid_action_response():
+    return _fake_response({'actions': [{'tool': 'httpx', 'target': 'http://127.0.0.1:18080/api/Users',
+        'reason': 'probe observed API route', 'priority': {'goal_relevance': 0.8, 'information_gain': 0.7,
+        'evidence_value': 0.6, 'confidence': 0.9, 'estimated_tokens': 100, 'estimated_seconds': 1,
+        'estimated_requests': 1}}], 'reflection': 'Observed API route is an input surface to test', 'rationale': 'test API'})
+
+
+def test_native_schema_invalid_decision_falls_back_to_plain_structured_output(monkeypatch):
+    # A provider whose grammar-constrained (native JSON-Schema) decoding returns
+    # truncated JSON must not be asked the same doomed question until the run
+    # dies. The failed native pass records the degradation and disables native
+    # JSON for subsequent passes; the next pass then produces a valid, executable
+    # action through plain instructions plus local validation.
+    monkeypatch.setattr(planner, 'tool_registry', _registry)
+    monkeypatch.setattr(planner, 'litellm', planner.litellm)
+    calls = {'n': 0, 'native_flags': []}
+    def fake_completion(**kw):
+        calls['n'] += 1
+        calls['native_flags'].append('response_format' in kw and
+            isinstance(kw['response_format'], dict) and kw['response_format'].get('type') == 'json_schema')
+        return _truncated_response() if calls['n'] == 1 else _valid_action_response()
+    monkeypatch.setattr(planner.litellm, 'completion', fake_completion)
+    state = {**_state(), 'llm_native_json': 'on', 'web_routes': [
+        {'url': 'http://127.0.0.1:18080/api/Users'}]}
+    first = planner.adaptive_planning(state)
+    # Pass 1: native schema attempted, validation failed, fallback recorded.
+    assert calls['native_flags'][0] is True
+    assert first['planned_actions'] == []
+    assert first['llm_native_json'] == 'off'
+    assert first['planner_metrics'].get('native_schema_fallback') == 1
+    assert any('native JSON-Schema' in message for message in first['errors'])
+    # Pass 2 threads the fallback state: no native schema, valid action executes.
+    second = planner.adaptive_planning({**state, **first, 'iterations': 1})
+    assert calls['native_flags'][1] is False
+    assert [action['tool'] for action in second['planned_actions']] == ['httpx']
+    assert second['planned_actions'][0]['target'].endswith('/api/Users')

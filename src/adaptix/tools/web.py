@@ -247,7 +247,14 @@ def _dedupe(items, key):
 
 
 def web_discover(state):
-    """GET one seed document plus robots.txt/sitemap.xml, then mine referenced JS bundles."""
+    """GET one seed document plus robots.txt/sitemap.xml, then mine referenced JS bundles.
+
+    The seed response's own headers and body also yield deterministic technology
+    fingerprints (`http_services` entries carry `tech`/`webserver` with
+    `technology_source: 'response_signatures'`):  honest observations the target
+    emitted, feeding evidence-driven Nuclei template selection. Nothing is
+    synthesized and no match is ever promoted from a technology label.
+    """
     seeds = seed_urls(state)
     if not seeds:
         return {'events': log(state, 'Web Discover: skipped; no in-scope seed URL')}
@@ -260,6 +267,9 @@ def web_discover(state):
     completed = 0
     probed = list(state.get('discovered_documents', []))
     scripts = []
+    tech_labels, tech_markers = {}, set()
+    from src.adaptix.evidence.web_signatures import detect_technologies
+
     for probe in probes:
         if not tool_budget_available({**state, 'execution_metrics': working.get('execution_metrics', {})}):
             errors.append('Web Discover: tool-call budget exhausted')
@@ -272,6 +282,13 @@ def web_discover(state):
         completed += 1
         if probe not in probed:
             probed.append(probe)
+        raw_labels, markers = detect_technologies(
+            response.text[:DETECTION_LIMIT], getattr(response, 'headers', {}))
+        # First-seen field wins; a later document never overwrites the seed's
+        # observed header with a different document's value.
+        for field, value in raw_labels.items():
+            tech_labels.setdefault(field, value)
+        tech_markers.update(markers)
         secrets = scenario_secrets(state)
         path = artifact_path(state, 'web-discovery', probe, 'json')
         save_text(path, json.dumps({'url': sanitize(probe), **response_record(response, secrets)}, ensure_ascii=False))
@@ -295,16 +312,56 @@ def web_discover(state):
         except (httpx.HTTPError, ValueError) as exc:
             errors.append(f'Web Discover {bundle}: {type(exc).__name__}')
             continue
+        raw_labels, markers = detect_technologies(
+            response.text[:DETECTION_LIMIT], getattr(response, 'headers', {}))
+        for field, value in raw_labels.items():
+            tech_labels.setdefault(field, value)
+        tech_markers.update(markers)
         secrets = scenario_secrets(state)
         path = artifact_path(state, 'web-bundle', bundle, 'js')
         save_text(path, sanitize(response.text[:SCRIPT_BUNDLE_LIMIT], secrets))
         raw_bytes += len(response.content)
         routes.extend(_extract_script_routes(state, bundle, response, str(path), secrets))
     routes = _dedupe(routes, lambda row: (endpoint_key(row['url']), row['method'], row['kind']))
-    return {'web_routes': routes, 'discovered_documents': probed,
-            'execution_metrics': working.get('execution_metrics', state.get('execution_metrics', {})),
-            'raw_bytes': raw_bytes, 'errors': errors,
-            'events': log(state, f'Web Discover: {len(routes)} in-scope routes from {completed} documents')}
+    # Technology evidence rides on the response the seed served: verbatim header
+    # product strings, generic framework markers observed in served HTML/JS, and
+    # the raw server banner under `webserver`. Mapping to trusted Nuclei tags
+    # happens in adaptive_profile - only products the configured map knows
+    # become selection evidence; unmatched labels stay as honest observations.
+    http_services = list(state.get('http_services', []))
+    observed_labels = sorted({*tech_labels.values(), *tech_markers})
+    services_updated = False
+    for row in http_services:
+        if endpoint_key(row.get('url', '')) == endpoint_key(base):
+            src = row.get('tech')
+            existing = ([value for value in src if isinstance(value, str)] if isinstance(src, list)
+                        else [] if not isinstance(src, str) else [src])
+            merged = sorted(set(existing) | set(observed_labels))
+            if merged != existing or (tech_labels.get('server') and not row.get('webserver')):
+                row = dict(row)
+                row['tech'] = merged
+                if tech_labels.get('server') and not row.get('webserver'):
+                    row['webserver'] = tech_labels['server']
+                row.setdefault('technology_source', 'response_signatures')
+                http_services[http_services.index(next(r for r in http_services
+                                                       if endpoint_key(r.get('url', '')) == endpoint_key(base)))] = row
+                services_updated = True
+            break
+    else:
+        if observed_labels:
+            row = {'url': base, 'tech': observed_labels,
+                   'webserver': tech_labels.get('server', ''),
+                   'technology_source': 'response_signatures'}
+            http_services.append(row)
+            services_updated = True
+    update = {'web_routes': routes, 'discovered_documents': probed,
+              'execution_metrics': working.get('execution_metrics', state.get('execution_metrics', {})),
+              'raw_bytes': raw_bytes, 'errors': errors,
+              'events': log(state, f'Web Discover: {len(routes)} in-scope routes from {completed} documents'
+                                    + (f'; {len(observed_labels)} technology signature(s)' if observed_labels else ''))}
+    if services_updated:
+        update['http_services'] = http_services
+    return update
 
 
 def _payload_candidates(url):

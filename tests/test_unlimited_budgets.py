@@ -166,8 +166,8 @@ def test_run_stream_merges_node_updates_and_leaves_the_seed_state_unchanged():
     seen_configs = {}
 
     class FakeGraph:
-        def stream(self, state, config=None):
-            assert state is seed
+        def stream(self, state, config=None, stream_mode=None):
+            assert state is seed and stream_mode == 'values'
             seen_configs['recursion_limit'] = (config or {}).get('recursion_limit')
             for update in updates:
                 yield update
@@ -181,7 +181,8 @@ def test_run_stream_cancellation_stops_between_nodes_and_keeps_eligible_evidence
     calls = {'count': 0}
 
     class FakeGraph:
-        def stream(self, state, config=None):
+        def stream(self, state, config=None, stream_mode=None):
+            assert stream_mode == 'values'
             for update in updates:
                 calls['count'] += 1
                 yield update
@@ -190,6 +191,29 @@ def test_run_stream_cancellation_stops_between_nodes_and_keeps_eligible_evidence
     merged = run_stream(FakeGraph(), {'target': ['127.0.0.1']}, {'recursion_limit': 10}, cancelled=cancelled)
     assert 'never-reached' not in json.dumps(merged)
     assert merged['events'] == ['a']
+
+
+def test_run_stream_uses_real_langgraph_value_snapshots():
+    from typing import TypedDict
+    from langgraph.graph import StateGraph, START, END
+
+    class State(TypedDict, total=False):
+        target: list
+        events: list
+        report: dict
+
+    def scan(state):
+        return {'events': ['scope'], 'report': {'status': 'scan_completed'}}
+
+    builder = StateGraph(State)
+    builder.add_node('scan', scan)
+    builder.add_edge(START, 'scan')
+    builder.add_edge('scan', END)
+    merged = run_stream(builder.compile(), {'target': ['127.0.0.1']},
+                        config={'recursion_limit': 10}, cancelled=lambda: False)
+    assert merged['target'] == ['127.0.0.1']
+    assert merged['report']['status'] == 'scan_completed'
+    assert merged['events'] == ['scope']
 
 
 # --- planner under unlimited budgets ----------------------------------------

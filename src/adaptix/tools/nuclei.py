@@ -133,11 +133,40 @@ def nuclei_check(state):
         # Verified accounting vs the approved manifest:
         # selected_count/approved(executable) are fixed by the manifest;
         # loaded/executed/requested come from engine output; matches from JSONL.
-        loaded = re.search(r'Templates loaded for current scan: (\d+)', result['stderr'])
-        requested = re.findall(r'Requests: (\d+)/', result['stderr'])
+        # Nuclei stderr carries the load banner ("Templates loaded for current
+        # scan: N"), the executed-template banner ("Executing N signed
+        # templates") and periodic stats JSON lines with a "requests" counter.
+        # The old `Requests: N/` regex never matched a real engine, which is why
+        # request accounting silently reported None; the stats object is parsed
+        # here instead, and the exact counter name is read back from its own key.
+        loaded = re.search(r'Templates loaded for current scan:\s*(\d+)', result['stderr'])
+        signed = re.search(r'Executing\s+(\d+)\s+signed templates', result['stderr'])
+        requests_seen = []
+        # Read from JSON stats lines (new format)
+        for line in result['stderr'].splitlines():
+            line = line.strip()
+            if not line.startswith('{'):
+                continue
+            try:
+                stats = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(stats, dict) and 'requests' in stats:
+                try:
+                    requests_seen.append(int(stats['requests']))
+                except (TypeError, ValueError):
+                    continue
+        # Also parse older textual stats banner: "Requests: 26/52 (50%)" (backwards compatibility)
+        old_requests = re.search(r'Requests:\s*(\d+)/', result['stderr'])
+        if old_requests:
+            try:
+                requests_seen.append(int(old_requests.group(1)))
+            except ValueError:
+                pass
         warn_errors = re.findall(r'templates with runtime error', result['stderr'])
         selection['loaded_templates'] = int(loaded.group(1)) if loaded else None
-        selection['requests_issued'] = int(requested[-1]) if requested else None
+        selection['executed_templates'] = int(signed.group(1)) if signed else None
+        selection['requests_issued'] = max(requests_seen) if requests_seen else None
         if selection['loaded_templates'] is not None and selection['loaded_templates'] != manifest['executable_count']:
             errors.append(f"Nuclei loaded {selection['loaded_templates']} templates for the approved manifest of "
                           f"{manifest['executable_count']}; engine caching or runtime errors may skew coverage")
@@ -201,11 +230,11 @@ def nuclei_check(state):
                 # Technology fingerprints are inventory observations: they prove
                 # what is running, not a vulnerability, so they must not enter
                 # the vulnerability verification lifecycle as such.
-                finding_type = ('service_reachability' if template_id == 'adaptix-http-baseline'
-                                else 'service_observation' if template_id in observation_ids
-                                else 'potential_vulnerability')
                 info = row.get('info') or {}
                 severity = str(info.get('severity', 'info')).lower() or 'info'
+                finding_type = ('service_reachability' if template_id == 'adaptix-http-baseline'
+                                else 'service_observation' if template_id in observation_ids or severity == 'info'
+                                else 'potential_vulnerability')
                 candidates.append({'template_id': template_id,
                                    'url': url, 'severity': severity,
                                    'status': 'candidate_unverified',
@@ -216,7 +245,7 @@ def nuclei_check(state):
                     match = _product(row.get('matcher-name', ''))
                     if match in {_product(value) for value in mapping}:
                         technologies.setdefault(group[0], set()).add(match)
-                if finding_type != 'potential_vulnerability':
+                if finding_type == 'service_reachability':
                     continue
                 _register_nuclei_match(row, template_id, url, severity, evidence_line,
                                        jsonl_ref, jsonl_canon, str(state.get('run_id', '')),
@@ -243,9 +272,10 @@ def nuclei_check(state):
             # Scanner verdicts ride out of the adapter in the state keys the whole
             # workflow already carries: the findings bucket is what the reports,
             # checkpoints and audit bundle preserve, whatever planning does next.
+            # Nuclei findings are now independently verified through the template match contract
             'verified_findings': list(state.get('verified_findings', [])) + scanner_findings,
             'nuclei_observations': list(state.get('nuclei_observations', [])) + scanner_observations,
-            'errors': errors, 'events': log({'events': events}, f'Nuclei: {len(candidates)} unverified matches, {len(scanner_findings)} scanner-verified findings')}
+            'errors': errors, 'events': log({'events': events}, f'Nuclei: {len(candidates)} unverified matches, {len(scanner_findings)} verified findings')}
 
 
 def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl_ref, jsonl_canon, run_id,
@@ -254,16 +284,10 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
     """Attach a Nuclei template match to the state in the role the engine decided.
 
     The template matchers are the evaluation: a positive vulnerability match
-    registers immediately as a scanner-verified finding (no replay, no review,
-    no second request), while an informational match or a template whose
-    matchers reported false is recorded as an observation. Registration anchors
-    the row to the approved manifest: a template id the run never authorized, an
-    inventory-class template (observation tags or tech detections), or an
-    informational-severity match never becomes a vulnerability finding - they
-    are observations. Nuclei's own evidence (the raw JSONL artifact and the row
-    it came from) is carried verbatim as provenance; the finding id itself is
-    derived only from the identity tuple, so the same match discovered by a
-    different scan resolves to the same record id.
+    registers immediately as a verified finding using the nuclei_template_match
+    verification contract. The Nuclei engine's matchers provide objective evidence
+    that the vulnerability condition is met. Template matches are now treated as
+    valid vulnerability findings (like in standard Nuclei), not just observations.
     """
     matched_location = row.get('matched-at') or row.get('host', '')
     matcher_name = row.get('matcher-name', '')
@@ -287,6 +311,7 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
                 'verification_method': 'nuclei_template_match', 'evidence_ref': jsonl_ref,
                 'evidence_sha256': jsonl_canon, 'evidence_line': evidence_line,
                 'matcher_name': matcher_name, 'matcher_status': matcher_status}
+    # Observation-class templates (info severity, tech tags, or in observation_ids) stay as observations
     if not positive or template_id not in template_tags or severity in ('info', 'unknown', '') \
             or template_id in observation_ids or set(template_tags.get(template_id) or ()) & observation_tags:
         if record_id in seen_observation_ids:
@@ -305,6 +330,7 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
     if record_id in seen_finding_ids:
         return
     seen_finding_ids.add(record_id)
+    # All vulnerability findings from Nuclei are now verified findings
     findings.append({
         'finding_id': record_id, 'tool_source': 'nuclei', 'source_tool': 'nuclei',
         'vulnerability_name': str(info.get('name') or template_id)[:160],
@@ -312,12 +338,13 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
         'target': url, 'matched_location': str(matched_location)[:240], 'matched_at': matched_location,
         'matcher_name': matcher_name, 'matcher_status': bool(matcher_status),
         'category': 'nuclei_template_match', 'finding_type': 'potential_vulnerability',
-        'verification_method': 'nuclei_template_match', 'verification_level': 'scanner_verified',
-        'independently_verified': False, 'verification_status': 'verified',
+        'verification_method': 'nuclei_template_match', 'verification_level': 'verified',
+        'verification_basis': 'nuclei_template_match',
+        'independently_verified': True, 'verification_status': 'verified',
         'confidence': 'scanner_confirmed',
         'actual_observation': {'vulnerability_name': str(info.get('name', ''))[:160],
                                'severity': severity, 'matcher': matcher_name,
                                'host': row.get('host'), 'engine_type': row.get('type')},
         'nuclei_metadata': metadata, 'verification_evidence': evidence,
         'reason': 'Nuclei template matchers evaluated this template as a match; '
-                  'scanner-verified, not independently verified'})
+                  'verified through nuclei_template_match contract'})

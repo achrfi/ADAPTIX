@@ -285,6 +285,14 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
                 # too large for the window; the next attempt must be smaller.
                 envelope_too_large = True
                 entry['envelope'] = 'too_large'
+                # Native JSON-Schema has overhead that plain JSON lacks; when the envelope
+                # is too tight, strip response_format and fall back to local validation.
+                if finish_reason == 'length' and 'response_format' in parameters and not compat_stripped:
+                    compat_stripped = True
+                    parameters.pop('response_format', None)
+                    kwargs.pop('response_format', None)
+                    entry['result'] = 'envelope_fallback'
+                    metrics['response_format_envelope_fallback'] = metrics.get('response_format_envelope_fallback', 0) + 1
             if isinstance(exc, ValidationError):
                 errors = exc.errors(include_input=False, include_url=False)
                 fields = validation_fields(exc, limit=len(errors))

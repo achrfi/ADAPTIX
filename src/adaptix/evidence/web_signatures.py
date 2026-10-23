@@ -84,6 +84,26 @@ NOSQL_ERROR_RULES = [
 TRAVERSAL_MARKERS = ('root:x:0:0:', 'daemon:x:', 'nobody:x:', '[boot loader]', '[extensions]',
                      'BEGIN OPENSSH PRIVATE KEY', '; for 16-bit app support')
 
+# Deterministic client-framework markers observed in served HTML/JS. These are
+# only technology fingerprints (Wappalyzer-style rules applied to evidence the
+# target itself emitted); they never become vulnerability findings and never
+# name a product the response did not evidence. Mapped further into Nuclei
+# template tags only where the configured product map knows the marker.
+FRAMEWORK_RULES = (
+    ('angular', re.compile(r'(?i)(?:\bng-app=|ngcontroller|\bapp-root\b|angular(?:\.min)?\.js|zone\.js)')),
+    ('react', re.compile(r'(?i)(?:__NEXT_DATA__|data-reactroot|\breact(?:-dom)?(?:\.min)?\.js|_reactListening)')),
+    ('vue', re.compile(r'(?i)(?:\bid="app"[^>]*data-v-|\bvue(?:\.min)?\.js|v-if=")')),
+    ('jquery', re.compile(r'(?i)jquery[-.]?(?:\d|core|\.min)?\.?js')),
+    ('bootstrap', re.compile(r'(?i)bootstrap(?:\.min)?\.(?:js|css)')),
+    ('wordpress', re.compile(r'(?i)(?:wp-content|wp-includes|/wp-json)')),
+    ('django', re.compile(r'(?i)csrfmiddlewaretoken')),
+    ('express', re.compile(r'(?i)connect\.sid')),
+)
+
+# Header names whose values name real products or runtime stacks. Only the
+# target's own response headers produce labels here - nothing is synthesized.
+HEADER_PRODUCT_FIELDS = ('server', 'x-powered-by', 'x-aspnet-version', 'x-drupal-cache', 'x-generator')
+
 # Credential-shaped values that documentation itself publishes as examples. They
 # match the detection rules but are sample text, never evidence of a real leak.
 PLACEHOLDER_MATERIAL = ('AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY')
@@ -178,6 +198,27 @@ def control_detections(text):
             seen.add(key)
             unique.append(item)
     return unique
+
+
+def detect_technologies(text, headers):
+    """Technology fingerprints from evidence the target itself emitted.
+
+    Returns (raw_labels, marker_source_pairs). Raw labels are verbatim response
+    header product strings (e.g. ``nginx/1.26.2``, ``Express``) - never invented
+    and never normalized here. Markers are generic framework fingerprints from
+    RESPONSE_MARKERS(rules) matched against the served HTML/JS. A response that
+    lacks any signature yields empty results: absence is never a claim.
+    """
+    raw, markers = {}, []
+    for field in HEADER_PRODUCT_FIELDS:
+        value = (headers.get(field) or '').strip()
+        if value:
+            raw[field] = value
+    text = text or ''
+    for name, rule in FRAMEWORK_RULES:
+        if rule.search(text):
+            markers.append(name)
+    return raw, markers
 
 
 def _controls(group):

@@ -68,7 +68,11 @@ def run_stream(graph, state, config, cancelled):
     checkpoints the run already wrote.
     """
     merged = dict(state)
-    for update in graph.stream(state, config=config):
+    # LangGraph's default `updates` mode yields one mapping per node
+    # (``{node_name: delta}``), which is not the run state and made the CLI print
+    # an empty report. `values` yields complete state snapshots, so the final
+    # snapshot (or the last one before cancellation) is the authoritative merge.
+    for update in graph.stream(state, config=config, stream_mode='values'):
         if isinstance(update, dict):
             merged = {**merged, **update}
         if cancelled():

@@ -1,7 +1,18 @@
 policy:
   observation_tags: [tech, detect, favicon, panel, baseline]
   trusted_observation_sha256: []
-  discovery_templates: [http/technologies/tech-detect.yaml, http/technologies/favicon-detect.yaml]
+  # Seeds always enter the manifest regardless of observed surface tags, so
+  # technology fingerprinting and a small common-exposure baseline are never
+  # lost to a generic tag such as "api".
+  discovery_templates:
+    - http/technologies/tech-detect.yaml
+    - http/technologies/favicon-detect.yaml
+    - http/exposures/configs/prometheus-metrics.yaml
+    - http/exposures/configs/package-json.yaml
+    - http/miscellaneous/robots-txt.yaml
+  # Vulnerability detection tags - templates with these can detect real vulnerabilities
+  # They require approval but produce verified findings when matched
+  vulnerability_tags: [sqli, xss, lfi, rce, ssrf, traversal, vuln, cve, injection, redirect, auth, xxe, ssti]
 # Trusted product aliases, matched case-insensitively after removing versions.
 # Extend this map for additional technologies; observed text never becomes flags.
 technology_tags:

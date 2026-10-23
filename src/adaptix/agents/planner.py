@@ -1344,6 +1344,17 @@ def adaptive_planning(state):
     # evidence already gathered.
     schema_failed = last_error == 'ValidationError'
     schema_limit = max(1, int(state.get('schema_failure_limit', 2)))
+    # Native JSON-Schema forcing is a transport optimization, not a requirement:
+    # a provider whose grammar-constrained decoding returns truncated/malformed
+    # JSON (observed with ollama_chat models at strict:true) must not be asked the
+    # same doomed question until the run dies. When a native-schema pass fails
+    # validation, the next pass falls back to plain instructions plus local
+    # validation - the path proven to produce a valid, executable decision. The
+    # fallback is recorded on state and in the ledger, never silent.
+    native_fallback = False
+    if schema_failed and native_schema:
+        native_fallback = True
+        metrics['native_schema_fallback'] = metrics.get('native_schema_fallback', 0) + 1
     provider_failures = (int(state.get('consecutive_provider_failures', 0)) + 1
                          if last_error and not schema_failed else 0)
     schema_failures = int(state.get('consecutive_schema_failures', 0)) + 1 if schema_failed else 0
@@ -1351,6 +1362,10 @@ def adaptive_planning(state):
     errors = list(state.get('errors', []))
     if last_error:
         if schema_failed:
+            if native_fallback:
+                errors.append(f'Planning pass {budget["iterations"] + 1}: native JSON-Schema response_format produced an '
+                              f'invalid decision ({last_error}); falling back to plain-instruction structured output with '
+                              'local validation for subsequent passes (transport degradation recorded, not a security result)')
             errors.append(f'Planning pass {budget["iterations"] + 1}: model decision failed schema validation '
                           f'({last_error}); {len(ledger)} provider attempt(s) recorded, completed observations retained')
         else:
@@ -1444,6 +1459,7 @@ def adaptive_planning(state):
             'errors': errors,
             'consecutive_provider_failures': provider_failures,
             'consecutive_schema_failures': schema_failures,
+            **({'llm_native_json': 'off'} if native_fallback else {}),
             'consecutive_empty_plans': empty_passes,
             'rejected_actions': list(rejected.values()),
             'consecutive_policy_rejections': rejected_passes,

@@ -84,7 +84,11 @@ def inspect_template(raw):
 def prepare_scan(state, target, settings):
     from src.adaptix.tools.nuclei_profiles import adaptive_profile
     mode = settings.get('nuclei_templates', 'default')
-    profile = adaptive_profile(state, target) if mode == 'adaptive' else {'target': target, 'mode': mode, 'strategy': 'configured', 'tags': [], 'flags': []}
+    # Assessment mode still benefits from observed technology evidence - the
+    # vulnerability templates selected should match the target's actual stack.
+    # Evidence-driven selection narrows the catalog from thousands of irrelevant
+    # product-specific checks to those relevant to the observed application.
+    profile = adaptive_profile(state, target, mode) if mode in ('adaptive', 'assessment') else {'target': target, 'mode': mode, 'strategy': 'configured', 'tags': [], 'flags': []}
     if mode == 'baseline':
         roots = [ROOT / 'templates/http-response.yaml']
     elif isinstance(mode, list):
@@ -120,7 +124,7 @@ def prepare_scan(state, target, settings):
              for index, name in enumerate(policy.get('discovery_templates',
              ['http/technologies/tech-detect.yaml', 'http/technologies/favicon-detect.yaml']))}
     observe_tags = set(policy.get('observation_tags', ['tech', 'detect', 'favicon', 'panel', 'baseline']))
-    denied_tags = {'intrusive', 'dos', 'fuzz', 'fuzzing', 'dast', 'rce', 'sqli', 'ssrf', 'xss', 'lfi', 'oast', 'bruteforce', 'vuln', 'cve', 'default-login'}
+    denied_tags = {'intrusive', 'dos', 'fuzz', 'fuzzing', 'dast', 'oast', 'bruteforce', 'default-login'}
     trusted = set(policy.get('trusted_observation_sha256', []))
     # Exact template contents an operator reviewed may respond to vulnerability
     # classes (exposed files, misconfiguration, info disclosure, scripted XSS or
@@ -128,6 +132,9 @@ def prepare_scan(state, target, settings):
     # templates, never a tag; unsafe execution mechanics and the permanentable
     # classes stay detached from review below.
     reviewed = set(policy.get('reviewed_observation_sha256', []))
+    # Vulnerability detection tags - templates with these tags can detect real vulnerabilities
+    # They require approval but are not permanently denied
+    vuln_detection_tags = {'rce', 'sqli', 'ssrf', 'xss', 'lfi', 'vuln', 'cve', 'traversal'}
     hard_denied = {'intrusive', 'dos', 'oast', 'fuzz', 'fuzzing', 'bruteforce', 'default-login'}
     files = []
     for path in paths:
@@ -139,32 +146,47 @@ def prepare_scan(state, target, settings):
         # is provably an anchored GET/HEAD observation may run reviewed.
         permanent = {tag for tag in tags if tag in hard_denied}
         allowlisted = row['sha256'] in reviewed and not mechanical and not permanent
+        seed = seeds.get(str(path.resolve()), None)
         # Evidence-aware family filter: in adaptive mode a trusted observed product
-        # tag directly restricts the catalog rows considered. It never widens a
-        # denied class; rows failing the filter are still fully counted.
-        if mode == 'adaptive' and profile.get('tags') and not tags.intersection(profile['tags']):
+        # tag directly restricts the catalog rows considered. Configured seeds are
+        # exempt: fingerprinting and the common exposure baseline must remain
+        # possible even when the only observed surface tag is generic (e.g. api).
+        if mode == 'adaptive' and profile.get('tags') and seed is None \
+                and not tags.intersection(profile['tags']):
             continue
-        row['seed'] = seeds.get(str(path.resolve()), None)
+        row['seed'] = seed
         row['family'] = path.parent.name
         reasons = list(mechanical)
-        if not tags.intersection(observe_tags) and row['sha256'] not in trusted and not allowlisted:
-            reasons.append('Not in an observation class or operator-reviewed hash allowlist')
-        if tags.intersection(denied_tags) or any(re.fullmatch(r'cve\d+', tag) for tag in tags):
+        # Vulnerability detection templates are allowed with approval
+        is_vuln_template = bool(tags.intersection(vuln_detection_tags)) or any(re.fullmatch(r'cve\d+', tag) for tag in tags)
+        if not tags.intersection(observe_tags) and row['sha256'] not in trusted and not allowlisted and not is_vuln_template:
+            reasons.append('Not in an observation class, vulnerability detection class, or operator-reviewed hash allowlist')
+        # Only permanently denied tags block execution entirely
+        if tags.intersection(denied_tags) and not tags.intersection(vuln_detection_tags):
             if not allowlisted:
-                reasons.append('Active/intrusive vulnerability class')
+                reasons.append('Active/intrusive class requiring explicit approval')
         if permanent and not allowlisted:
             reasons.append('Permanently denied class (intrusive/dos/out-of-band/fuzz)')
         row['risk'] = 'state_change' if reasons else 'observe'
+        row['is_vuln_template'] = is_vuln_template
         row['allowlisted'] = allowlisted
         row['reasons'] = sorted(set(reasons))
         files.append(row)
     all_evaluated = len(files)
-    # Deterministic coverage-first ranking: configured discovery seeds always come
-    # first (fingerprinting stays possible even at cap=1), then a fair round-robin
-    # over the remaining families in policy order, each internally ordered by
-    # request cost and id - deliberate category spread, never catalog-alphabetical.
+    # Evidence-relevance ranking: configured discovery seeds always come first
+    # (fingerprinting stays possible even at cap=1), then a fair round-robin over
+    # the remaining families in policy order. Inside each family, templates whose
+    # tags intersect the evidence-derived profile tags (observed server products,
+    # framework markers, mapped technology labels) rank before unrelated rows, so
+    # the bounded cap keeps checks the observed application can actually exercise
+    # instead of an alphabetical slice of the whole catalog. Ordering stays fully
+    # deterministic: relevance bucket, then request cost, then path. No template
+    # is ever dropped by relevance - it only changes which rows survive the cap.
+    observed_tags = set(profile.get('tags') or ())
+
     def _row_order(row):
-        return (int(row.get('requests', 0)), row['path'])
+        relevant = 0 if (observed_tags and set(row.get('tags') or ()).intersection(observed_tags)) else 1
+        return (relevant, int(row.get('requests', 0)), row['path'])
     groups = [[] for _ in roots]
     for index, root in enumerate(roots):
         if root.is_file():
@@ -212,9 +234,12 @@ def prepare_scan(state, target, settings):
                 manifest_categories[tag] = manifest_categories.get(tag, 0) + 1
     action = {'tool': 'nuclei', 'target': target}
     active = [row for row in files if row['risk'] != 'observe']
-    if active:
-        # Only a manifest that actually gates an active template can need human
-        # approval; the request to approve is bound to the exact manifest digest.
+    vuln_templates = [row for row in files if row.get('is_vuln_template')]
+    if active or vuln_templates:
+        # A manifest with vulnerability detection templates or active templates needs
+        # human approval; the request is bound to the exact manifest digest.
+        # Vulnerability templates are treated as state_change for approval purposes
+        # but their findings ARE valid when approved.
         spec = {'risk': 'state_change', 'operation': 'nuclei_exact_manifest', 'manifest_sha256': fingerprint}
         authorization = approval_for(state, action, spec)
     else:
@@ -278,5 +303,21 @@ def materialize(state, manifest):
     # -ud is deliberately absent: it makes Nuclei treat the directory as its
     # template cache and can sync/delete it; -t alone bounds the engine to the
     # approved snapshot, and the launcher re-verifies every file hash afterwards.
+    # The explicit -t snapshot is already filtered/ranked by this manifest. A
+    # second engine-side `-tags` (or `-as`) filter can only drop approved rows:
+    # that silently under-runs the authorized coverage, and it excluded the
+    # always-on seeds whenever the observed surface tag was unrelated. Keep only
+    # non-selecting flags such as the protocol restriction.
     flags = list(manifest.get('flags', []))
-    return ['-t', str(base), '-config', str(empty), '-ni', *flags]
+    clean_flags = []
+    index = 0
+    while index < len(flags):
+        if flags[index] == '-tags':
+            index += 2
+            continue
+        if flags[index] == '-as':
+            index += 1
+            continue
+        clean_flags.append(flags[index])
+        index += 1
+    return ['-t', str(base), '-config', str(empty), '-ni', *clean_flags]

@@ -37,6 +37,34 @@ def test_other_virtual_hosts_schemes_and_ports_do_not_leak_technologies():
     assert profile['tags'] == [] and profile['flags'] == ['-as', '-pt', 'http']
 
 
+def test_assessment_mode_keeps_full_family_flags_and_never_tag_filters():
+    # Assessment keeps full vulnerability-family coverage; a -tags flag there
+    # would make the engine drop the manifest's non-matching templates (and can
+    # abort the scan), so declared coverage would be a lie. Evidence still ranks,
+    # but never restricts, the selected set.
+    state = {'http_services': [{'url': 'https://lab.example/', 'tech': ['WordPress']}],
+             'web_routes': [{'url': 'https://lab.example/api/Users'}]}
+    profile = adaptive_profile(state, 'https://lab.example/', mode='assessment')
+    assert profile['strategy'] == 'observed_tags'
+    assert profile['tags'] == ['api', 'wordpress', 'wp']
+    assert profile['flags'] == ['-pt', 'http']
+    assert all('-tags' not in flag for flag in profile['flags'])
+
+
+def test_observed_api_surface_routes_become_generic_selection_evidence():
+    state = {'web_routes': [
+        {'url': 'http://127.0.0.1:3000/api/BasketItems'},
+        {'url': 'http://127.0.0.1:3000/rest/user/login'},
+        {'url': 'http://127.0.0.1:3000/graphql'},
+        {'url': 'http://127.0.0.1:3000/swagger/index.html'},
+        {'url': 'http://127.0.0.1:3000/static/app.css'},
+        {'url': 'http://other.example:3000/api/Leak'}]}
+    profile = adaptive_profile(state, 'http://127.0.0.1:3000/')
+    assert set(profile['tags']) == {'api', 'graphql', 'swagger'}
+    surface = {item['product'] for item in profile['evidence'] if item['source'] == 'web_routes'}
+    assert surface == {'api', 'graphql', 'swagger'}
+
+
 @pytest.mark.parametrize('tech', [['nginx,cve'], ['rce', 'http', 'cve2024', 'wordpress --code'], ['UnknownThing:1.2'], [], None])
 def test_unknown_or_untrusted_labels_never_become_arbitrary_template_filters(tech):
     profile = adaptive_profile({'http_services': [{'url': 'http://127.0.0.1:8080/', 'tech': tech}]}, 'http://127.0.0.1:8080/')
@@ -57,11 +85,12 @@ def test_adaptive_batches_are_isolated_and_respect_actual_tool_call_budget(monke
         {'url': 'http://127.0.0.1:9443', 'tech': ['Jenkins']}]}
     result = nuclei.nuclei_check({**state, 'tool_call_budget': 2})
     assert len(calls) == 2
-    assert calls[0][0][calls[0][0].index('-tags') + 1] == 'wordpress,wp'
-    assert calls[1][0][calls[1][0].index('-tags') + 1] == 'jenkins'
     assert calls[0][1].strip().endswith(':8080') and calls[1][1].strip().endswith(':9443')
+    assert all('-tags' not in argv and '-as' not in argv and '-t' in argv for argv, _ in calls)
     assert result['execution_metrics']['tool_calls_used'] == 2
     assert len(result['nuclei_template_selections']) == 2
+    assert set(result['nuclei_template_selections'][0]['tags']) == {'wordpress', 'wp'}
+    assert set(result['nuclei_template_selections'][1]['tags']) == {'jenkins'}
     calls.clear()
     result = nuclei.nuclei_check({**state, 'tool_call_budget': 1})
     assert len(calls) == 1 and result['errors']
@@ -70,7 +99,7 @@ def test_adaptive_batches_are_isolated_and_respect_actual_tool_call_budget(monke
 def test_unknown_origin_requests_native_automatic_selection(monkeypatch):
     monkeypatch.setattr(nuclei, 'tool_registry', lambda: {'nuclei': {'enabled': True, 'path': '/bin/nuclei'}})
     def run(argv, **kwargs):
-        assert '-as' in argv and '-t' in argv and '-ud' not in argv and '-tags' not in argv
+        assert '-as' not in argv and '-t' in argv and '-ud' not in argv and '-tags' not in argv
         assert argv[argv.index('-pt') + 1] == 'http'
         return {'returncode': 0, 'stdout': '', 'stderr': ''}
     monkeypatch.setattr(nuclei, 'run_tool', run)
@@ -103,7 +132,7 @@ def test_graph_uses_httpx_technology_and_preserves_selection_in_report_and_plann
             assert all(flag in argv for flag in ('-td', '-sc', '-title', '-server'))
             row = {'url': target, 'status_code': 200, 'tech': ['WordPress:6.4'], 'webserver': 'nginx/1.26'}
         else:
-            assert argv[argv.index('-tags') + 1] == 'nginx,wordpress,wp'
+            assert '-tags' not in argv and '-as' not in argv and '-t' in argv
             row = {'matched-at': target + 'wp-admin/', 'template-id': 'wordpress-check', 'info': {'severity': 'low'}}
         return {'returncode': 0, 'stdout': json.dumps(row), 'stderr': ''}
     monkeypatch.setattr(httpx, 'run_tool', run)

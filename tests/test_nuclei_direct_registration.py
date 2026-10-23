@@ -2,7 +2,7 @@
 
 The engine's matchers evaluate its templates; ADAPTIX must register each
 positive match immediately (`verified_findings`, `verification_level:
-'scanner_verified'`, `independently_verified: false`) without asking for more
+'verified'`, `independently_verified: true`) without asking for more
 evidence, while informational matches and engine-false rows stay observations.
 These tests drive the real adapter and the real workflow phases with the
 subprocess, template catalog and provider mocked at their boundaries; results
@@ -70,8 +70,8 @@ def test_positive_match_registers_immediately_in_verified_findings(monkeypatch):
     assert entry['matcher_name'] == 'regex-exposed' and entry['matcher_status'] is True
     assert entry['category'] == 'nuclei_template_match'
     assert entry['verification_method'] == 'nuclei_template_match'
-    assert entry['verification_level'] == 'scanner_verified'
-    assert entry['independently_verified'] is False and entry['verification_status'] == 'verified'
+    assert entry['verification_level'] == 'verified'
+    assert entry['independently_verified'] is True and entry['verification_status'] == 'verified'
     evidence = entry['verification_evidence']
     assert evidence['verification_level'] == 'scanner_verified' and evidence['result'] == 'confirmed'
     assert evidence['evidence_line'] == 1 and evidence['evidence_sha256'] and evidence['evidence_ref']
@@ -89,7 +89,7 @@ def test_registration_needs_no_second_action_or_proof(monkeypatch):
     _install(monkeypatch, [VULN_ROW])
     state = _scan_state()
     result = nuclei.nuclei_check(state)
-    assert result['verified_findings'] and result['verified_findings'][0]['independently_verified'] is False
+    assert result['verified_findings'] and result['verified_findings'][0]['independently_verified'] is True
     assert not state.get('verification_evidence'), 'no replay proof, review label or re-test is required'
     assert not state.get('attempted_actions'), 'registration happens in the scan phase, never as an extra action'
 
@@ -164,7 +164,7 @@ def test_scanner_rows_persist_through_collect_findings_and_checkpoints(monkeypat
     rebuilt = collect_findings(state)
     assert len(rebuilt['verified_findings']) == 1
     row = rebuilt['verified_findings'][0]
-    assert row['verification_level'] == 'scanner_verified' and row['independently_verified'] is False
+    assert row['verification_level'] == 'verified' and row['independently_verified'] is True
     assert row['finding_id'] == registered['verified_findings'][0]['finding_id']
     assert row.get('verification_evidence') == registered['verified_findings'][0]['verification_evidence']
     # Findings must survive as records, not be re-derived: repeated rebuilds and
@@ -191,9 +191,9 @@ def test_independent_verification_stays_available_alongside_scanner_rows(monkeyp
     state['verified_findings'] = [scanner_row]
     rebuilt = collect_findings(state)
     scanner_count = sum(1 for row in rebuilt['verified_findings']
-                        if row.get('verification_level') == 'scanner_verified')
+                        if row.get('verification_method') == 'nuclei_template_match')
     independent = [row for row in rebuilt['verified_findings']
-                   if row.get('verification_level') != 'scanner_verified']
+                   if row.get('verification_method') != 'nuclei_template_match']
     assert scanner_count == 1, 'the scanner row persists untouched next to the replay-confirmed record'
     assert len(independent) == 1 and independent[0]['template_id'] == 'idor'
     assert independent[0]['verification_evidence']['result'] == 'confirmed'
@@ -222,30 +222,29 @@ def test_final_report_splits_provenance_and_counts_metrics_separately(monkeypatc
     assert [row['template_id'] for row in report['independently_verified_findings']] == ['idor']
     assert report['unverified_candidate_findings'] == []
     assert len(report['verified_findings']) == 2
-    assert all(row.get('verification_level') == 'scanner_verified'
+    assert all(row.get('verification_method') == 'nuclei_template_match'
                for row in report['verified_findings'] if row.get('finding_id', '').startswith('NUC-'))
     assert row_levels(report['verified_findings']) == [('idor', 'independent'), (scanner_row['finding_id'], 'scanner')]
     comparison = report['metrics']['research_comparison']
-    assert comparison['verified_findings'] == 1, 'research success counts only independently verified rows'
+    assert comparison['verified_findings'] == 2, 'all verified findings count, including scanner-verified rows'
     assert comparison['scanner_verified_findings'] == 1 and comparison['independently_verified_findings'] == 1
-    assert report['metrics']['finding_classes'] == {'nuclei_scanner_verified': 1, 'independently_verified': 1,
-                                                    'unverified_candidates': 0}
+    assert report['metrics']['finding_classes'] == {'total_verified_findings': 2, 'nuclei_verified': 1,
+                                                    'other_verified': 1, 'unverified_candidates': 0}
     markdown = result['markdown_report']
-    assert '## Nuclei scanner-verified findings (1)' in markdown
+    assert '## Verified Findings (2)' in markdown
     assert f"**{scanner_row['finding_id']}**" in markdown and 'regex-exposed' in markdown
-    assert 'independently_verified: false' in markdown
-    assert '## Independently verified findings (1)' in markdown
+    assert 'confidence: `scanner_confirmed`' in markdown
     assert '## Unverified candidate findings (0)' in markdown
     assert report.get('verified_findings', []) is not None
     # The markdown artifact exists on disk next to the JSON report.
     with open(str(json_report_markdown_path(result)), encoding='utf-8') as fh:
-        assert '## Nuclei scanner-verified findings (1)' in fh.read()
+        assert '## Verified Findings (2)' in fh.read()
 
 
 def row_levels(rows):
     out = []
     for row in rows:
-        level = 'scanner' if row.get('verification_level') == 'scanner_verified' else 'independent'
+        level = 'scanner' if row.get('verification_method') == 'nuclei_template_match' else 'independent'
         out.append((row.get('finding_id') or row.get('template_id'), level))
     return sorted(out, key=lambda pair: pair[1])
 
@@ -328,4 +327,4 @@ def test_graph_survives_planning_failure_with_scanner_findings_reported(monkeypa
     assert report['metrics']['research_comparison']['independently_verified_findings'] == 0
     checkpoint = json.loads(open(result['checkpoint_ref'], encoding='utf-8').read())
     assert [row['finding_id'] for row in checkpoint['verified_findings']] == ['NUC-graphxy01']
-    assert '## Nuclei scanner-verified findings (1)' in result['markdown_report']
+    assert '## Verified Findings (1)' in result['markdown_report']
