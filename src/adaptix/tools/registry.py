@@ -77,8 +77,12 @@ def tool_registry():
     return result
 
 
-def run_tool(argv, timeout=45, stdin=None, stderr_limit=2500):
+def run_tool(argv, timeout=45, stdin=None, stderr_limit=2500,
+             request_budget=None, request_rate=None, request_concurrency=1):
     """No shell interpolation; prevent unbounded output and hanging processes."""
+    if request_budget is not None:
+        return _run_request_bounded_tool(argv, timeout, stdin, stderr_limit,
+                                         request_budget, request_rate, request_concurrency)
     try:
         completed = subprocess.run(argv, input=stdin, capture_output=True, text=True,
                                    timeout=timeout, check=False, errors='replace')
@@ -95,6 +99,108 @@ def run_tool(argv, timeout=45, stdin=None, stderr_limit=2500):
     # appear at the start of the stream, before periodic progress output.
     return {'returncode': completed.returncode, 'stdout': completed.stdout[:1_000_000],
             'stderr': completed.stderr[-stderr_limit:]}
+
+
+
+def _run_request_bounded_tool(argv, timeout, stdin, stderr_limit, budget, rate, concurrency):
+    """Actively stop Nuclei as request telemetry approaches the operator ceiling.
+
+    The engine exposes sampled, not per-request, counters. In addition to the
+    sampled-counter guard, use an earlier wall-clock envelope derived from -rl
+    and concurrency. This is a conservative stop mechanism, NOT a proof of an
+    exact network-level count: an external egress gate would be needed for that.
+    """
+    import json
+    import re
+    import threading
+    import time
+    from collections import deque
+
+    limit = int(budget)
+    rate = max(1, int(rate or 1))
+    concurrency = max(1, int(concurrency or 1))
+    if limit <= 0:
+        return {'returncode': -2, 'stdout': '', 'stderr': 'No positive Nuclei request budget',
+                'request_guard_tripped': 'no_budget', 'requests_observed': None}
+
+    # One stats interval, concurrent requests and a small extra cushion account
+    # for requests between telemetry samples and the termination signal.
+    reserve = concurrency + 2 * rate + 2
+    threshold = max(1, limit - reserve)
+    # Use process-start time, not the first stats sample, to fail conservatively.
+    # Startup overhead only reduces scan coverage; it cannot enlarge permission.
+    elapsed_guard = max(0.5, (limit - reserve) / rate)
+    output = deque(maxlen=10000)
+    errors = deque(maxlen=10000)
+    counters = {'requests': None}
+    try:
+        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, text=True, errors='replace')
+    except OSError as exc:
+        return {'returncode': -1, 'stdout': '', 'stderr': str(exc),
+                'request_guard_tripped': 'launch_failed', 'requests_observed': None}
+
+    def collect(stream, chunks, parse_stats=False):
+        for line in iter(stream.readline, ''):
+            chunks.append(line)
+            if not parse_stats:
+                continue
+            count = None
+            try:
+                row = json.loads(line.strip())
+                if isinstance(row, dict) and 'requests' in row:
+                    count = int(row['requests'])
+            except (ValueError, TypeError):
+                match = re.search(r'Requests:\s*(\d+)/', line)
+                if match:
+                    count = int(match.group(1))
+            if count is not None:
+                previous = counters['requests']
+                counters['requests'] = max(count, previous or 0)
+        stream.close()
+
+    stdout_thread = threading.Thread(target=collect, args=(process.stdout, output), daemon=True)
+    stderr_thread = threading.Thread(target=collect, args=(process.stderr, errors, True), daemon=True)
+    stdout_thread.start()
+    stderr_thread.start()
+    if stdin:
+        try:
+            process.stdin.write(stdin)
+            process.stdin.flush()
+        except (BrokenPipeError, OSError):
+            pass
+    process.stdin.close()
+    began = time.monotonic()
+    tripped = None
+    while process.poll() is None:
+        elapsed = time.monotonic() - began
+        if counters['requests'] is not None and counters['requests'] >= threshold:
+            tripped = 'telemetry_guard'
+            break
+        if elapsed >= elapsed_guard:
+            tripped = 'rate_window_guard'
+            break
+        if elapsed >= timeout:
+            tripped = 'timeout'
+            break
+        time.sleep(0.05)
+    if tripped:
+        process.terminate()
+        try:
+            process.wait(timeout=1)
+        except subprocess.TimeoutExpired:
+            process.kill()
+            process.wait()
+    stdout_thread.join(timeout=2)
+    stderr_thread.join(timeout=2)
+    observed = counters['requests']
+    if observed is not None and observed > limit:
+        tripped = 'ceiling_exceeded'
+    return {'returncode': -2 if tripped else process.returncode,
+            'stdout': ''.join(output)[:1_000_000],
+            'stderr': ''.join(errors)[-stderr_limit:],
+            'request_guard_tripped': tripped,
+            'requests_observed': observed}
 
 
 def tool_handlers():
