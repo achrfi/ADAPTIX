@@ -203,8 +203,19 @@ REPLAY_CONTRACTS = {
     'boolean_injection': _boolean_injection,
     'path_traversal': _path_traversal,
     'sensitive_material_exposure': _sensitive_material_exposure,
-    'nuclei_template_match': lambda record: 'confirmed',  # Nuclei engine verification
+    'nuclei_template_match': lambda record: 'confirmed',  # the scanner engine's own verdict
 }
+
+# Evidence-status vocabulary. ``verified`` is reserved for rows this run
+# independently verified through a deterministic replay contract or signed human
+# review. ``scanner_matched`` marks the scanner engine's own positive verdict
+# (the nuclei_template_match contract): it is objective *about the scanner's
+# match*, but it is not browser execution, not a replay record and not reviewer
+# evidence, so it must never be rendered or counted as independently verified
+# (audit D04). Older artifacts may label this simplest case 'verified' with
+# verification_method='nuclei_template_match'; renderers split those rows by
+# verification_method for backwards compatibility.
+INDEPENDENTLY_VERIFIED_METHODS = ('deterministic_replay', 'manual_review')
 
 # What evidence each replay contract actually needs, in the same generic terms the
 # evaluator reads. This is proof-rule documentation, not a test recipe: it states
@@ -233,7 +244,10 @@ CONTRACT_REQUIREMENTS = {
         'documentation samples and placeholders excluded',
     'nuclei_template_match':
         'a Nuclei template with validated matchers that evaluated the vulnerability condition as true, '
-        'with complete JSONL evidence including template-id, matched-at, matcher-name, and severity',
+        'with complete JSONL evidence including template-id, matched-at, matcher-name, and severity '
+        '(this is the scanner engine\'s own verdict recorded as scanner_matched; it is evidence about the '
+        'scanner, never a browser-execution XSS proof and never a substitute for an independent replay or '
+        'review check)',
 }
 
 
@@ -302,7 +316,9 @@ CATEGORY_BASIS = {
     'cross_site_scripting': 'browser_execution',
     'path_traversal': 'path_traversal',
     'sensitive_information_exposure': 'sensitive_material_exposure',
-    # Nuclei template matches can verify any vulnerability category
+    # A positive Nuclei template match maps to the nuclei_template_match basis: the
+    # scanner engine's own verdict, registered as scanner_matched and always kept
+    # apart from independently verified (replay/review/browser) findings.
     'nuclei_verified_vulnerability': 'nuclei_template_match',
 }
 

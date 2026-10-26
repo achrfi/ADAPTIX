@@ -1,8 +1,4 @@
 tools:
-  nmap:
-    enabled: true
-    command: nmap
-    env: ADAPTIX_NMAP_PATH
   httpx:
     enabled: true
     command: httpx

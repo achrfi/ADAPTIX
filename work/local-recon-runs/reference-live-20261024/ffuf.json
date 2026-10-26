@@ -1,0 +1,76 @@
+{
+  "results": [
+    {
+      "url": "http://127.0.0.1:3000/.well-known/security.txt",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3000/Video",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "video/mp4"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets",
+      "method": "GET",
+      "status": 301,
+      "source": "ffuf",
+      "content_type": "text/html; charset=UTF-8"
+    },
+    {
+      "url": "http://127.0.0.1:3000/ftp",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "text/html; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3000/media",
+      "method": "GET",
+      "status": 301,
+      "source": "ffuf",
+      "content_type": "text/html; charset=UTF-8"
+    },
+    {
+      "url": "http://127.0.0.1:3000/promotion",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "text/html; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3000/robots.txt",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3000/security.txt",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "text/plain; charset=utf-8"
+    },
+    {
+      "url": "http://127.0.0.1:3000/video",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "video/mp4"
+    }
+  ],
+  "progress": {
+    "complete": true,
+    "completed": 4750,
+    "total": 4750,
+    "errors": 0
+  },
+  "config": {
+    "method": "GET"
+  }
+}

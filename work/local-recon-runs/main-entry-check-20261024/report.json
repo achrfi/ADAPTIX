@@ -1,0 +1,472 @@
+{
+  "status": "success",
+  "recon_status": "success",
+  "scope": {
+    "origin": "http://127.0.0.1:3000",
+    "resolved_address": "127.0.0.1",
+    "restriction": "loopback_only",
+    "same_origin_only": true
+  },
+  "stages": {
+    "ffuf": {
+      "status": "success",
+      "progress": {
+        "complete": true,
+        "completed": 8,
+        "total": 8,
+        "errors": 0
+      },
+      "candidates": 8,
+      "auto_calibration": true
+    },
+    "playwright": {
+      "status": "success",
+      "pages": 2,
+      "requests_sent": 41,
+      "errors": [],
+      "remaining_pages": 0
+    },
+    "acceptance": {
+      "status": "success",
+      "root_response_observed": true,
+      "basis": "bounded_local_inventory",
+      "coverage": "Application completeness is not measured"
+    },
+    "ai": {
+      "status": "success"
+    }
+  },
+  "ai": {
+    "status": "success",
+    "model": "qwen3.5:9b-q4_K_M",
+    "text": "Inventaris lokal HTTP terbatas pada 35 endpoint yang teramati di localhost:3000. Data berasal dari sumber tidak terpercaya (ffuf, playwright) dan hanya mencatat respons HTTP 200 atau 500 tanpa membuktikan kerentanan. Inventaris mencakup halaman utama, file aset statis (gambar, JS, font), serta beberapa rute API; tiga detail endpoint dihilangkan.",
+    "limitations": [
+      "Hanya mencakup inventaris lokal yang teramati (tidak ada cakupan aplikasi lengkap).",
+      "Status HTTP 200 tidak membuktikan bahwa rute tersebut berbeda atau aman.",
+      "Tidak dapat mengeksekusi alat atau memverifikasi kerentanan secara aktif."
+    ],
+    "input_endpoints": 35,
+    "details_sent": 32,
+    "details_omitted": 3,
+    "prompt_tokens": 1998,
+    "completion_tokens": 163
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/",
+      "sources": [
+        "playwright_link",
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/api/Challenges/",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/api/Quantitys/",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/i18n/en.json",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/JuiceShop_Logo.png",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/apple_juice-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/apple_pressings-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/artwork2-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/banana_juice-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/basil_smoothie-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/berry_juice-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/braga-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/carrot_juice-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/dragonfruit_juice-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/eggfruit_juice-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/elderflower_cordial-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/fruit_press-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/grape_juice-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/green_smoothie-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/assets/public/images/products/permafrost-1x.avif",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/chunk-1qQQGal7.js",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/chunk-Cv2YgWUq.js",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/chunk-DBPdFzgj.js",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/main.js",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/media/material-icons-LEZCGFVT.woff2",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/polyfills.js",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/redirect",
+      "sources": [
+        "playwright_link",
+        "playwright_network"
+      ],
+      "statuses": [
+        500
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/rest/admin/application-configuration",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/rest/admin/application-version",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/rest/languages",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/rest/products/search",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/robots.txt",
+      "sources": [
+        "ffuf"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/rolldown-runtime-BoHGiXSq.js",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/scripts.js",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/styles.css",
+      "sources": [
+        "playwright_network"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    }
+  ],
+  "forms": [],
+  "client_routes": [
+    "http://127.0.0.1:3000/#/about",
+    "http://127.0.0.1:3000/#/chatbot",
+    "http://127.0.0.1:3000/#/contact",
+    "http://127.0.0.1:3000/#/login",
+    "http://127.0.0.1:3000/#/photo-wall"
+  ],
+  "blocked_requests": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/socket.io/",
+      "reason": "realtime_disabled"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/socket.io/",
+      "reason": "realtime_disabled"
+    }
+  ],
+  "limits": {
+    "ffuf_words": 8,
+    "ffuf_rate": 25,
+    "ffuf_max_seconds": 300,
+    "browser_pages": 24,
+    "browser_requests": 240
+  },
+  "planner_tool_execution": false,
+  "meaning": "Results are produced during this operator-started local inventory run."
+}

@@ -1,0 +1,856 @@
+{
+  "method": "offline source inventory and AST syntax checks; targeted manual security review recorded in writeup.md",
+  "file_count": 122,
+  "python_files": 108,
+  "ast_errors": [],
+  "installed_versions": {
+    "httpx": "0.28.1",
+    "langgraph": "1.2.15",
+    "litellm": "1.105.1",
+    "pydantic": "2.14.1",
+    "PyYAML": "6.0.3",
+    "playwright": "1.64.0",
+    "pytest": "9.1.1"
+  },
+  "pip_check": {
+    "returncode": 0,
+    "output": "No broken requirements found."
+  },
+  "vulnerability_database_lookup": false,
+  "project_dependencies": [
+    "httpx>=0.27,<1",
+    "langgraph>=1,<2",
+    "litellm>=1.60,<2",
+    "pydantic>=2,<3",
+    "PyYAML>=6,<7",
+    "playwright>=1.45,<2"
+  ],
+  "files": [
+    {
+      "path": "src/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/__main__.py",
+      "bytes": 73,
+      "sha256": "a97d6de90372d9e715811c03d800fd7ca03aa9a4b4b835aa97f9da377a29275e",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/action_identity.py",
+      "bytes": 6032,
+      "sha256": "99ce20ef5b2470d4fd29836fb7be3f4ce59463bb528f69d6326c26c31a69fd1b",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/capabilities.py",
+      "bytes": 34098,
+      "sha256": "a740a5e7e617fc0d0b0544b13cdbae683b77966e0fc2babf89061f512129b1fd",
+      "functions": 24,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/context.py",
+      "bytes": 16787,
+      "sha256": "88639539e72d3ef7678ecd029a07f63c2ce038b7bd692c581ddf30b767f47643",
+      "functions": 21,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/decisions.py",
+      "bytes": 17504,
+      "sha256": "48625a409d1c8cd8d9653fccacf82fcee55f0f7fdc2dfbba8e9bc53a0e70bde4",
+      "functions": 9,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/evidence_context.py",
+      "bytes": 6703,
+      "sha256": "f3f212ebaba5fd1289b345ab3bdee4b4554732eab9a82632aebd7bed4c1ec732",
+      "functions": 8,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/hypotheses.py",
+      "bytes": 14474,
+      "sha256": "3c107760d78d9222dd3f5bbc4a890d8148ee63a61b5505e0fdbbd24cb0962084",
+      "functions": 12,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/planner.py",
+      "bytes": 93011,
+      "sha256": "d0129dac62ecd343ed84faf0d02dec6e857b3d054c39d830d026b7489ee2b0fb",
+      "functions": 36,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/priority.py",
+      "bytes": 9041,
+      "sha256": "eeec99d61f7810f0ac4ddc46add1749d50477c27b6e82301ed16f99eefbaacb2",
+      "functions": 7,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/progress.py",
+      "bytes": 9564,
+      "sha256": "ffd8034fb59fa58ef0ec5b960596a37d8dd9c1a247416f2c0fe46c630d5daa03",
+      "functions": 6,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/reflector.py",
+      "bytes": 18897,
+      "sha256": "70253a09d0ceca7654e017595cbf4e70adfe2b7bccad294680c1cc22cbe401c2",
+      "functions": 7,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/review.py",
+      "bytes": 4286,
+      "sha256": "103d0a1fbf4aeea5bea6b2a305dffa0a7b15cb172daaef0aeb211cfaaf0c111f",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/agents/schema.py",
+      "bytes": 5898,
+      "sha256": "75500ea1e47c8fb6847b324fb9683e93a1ba9c9a9cabad615ad8cf2e7fdce245",
+      "functions": 2,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/config.py",
+      "bytes": 410,
+      "sha256": "96f59bdabfe923654b3af93ec3bc4265d597090c0fbd83350967939a791f3d18",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/evidence/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/evidence/audit.py",
+      "bytes": 5458,
+      "sha256": "80326114a0a4c6915d68406d93b9eadcb6c97f5724a19f855fdd4b8847966209",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/evidence/http_response.py",
+      "bytes": 955,
+      "sha256": "212775dae308a79c538d342e9bf540ef27975d4b818ac724b434be2aa92212a0",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/evidence/sanitize.py",
+      "bytes": 2881,
+      "sha256": "93200452f8149995644662413c94fdcfc123492f56e75f610f471ebe0f8335c7",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/evidence/storage.py",
+      "bytes": 640,
+      "sha256": "d1fd1d2174f58e1d3474f4fd39dafae9928e040fd9da46210d9172decc1eec28",
+      "functions": 2,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/evidence/verification.py",
+      "bytes": 21488,
+      "sha256": "4b2557bf417f41add9706e066f056dbdce4465b5cde96857839cb1019859563c",
+      "functions": 17,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/evidence/web_signatures.py",
+      "bytes": 15294,
+      "sha256": "b886d9c4d19dd857ab565be6ec9720c59b8284d8eda648c3ead129760f745649",
+      "functions": 9,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/main.py",
+      "bytes": 11546,
+      "sha256": "d80531a9f605420752a650cbde3d14d890445a60b90df4ba76037312fb1d5bc5",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/processing/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/processing/normalize.py",
+      "bytes": 1774,
+      "sha256": "0feed41ba614edf99342902d455d8ee8fc47e1c6db1cde14e1c819458c2e418f",
+      "functions": 2,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/processing/observations.py",
+      "bytes": 3134,
+      "sha256": "2bbd742d830caee51563b9c78f5f7b2f439856a556b48d4f082bc3bdd452d6ce",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/reporting/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/reporting/report.py",
+      "bytes": 29770,
+      "sha256": "0f4223298498a81aa4f968686c4b2d397e1b9d6b6b3398e9ddea040ceb82665d",
+      "functions": 5,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/action_policy.py",
+      "bytes": 5732,
+      "sha256": "d451d397856381a6bfe96c6be3035632f1e9c4c56fb08a4049dfa30d959c8f56",
+      "functions": 3,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/authorization.py",
+      "bytes": 7226,
+      "sha256": "44c1bb13f34d2854cbdb055d597bc4800e65a21fbaa426b2d909fad72b291024",
+      "functions": 7,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/guard.py",
+      "bytes": 7504,
+      "sha256": "a66be7c855e144b4052eb891851cd26aae9c670a16896fe143e84de917fa32eb",
+      "functions": 6,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/nuclei_policy.py",
+      "bytes": 20870,
+      "sha256": "8a7433bdf94eb374e0f51fd4d2060426fc2a6f886fbc89113930bf1053e1242e",
+      "functions": 5,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/ports.py",
+      "bytes": 2053,
+      "sha256": "e38c3b89c3c3f3a4fca95979823575d05ece4428cd2a8040c07838351f1a1426",
+      "functions": 6,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/ratelimit.py",
+      "bytes": 1398,
+      "sha256": "75813520dae5810acad96f4968d8388bac15158ad200f5bdce52d6f610332a45",
+      "functions": 5,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/scope.py",
+      "bytes": 12449,
+      "sha256": "1e5391c49ba90436a5d1d77da8922253e05017a679a43bd828f1a80790f49fd7",
+      "functions": 20,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/security/transport.py",
+      "bytes": 3152,
+      "sha256": "a03f6937f8d1c017135f80728866b311f41cb6a8a458d9017f67ee6e04601138",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/discovery.py",
+      "bytes": 15883,
+      "sha256": "6244c823e6be3eca209a3bcc4de5470be7aa656b6757720fbbeec2a2595a321d",
+      "functions": 14,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/httpx.py",
+      "bytes": 3755,
+      "sha256": "b570dfe75351d39e043b800bbd2dc02551c7a8dff3905f33250aa7382f6b172a",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/idor.py",
+      "bytes": 9790,
+      "sha256": "a42ef60392b7184cf3ae0688e90f1879c95008badd573817c8aa449d182e38ce",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/nmap.py",
+      "bytes": 2033,
+      "sha256": "757087e21be6c986c50b13dd09695f87819925647d3b5e5039880355488edb19",
+      "functions": 2,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/nuclei.py",
+      "bytes": 23181,
+      "sha256": "f945a9a495f7c28cdd151dd5fa8872ae2a70c58cbfbca46886b94237e47627da",
+      "functions": 3,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/nuclei_profiles.py",
+      "bytes": 6061,
+      "sha256": "2b15a3ab709de3223a799446721f884e883ca24ff059cb758486743979b5ac6a",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/playwright.py",
+      "bytes": 20788,
+      "sha256": "8f7c0dd1770e485a9597915636ab36eef308d1fa30ae2bdb8274fa67d966bb8f",
+      "functions": 8,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/registry.py",
+      "bytes": 7754,
+      "sha256": "8551156739bba8d5a594c008a2fea1643f005eb970dde369232bb5575b352643",
+      "functions": 5,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/tools/web.py",
+      "bytes": 38502,
+      "sha256": "5f4f1f4950a6d8ecec7129c253636a2018ca0d3716eaeafad15891f72f94d976",
+      "functions": 26,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/workflow/__init__.py",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/workflow/baseline.py",
+      "bytes": 15524,
+      "sha256": "62e9db5c14bf540a0a8dc77862ff105628c1bdc5813901a64edbdfe4e97be126",
+      "functions": 10,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/workflow/budget.py",
+      "bytes": 5542,
+      "sha256": "95352d84a757df364a932dd16d36e62a882869ccabfccb84633bfbfa263609b1",
+      "functions": 14,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/workflow/events.py",
+      "bytes": 139,
+      "sha256": "2acf76a6aa984ae5c25da417b1e8dc2e953b77a41e829390c48e60ea235e1718",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/workflow/graph.py",
+      "bytes": 6916,
+      "sha256": "721ef5a520b433f1e3b5e4ac99b2622a3b565a64805d35e605164bd73677074c",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/workflow/nodes.py",
+      "bytes": 14294,
+      "sha256": "198142dfc030c6d34b375a7388e452f549bd8313d2e54efe71ed75b327d3283e",
+      "functions": 5,
+      "test_functions": 0
+    },
+    {
+      "path": "src/adaptix/workflow/scanner.py",
+      "bytes": 20278,
+      "sha256": "12ee64c3e250de41efcb1933cd5a48ecfc05f5e23660b1e79ce13d2a62cfbf7a",
+      "functions": 9,
+      "test_functions": 0
+    },
+    {
+      "path": "tests/conftest.py",
+      "bytes": 1009,
+      "sha256": "c84afc88b4b37e0ed2969c39b910031b1a3f2a4f7264fb35b32ceb41738256a6",
+      "functions": 2,
+      "test_functions": 0
+    },
+    {
+      "path": "tests/test_adaptix_adaptive_evidence.py",
+      "bytes": 14620,
+      "sha256": "cc2342de553626a7017685af8093084b9d1f1b6a984bc4ca58d261740b8ca2ff",
+      "functions": 24,
+      "test_functions": 19
+    },
+    {
+      "path": "tests/test_adaptix_adaptive_loop.py",
+      "bytes": 13990,
+      "sha256": "bcd43634b5d91dee3f627af3c2bc7a9677227107bccac5ac7da873aa54e3dd5b",
+      "functions": 18,
+      "test_functions": 12
+    },
+    {
+      "path": "tests/test_adaptix_authorization.py",
+      "bytes": 6768,
+      "sha256": "b69b818ba8a3533a5728705a3fac5ee3d46dfa96e82f8e161f3c70280663bf77",
+      "functions": 14,
+      "test_functions": 12
+    },
+    {
+      "path": "tests/test_adaptix_baseline.py",
+      "bytes": 19080,
+      "sha256": "30241b6a5d0e06aa0fccf2f4a712e2714b31160334831746c0d7602a0b9bbf83",
+      "functions": 29,
+      "test_functions": 20
+    },
+    {
+      "path": "tests/test_adaptix_browser_contract.py",
+      "bytes": 7105,
+      "sha256": "c1d11d7c143bdfd5fff42f77b465f7d5bfccc77b976936e9343232137fdaa80f",
+      "functions": 10,
+      "test_functions": 5
+    },
+    {
+      "path": "tests/test_adaptix_budget_planning.py",
+      "bytes": 8496,
+      "sha256": "b39ff97fb745c7725cdabaf6fda300de584585229dc3baba074a4937a9944099",
+      "functions": 19,
+      "test_functions": 12
+    },
+    {
+      "path": "tests/test_adaptix_capability_policy.py",
+      "bytes": 29727,
+      "sha256": "fc3e2f3db8ef51a5f5961405d17e8276d90b80f71bf1fd4916abf155435be1e4",
+      "functions": 41,
+      "test_functions": 35
+    },
+    {
+      "path": "tests/test_adaptix_cli.py",
+      "bytes": 1907,
+      "sha256": "507f7e411b0a5a6c50c3ac7db5f660921f5bb655eda9b7cab3aaa189e304f007",
+      "functions": 3,
+      "test_functions": 3
+    },
+    {
+      "path": "tests/test_adaptix_completion.py",
+      "bytes": 17313,
+      "sha256": "043db048f7444961b11c15d09ca17a4cdbb67931c41bea912c13d18f3ec284f0",
+      "functions": 29,
+      "test_functions": 24
+    },
+    {
+      "path": "tests/test_adaptix_context_budget_fix7.py",
+      "bytes": 14124,
+      "sha256": "fae6d4b215daa0af2aa0c701afc4fb8b3ca61730c921592151a7713fcadc1924",
+      "functions": 13,
+      "test_functions": 6
+    },
+    {
+      "path": "tests/test_adaptix_discovery.py",
+      "bytes": 9900,
+      "sha256": "d072325f4e572f59e44dfaad5f3c22db6a126f8b5598c062160eb25f96e66368",
+      "functions": 16,
+      "test_functions": 10
+    },
+    {
+      "path": "tests/test_adaptix_domain_transport.py",
+      "bytes": 3494,
+      "sha256": "4fa3b720bc5ed9cc2c4668dbaa1a6d63099cadab5e9d55debba81d4202d1937c",
+      "functions": 9,
+      "test_functions": 4
+    },
+    {
+      "path": "tests/test_adaptix_hypothesis_links.py",
+      "bytes": 11761,
+      "sha256": "084c4753992ce2b79c2dd3c1292835a85cdbf101de3b22c0c2e49a308446209d",
+      "functions": 16,
+      "test_functions": 12
+    },
+    {
+      "path": "tests/test_adaptix_idor.py",
+      "bytes": 2559,
+      "sha256": "0f23d73d4bc00103068f8a67189673cf021df98eb080f2a678f82e5449da3b45",
+      "functions": 11,
+      "test_functions": 5
+    },
+    {
+      "path": "tests/test_adaptix_idor_reporting.py",
+      "bytes": 5653,
+      "sha256": "2c89816c53412eb69f74f06c76a88ed6c07cb2a1fa873673ff0171949b76f1ef",
+      "functions": 8,
+      "test_functions": 6
+    },
+    {
+      "path": "tests/test_adaptix_llm_timeout.py",
+      "bytes": 20507,
+      "sha256": "1ac1a380125bf9f255ddf7cc2d85e6b60d765914ca3a4bd125326a308ca324b6",
+      "functions": 36,
+      "test_functions": 23
+    },
+    {
+      "path": "tests/test_adaptix_nuclei_adaptive.py",
+      "bytes": 8674,
+      "sha256": "e0cbd32a314073fd149bc245bcd7402d2facb5f27c58d250f3b2ffb9a7856ae8",
+      "functions": 13,
+      "test_functions": 9
+    },
+    {
+      "path": "tests/test_adaptix_nuclei_assessment.py",
+      "bytes": 28706,
+      "sha256": "a5af097bb7c393db852944236c3fee1d4e58ba5934006dcf63f8495211e8bd01",
+      "functions": 33,
+      "test_functions": 21
+    },
+    {
+      "path": "tests/test_adaptix_nuclei_scan.py",
+      "bytes": 13866,
+      "sha256": "f50ada2be64968d5f580737c27b89024044f76573a9356280bce10ff731e6d0c",
+      "functions": 22,
+      "test_functions": 18
+    },
+    {
+      "path": "tests/test_adaptix_pipeline.py",
+      "bytes": 3362,
+      "sha256": "8e206230ec18fc0b7f8d69c30d2c9ad2ded94c42c5e2f6878f7c7421bf6af5c4",
+      "functions": 2,
+      "test_functions": 1
+    },
+    {
+      "path": "tests/test_adaptix_planner.py",
+      "bytes": 9047,
+      "sha256": "db6c92ad6fe8bf2f849b126b79fec0c9a323c4d4263474115581c1f1282a153b",
+      "functions": 14,
+      "test_functions": 7
+    },
+    {
+      "path": "tests/test_adaptix_planner_models.py",
+      "bytes": 6966,
+      "sha256": "19bdc83030df034f3c16c01dfe47251d87e0b39c663e04cb6eb91ce10c0120c2",
+      "functions": 16,
+      "test_functions": 10
+    },
+    {
+      "path": "tests/test_adaptix_planning_recovery.py",
+      "bytes": 25592,
+      "sha256": "213e59a8a44be54556eb396b7057954ebdc733d279926024c172d34a2494ace3",
+      "functions": 29,
+      "test_functions": 18
+    },
+    {
+      "path": "tests/test_adaptix_reflector.py",
+      "bytes": 2480,
+      "sha256": "6e4d00326faa57cbc9c595ac3924d0b07c0c03ac643657119298b564203843ae",
+      "functions": 8,
+      "test_functions": 7
+    },
+    {
+      "path": "tests/test_adaptix_regression.py",
+      "bytes": 7473,
+      "sha256": "b0d2aa08519257ea8996329e775c1fbe524283bfc17adec18c57be5aff15b827",
+      "functions": 11,
+      "test_functions": 7
+    },
+    {
+      "path": "tests/test_adaptix_replan_limits.py",
+      "bytes": 4738,
+      "sha256": "407efef351aa8ac3a4e935d00abb689d995604dfd1381f3e4437f83fef07ddfa",
+      "functions": 10,
+      "test_functions": 5
+    },
+    {
+      "path": "tests/test_adaptix_scan_coverage.py",
+      "bytes": 7244,
+      "sha256": "f19598d9b5b6daa9966b33fe85dbc8693992f0509a198ff1cedf22649d840817",
+      "functions": 13,
+      "test_functions": 9
+    },
+    {
+      "path": "tests/test_adaptix_scanner_planning.py",
+      "bytes": 2505,
+      "sha256": "1c39914fe539d7a477d01ca3de012ad14587f7abd1ff1d0c96cf5051b225e151",
+      "functions": 3,
+      "test_functions": 3
+    },
+    {
+      "path": "tests/test_adaptix_scope.py",
+      "bytes": 1490,
+      "sha256": "18f42ecf4d89c8ae5738e3e930bfffa0fd068250e96381315a74834e37897065",
+      "functions": 6,
+      "test_functions": 6
+    },
+    {
+      "path": "tests/test_adaptix_verification_engine.py",
+      "bytes": 17337,
+      "sha256": "bc6efdff65863ed24b5b4de0c9ced75c97acb509395c80f2e88acd88edbdfe4b",
+      "functions": 18,
+      "test_functions": 11
+    },
+    {
+      "path": "tests/test_adaptix_web.py",
+      "bytes": 13922,
+      "sha256": "db0b1a43fd8234ccb9efe723ad8649389377e2b06e7e9785ef9260426acb8777",
+      "functions": 19,
+      "test_functions": 14
+    },
+    {
+      "path": "tests/test_adaptix_web_assessment.py",
+      "bytes": 8887,
+      "sha256": "25f182de5dc1636ec2b7a03c14347e38560b03a3248bda99daa738bc7af34b9b",
+      "functions": 16,
+      "test_functions": 13
+    },
+    {
+      "path": "tests/test_adaptix_web_hypothesis_flow.py",
+      "bytes": 7836,
+      "sha256": "73933128b6be52dc83f9deab917923a6d5376ae609e2d4ba4e24e12651294b42",
+      "functions": 16,
+      "test_functions": 13
+    },
+    {
+      "path": "tests/test_model_authored_tests.py",
+      "bytes": 10696,
+      "sha256": "3f285accad69c3f315df439803ea1fcc60b5d7abc489e0fff349519c88b9cba4",
+      "functions": 17,
+      "test_functions": 9
+    },
+    {
+      "path": "tests/test_nuclei_direct_registration.py",
+      "bytes": 20794,
+      "sha256": "0cd71e644ec09b4a9a97218866e12111d1bdd2cdd610329170749ea2f30d6286",
+      "functions": 16,
+      "test_functions": 11
+    },
+    {
+      "path": "tests/test_nuclei_seconds_floor.py",
+      "bytes": 3297,
+      "sha256": "00c51c7bbb59c425c9c8d75d705764e3fbc0af9a2dc71710dedede021b241add",
+      "functions": 3,
+      "test_functions": 2
+    },
+    {
+      "path": "tests/test_nuclei_verified_findings.py",
+      "bytes": 6347,
+      "sha256": "eb86432ff679a89f50ac57451621cc5215f6e47f33a83b75fb8e7ef02f4d8d6c",
+      "functions": 4,
+      "test_functions": 4
+    },
+    {
+      "path": "tests/test_p0a_repro.py",
+      "bytes": 3230,
+      "sha256": "bbcf63ec7d05dee31182ef6f9272d53f6b68fd44a44cf18fab19a06a88deec88",
+      "functions": 8,
+      "test_functions": 3
+    },
+    {
+      "path": "tests/test_p0b_scenario_idor.py",
+      "bytes": 1614,
+      "sha256": "197dd2476442ce7bf157b8ad7444916ce83632f6bbfb6f0dbfec648597716f8e",
+      "functions": 2,
+      "test_functions": 2
+    },
+    {
+      "path": "tests/test_planner_fixation_directive.py",
+      "bytes": 5244,
+      "sha256": "e061e8b830c127323051971acae7476c14ba7a0c5ab66cc7359169c7af7f7e5c",
+      "functions": 4,
+      "test_functions": 2
+    },
+    {
+      "path": "tests/test_policy_recovery_transition.py",
+      "bytes": 4668,
+      "sha256": "46b8b6b349a79a819ddb28fb11bd60812130dc1d78acf71f70eb415d971ae402",
+      "functions": 4,
+      "test_functions": 1
+    },
+    {
+      "path": "tests/test_product_focus_remediation.py",
+      "bytes": 21723,
+      "sha256": "48318780f1abc890768676a966dc587048096910f23e6637e321587d7d1dbe92",
+      "functions": 27,
+      "test_functions": 16
+    },
+    {
+      "path": "tests/test_unlimited_budgets.py",
+      "bytes": 15406,
+      "sha256": "af62549acd8f3f0792b849345aaab7b9794f029c92d643bf28cfdad7168b3bab",
+      "functions": 24,
+      "test_functions": 15
+    },
+    {
+      "path": "config/baseline.yaml",
+      "bytes": 1338,
+      "sha256": "05c53319e2bcadafd125d394e7c5a04cfb528b9ee7d05c0e494e60cbe763e86e"
+    },
+    {
+      "path": "config/nuclei.yaml",
+      "bytes": 2373,
+      "sha256": "0deb9b15c56389b2ad48439dd8a62c542c72c7fc80aacbfd2872acc6473514f1"
+    },
+    {
+      "path": "config/scanner.yaml",
+      "bytes": 1929,
+      "sha256": "b5d0eed678f0b29d5dcb0b3b2b9263fa8f581ef5dbda49abeceb9430e6802fca"
+    },
+    {
+      "path": "config/scope.yaml",
+      "bytes": 1341,
+      "sha256": "c83fe7fceccfd61731a441272e61de53fca2e349bd4705acde73d8e8fa76a29d"
+    },
+    {
+      "path": "config/tools.yaml",
+      "bytes": 302,
+      "sha256": "ed83423150a8e7549d7ea9fcfa14bfb7f27437d6dc90a1cc9aa2f47c0aa72c60"
+    },
+    {
+      "path": "templates/http-response.yaml",
+      "bytes": 350,
+      "sha256": "dd9517898a2c9fc4c4f558875ab71cbe7ea0a665d3251bb10102384e04f75d46"
+    },
+    {
+      "path": "lab/__init__.py",
+      "bytes": 89,
+      "sha256": "56c6872c76fcd968f3e6fd116fa3a5db020728feadf19fec8368720940b6275a",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "lab/api_fixture.py",
+      "bytes": 4543,
+      "sha256": "a47bf9d4a46463896195211c976b6e0b24fffebd56e1679e614f2512107cdaef",
+      "functions": 10,
+      "test_functions": 0
+    },
+    {
+      "path": "lab/vampi/README.md",
+      "bytes": 5230,
+      "sha256": "24e1d6d33594cdf426123106efc21375b4a913959759d88f228d912255a7358a"
+    },
+    {
+      "path": "lab/vampi/adaptix-vampi-refresh.service",
+      "bytes": 288,
+      "sha256": "f5a9fba1afc31d0387bd62e129551f502b3fbe368432300dd1a7dd26c885ab16"
+    },
+    {
+      "path": "lab/vampi/adaptix-vampi-refresh.timer",
+      "bytes": 185,
+      "sha256": "6b853a93e1951e6609a701484cb775e2fa6787b10eeacfaf5d4577806ea985e2"
+    },
+    {
+      "path": "lab/vampi/adaptix-vampi.service",
+      "bytes": 546,
+      "sha256": "ae3450601749f010b283fecde106970b6864805335b3017725730fc8911a94c1"
+    },
+    {
+      "path": "lab/vampi/backup.py",
+      "bytes": 924,
+      "sha256": "ff0ccd26570614b7633dd34ae3998bde49d980f386a84593703d866cde709876",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "lab/vampi/compose.yaml",
+      "bytes": 715,
+      "sha256": "19767d9a4dc92c14ae8fd852cb218d2c5a786c41a998af59093361078be57efd"
+    },
+    {
+      "path": "lab/vampi/labctl",
+      "bytes": 1342,
+      "sha256": "d6803e9804b92b18a06aeda7677f183a92778de2c10750981b0349ef9825a3b9"
+    },
+    {
+      "path": "lab/vampi/prepare.py",
+      "bytes": 5648,
+      "sha256": "a4daecb05d63455f890848b8bfed8b723c8723160a48f6567f73cbd44044b61e",
+      "functions": 2,
+      "test_functions": 0
+    },
+    {
+      "path": "lab/vampi/setup.sh",
+      "bytes": 927,
+      "sha256": "9a761d2a94e70229c52a733a876cd13b13c3e2b2987b37388a3e1a856a0b1351"
+    },
+    {
+      "path": "scripts/__init__.py",
+      "bytes": 83,
+      "sha256": "3d31ff87c1672900e3ba80bcdbf9b5d57bcf698030b6393b5cbb7dc95108e76d",
+      "functions": 0,
+      "test_functions": 0
+    },
+    {
+      "path": "scripts/lock_dependencies.py",
+      "bytes": 2068,
+      "sha256": "0a04d20b96ad0a49d6fcbbcb3b7ba2511b4e5ac771c0b069b3494d861f5e946c",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "scripts/smoke_web.py",
+      "bytes": 2295,
+      "sha256": "a6aff70a9023a32cd87c9872c935e7cdaba44ebff9e7c8d1109f87892d815ba2",
+      "functions": 1,
+      "test_functions": 0
+    },
+    {
+      "path": "scripts/validate_iterations_1_6.py",
+      "bytes": 14034,
+      "sha256": "8a33a869f0d59eefe20ec468f725c7e91e89b4140ab2898b8c07e27e9b8cb654",
+      "functions": 4,
+      "test_functions": 0
+    },
+    {
+      "path": "docs/budgets.md",
+      "bytes": 4493,
+      "sha256": "44dd0f6445e1d874f282b88d19831f0eb3088cff2cfa372c68287dc07e638ef5"
+    }
+  ]
+}

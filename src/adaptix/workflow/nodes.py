@@ -43,12 +43,18 @@ def scope_guard(state):
         count = max(1, min(rooms))
         window = scope_window(manifest, [], count)
         hosts = list(manifest['hosts']) + [unit_host(u) for u in window if scope_contains_ip(unit_host(u), manifest)]
-        return {'scope_manifest': manifest, 'scope_networks': manifest['networks'],
+        update = {'scope_manifest': manifest, 'scope_networks': manifest['networks'],
                 'scope_aliases': manifest['aliases'], 'scope_ports': scope_ports(state['target'], policy),
                 'scope_touched': [], 'scope_deferred': [], 'run_started_at': time.time(),
                 'run_id': run_id, 'status': 'scope_ok', 'hosts': list(dict.fromkeys(hosts)),
                 'authorization': authorization,
+                'static_profiles': [], 'static_swept': [],
+                'recon_wordlist': state.get('recon_wordlist'),
                 'events': log(state, f'Scope Guard: approved compact scope, {manifest["total_units"]} target units')}
+        from src.adaptix.processing.ffuf import import_ffuf_documents, is_operator_review
+        if is_operator_review(state):
+            update.update(operator_recon_review_only=True, baseline_disabled=True, scanner_disabled=True)
+        return {**update, **import_ffuf_documents({**state, **update})}
     except (ValueError, TypeError, KeyError) as exc:
         return {'run_id': run_id, 'status': 'scope_blocked', 'hosts': [], 'scope_aliases': {},
                 'scope_ports': [], 'scope_networks': [], 'errors': [str(exc)],
@@ -84,6 +90,9 @@ def advance_action(state):
 
 def execute_action(state):
     """Revalidate at execution boundary, dispatch one registered capability."""
+    from src.adaptix.processing.ffuf import is_operator_review
+    if is_operator_review(state):
+        return {'stop_reason': 'operator_recon_review_only', 'planned_actions': []}
     from src.adaptix.agents.planner import _approved_actions, budget_stop_reason
     from src.adaptix.tools.registry import tool_registry, tool_handlers
     stop = budget_stop_reason(state)
@@ -208,11 +217,39 @@ def execute_action(state):
     started = time.monotonic()
     try:
         result = dispatch[action['tool']](working)
-        for key in ('services', 'idor_findings'):
+        # A tool result carries only its own additions, so the keys a capability can prove
+        # into must be accumulated at this boundary. `verified_findings` was missing:
+        # `union_extract` executed a real password-hash extraction and wrote the record
+        # there, the next tool result replaced the list, and the report showed the plain
+        # SQLi match with no impact - the proof existed and never reached the deliverable.
+        for key in ('services', 'idor_findings', 'injection_findings', 'script_findings',
+                    'verified_findings', 'verification_evidence'):
             if key in result:
-                result[key] = list(state.get(key, [])) + result[key]
+                merged = list(state.get(key) or [])
+                for entry in (result[key] or []):
+                    if entry not in merged:
+                        merged.append(entry)
+                result[key] = merged
+        if 'candidates' in result:
+            # Candidate identity is (template_id, endpoint) — stable across reruns.
+            # Re-merging at the execution boundary keeps a repeated tool result
+            # from duplicating a candidate and keeps prior candidates (including
+            # their unchanged evidence) when a later tool result is empty.
+            from src.adaptix.processing.normalize import deduplicate
+            result['candidates'] = deduplicate('candidates',
+                                               list(state.get('candidates', [])) + list(result['candidates']))
     except Exception as exc:
-        result = {'errors': list(state.get('errors', [])) + [f'Tool failed: {type(exc).__name__}']}
+        # The exception type alone is unattributable: "Tool failed: TypeError" cost two
+        # debugging rounds because the message carried no location. Record where it broke.
+        detail = '%s: %s' % (type(exc).__name__, exc)
+        # `exc.__traceback__` is a traceback, not a frame: walking it needs tb_next.
+        tb = exc.__traceback__
+        while tb is not None and tb.tb_next is not None:
+            tb = tb.tb_next
+        if tb is not None:
+            detail += ' at %s:%s' % (tb.tb_frame.f_code.co_filename.rsplit('/', 1)[-1],
+                                     tb.tb_lineno)
+        result = {'errors': list(state.get('errors', [])) + ['Tool failed: ' + detail]}
     profiles, outcome = record_outcome(state, before, result, action, time.monotonic() - started)
     result['tool_profiles'] = profiles
     result['approval_audit'] = approval_audit

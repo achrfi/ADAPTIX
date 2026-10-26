@@ -1,0 +1,17 @@
+{
+  "uses_real_credentials": false,
+  "network_requests": 0,
+  "provider_key_redaction_before": false,
+  "provider_key_redaction_after": true,
+  "approval_reuse_after_recorded_use": {
+    "first": "allowed",
+    "second": "allowed"
+  },
+  "checkpoint_provider_key_absent": true,
+  "cli_provider_options_missing_from_graph_schema": [
+    "llm_api_base",
+    "llm_api_key",
+    "llm_native_json"
+  ],
+  "provider_options_visible_to_node": []
+}

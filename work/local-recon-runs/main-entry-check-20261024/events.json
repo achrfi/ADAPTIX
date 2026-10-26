@@ -1,0 +1,22 @@
+[
+  {
+    "node": "ffuf_discovery",
+    "completed_at": "2026-10-23T23:58:48.637411+00:00"
+  },
+  {
+    "node": "browser_discovery",
+    "completed_at": "2026-10-23T23:58:53.416383+00:00"
+  },
+  {
+    "node": "merge",
+    "completed_at": "2026-10-23T23:58:53.418424+00:00"
+  },
+  {
+    "node": "summarize",
+    "completed_at": "2026-10-24T00:02:16.752832+00:00"
+  },
+  {
+    "node": "write_report",
+    "completed_at": "2026-10-24T00:02:16.756607+00:00"
+  }
+]

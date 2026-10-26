@@ -1,0 +1,64 @@
+{
+  "status": "partial",
+  "recon_status": "partial",
+  "scope": {
+    "origin": "http://127.0.0.1:3000",
+    "resolved_address": "127.0.0.1",
+    "restriction": "loopback_only",
+    "same_origin_only": true
+  },
+  "stages": {
+    "ffuf": {
+      "status": "success",
+      "progress": {
+        "complete": true
+      },
+      "candidates": 4750,
+      "auto_calibration": true
+    },
+    "playwright": {
+      "status": "success",
+      "pages": 1,
+      "requests_sent": 1,
+      "errors": [],
+      "remaining_pages": 0
+    },
+    "acceptance": {
+      "status": "failed",
+      "root_response_observed": false,
+      "basis": "bounded_local_inventory",
+      "coverage": "Application completeness is not measured"
+    },
+    "ai": {
+      "status": "disabled"
+    }
+  },
+  "ai": {
+    "status": "disabled"
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/",
+      "sources": [
+        "ffuf"
+      ],
+      "statuses": [
+        200
+      ],
+      "observed": true
+    }
+  ],
+  "forms": [],
+  "client_routes": [],
+  "blocked_requests": [],
+  "limits": {
+    "ffuf_words": 4750,
+    "ffuf_rate": 25,
+    "ffuf_max_seconds": 300,
+    "browser_pages": 24,
+    "browser_requests": 240
+  },
+  "planner_tool_execution": false,
+  "meaning": "Results are produced during this operator-started local inventory run."
+}

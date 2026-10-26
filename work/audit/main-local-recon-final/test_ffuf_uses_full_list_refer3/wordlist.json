@@ -1,0 +1,11 @@
+{
+  "upstream": "https://github.com/danielmiessler/SecLists",
+  "upstream_path": "Discovery/Web-Content/common.txt",
+  "installed_source": "/usr/share/seclists/Discovery/Web-Content/common.txt",
+  "package_version": "2025.3-0kali1",
+  "sha256": "74400ab9b9948c411afdf68adf5e49079801450068350cd801d0aa8fe7588d5a",
+  "bytes": 38500,
+  "entries": 4750,
+  "license_notice": "COPYRIGHT",
+  "retrieval": "Copied verbatim from preinstalled package; no network"
+}

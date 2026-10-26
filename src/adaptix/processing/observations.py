@@ -8,6 +8,8 @@ from src.adaptix.workflow.events import log
 def observation_processing(state):
     kinds = ('services', 'recon_inventory', 'http_services', 'candidates', 'browser_evidence', 'idor_findings',
              'web_routes', 'probe_traces', 'request_audit')
+    if 'ffuf_observations' in state:
+        kinds += ('ffuf_observations',)
     clean = {kind: deduplicate(kind, state.get(kind, [])) for kind in kinds}
     clean['hosts'] = list(dict.fromkeys(state.get('hosts', [])))
     encoded = json.dumps(clean, ensure_ascii=False, separators=(',', ':')).encode()

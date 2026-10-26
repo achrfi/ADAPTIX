@@ -1,0 +1,12 @@
+{
+  "regression_exit_code": 0,
+  "regression_result": "492 passed",
+  "recon_status": "passed",
+  "real_model": "qwen3.5:9b-q4_K_M",
+  "evidence_files_verified": 19,
+  "autonomous_graph_integration": false,
+  "writeup": "writeup.md",
+  "open_priority_one_findings": [
+    "approval_consumption_not_enforced"
+  ]
+}

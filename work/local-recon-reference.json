@@ -1,0 +1,17 @@
+[
+  {
+    "source": "/home/ryrexz/adaptix-v4/src/adaptix_recon/scope.py",
+    "destination": "/root/projects/adaptix/src/adaptix/local_inventory/scope.py",
+    "source_sha256": "a9013889a6d191e3d458f5f68662e00dd3a0e26ac1555afa6555e8e162a6abb8"
+  },
+  {
+    "source": "/home/ryrexz/adaptix-v4/src/adaptix_recon/discovery.py",
+    "destination": "/root/projects/adaptix/src/adaptix/local_inventory/discovery.py",
+    "source_sha256": "7ded3baae682a02c18013ae6a6fae0b1ce6f7730d763205a11d75961267350fd"
+  },
+  {
+    "source": "/home/ryrexz/adaptix-v4/src/adaptix_recon/wordlists.py",
+    "destination": "/root/projects/adaptix/src/adaptix/local_inventory/wordlists.py",
+    "source_sha256": "2c5cfbdf5dc316e6782c1aa1603b40875e070853af3ac0c8feb665cf530e907c"
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "status": "complete",
+  "entrypoint": "src.adaptix.main",
+  "required_mode": "--local-recon",
+  "default_adaptive_flow_unchanged": true,
+  "live_run_status": "success",
+  "focused_tests": "68 passed",
+  "evidence_files_verified": 15,
+  "report": "work/local-recon-runs/main-entry-check-20261024/report.md"
+}

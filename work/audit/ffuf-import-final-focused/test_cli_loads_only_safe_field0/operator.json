@@ -1,0 +1,1 @@
+{"results": [{"url": "http://127.0.0.1:3000/admin", "status": 200, "length": 100, "words": 10, "lines": 2}], "config": {"method": "GET"}, "commandline": "SECRET_COMMAND"}

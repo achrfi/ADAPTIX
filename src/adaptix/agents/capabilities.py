@@ -157,6 +157,12 @@ def endpoint_provenance(state):
         note(row.get('url'), 'scenario_candidate', kind='scenario', status_code=200)
     for row in state.get('idor_scenarios', []) or []:
         note(row.get('base_url'), 'scenario_object', kind='idor', status_code=200)
+    for row in state.get('ffuf_observations', []) or []:
+        # Operator-imported ffuf rows carry the operator's own recorded HTTP
+        # response: provenance for a bounded authorized request, with the
+        # unverified provenance flag preserved on the observation row.
+        note(row.get('url'), 'operator_ffuf_json', kind='ffuf_observation',
+             status_code=row.get('status_code'), method=row.get('method'))
     return provenance
 
 
@@ -314,7 +320,8 @@ def missing_prerequisites(state, action, evidence=None):
                         'idor_scenario_name')
         return missing
 
-    if tool in ('nmap', 'httpx', 'playwright', 'browser_test', 'nuclei', 'http_request', 'web_discover', 'api_discover'):
+    if tool in ('nmap', 'httpx', 'playwright', 'browser_test', 'nuclei', 'http_request',
+                'web_discover', 'api_discover', 'static_discovery'):
         # Path-only relative targets are model-authored construction for an
         # in-scope surface, resolved against the authorized origin; only a form
         # scope can express (an absolute URL) is required here.
@@ -407,6 +414,22 @@ def missing_prerequisites(state, action, evidence=None):
                         'novel_parameter')
         return missing
 
+    if tool == 'static_discovery':
+        # One bounded sweep per (origin, profile). A repeated sweep costs the same
+        # requests for the same answer, so it is refused with the profiles that have
+        # not been run yet, not with a generic denial.
+        profile = str(action.get('profile') or 'common')
+        done = set(state.get('static_swept') or [])
+        if profile in done:
+            from src.adaptix.tools.static_discovery import PROFILES
+            remaining = sorted(set(PROFILES) - done)
+            require('profile_already_swept',
+                    f'Origin already swept with the {profile!r} wordlist profile; '
+                    + (f'profiles not yet used here: {", ".join(remaining)}' if remaining
+                       else 'every configured profile has been used on this origin'),
+                    'unused_wordlist_profile')
+        return missing
+
     if tool == 'web_discover':
         from src.adaptix.tools.web import document_probes as web_document_probes
         if all(probe in set(state.get('discovered_documents', []))
@@ -497,6 +520,15 @@ def _tool_inputs(tool, state=None):
     model legitimately makes; the credential values behind a name stay hidden.
     """
     try:
+        if tool == 'static_discovery':
+            from src.adaptix.tools.static_discovery import PROFILES, DEFAULT_PROFILE
+            return {'supports': 'one bounded wordlist sweep over the origin supplied as target',
+                    'profiles': sorted(PROFILES),
+                    'default_profile': DEFAULT_PROFILE,
+                    'profile_field': 'profile',
+                    'behavior': ('every matching path becomes an observed web_route; a match means the '
+                                 'path answered, never that it is vulnerable. One sweep per profile per origin'),
+                    'hypothesis_field': 'category the action tests, if any'}
         if tool == 'browser_test':
             return {'supports': 'one payload navigation + one control navigation (target url carrying your marker; marker 6-64 chars [A-Za-z0-9_.-] inside the url)',
                     'marker_field': 'marker',
@@ -620,6 +652,10 @@ TOOL_REQUIREMENTS = {
                      'purpose': 'Deterministic browser-execution proof for a candidate XSS surface: the URL carries the run marker, the payload and marker-stripped control navigations are compared by captured dialogs.'},
     'web_discover': {'takes': 'seed_document_url', 'requires': ['in_scope_url', 'undiscovered_seed_document'],
                      'purpose': 'Retrieve a seed document plus robots/sitemap and extract in-scope routes and forms.'},
+    'static_discovery': {'takes': 'origin_url', 'requires': ['in_scope_url', 'unused_wordlist_profile'],
+                         'purpose': ('Wordlist sweep of one origin (ffuf). Finds paths the application never '
+                                     'links to - admin panels, backups, API prefixes, upload dirs. A match is an '
+                                     'observed route, never a finding.')},
     'http_request': {'takes': 'url_or_seed_url', 'requires': ['in_scope_url', 'novel_request'],
                      'purpose': 'One bounded request reduced to a comparable response trace with deterministic signatures.'},
     'nuclei': {'takes': 'url', 'requires': ['in_scope_url', 'template_policy'],

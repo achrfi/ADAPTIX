@@ -1,0 +1,16 @@
+{
+  "status": "complete",
+  "command": ".venv/bin/python -m src.adaptix recon --target http://127.0.0.1:3000 --ai",
+  "requires_preexisting_ffuf_json": false,
+  "ffuf_inputs_completed": 4750,
+  "ffuf_errors": 0,
+  "ffuf_matches": 9,
+  "browser_pages": 10,
+  "browser_requests": 78,
+  "inventory_records": 86,
+  "observed_records": 72,
+  "ai_status": "success",
+  "regression": "542 passed",
+  "evidence_files_verified": 15,
+  "report": "work/local-recon-runs/reference-live-20261024/report.md"
+}

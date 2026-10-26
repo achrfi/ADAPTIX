@@ -1,0 +1,99 @@
+{
+  "files": [
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/command.json",
+      "sha256": "7f9dd6df669d53d6dac64b0b131a91e2dc21d837aa07cb09b455c033061a0aff",
+      "bytes": 535
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/evidence.json",
+      "sha256": "1265e4b6a207f74fd26b8531ff7a56b18846e07c35c1eefd090259ee67a9d450",
+      "bytes": 577
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/ffuf.json",
+      "sha256": "6dbc2534fc483594e5cfe2bf1916f4fb5a5f8ed6c9bd6ad8eeaa97b3f3e3dc49",
+      "bytes": 2441
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/ffuf.log",
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "bytes": 1
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/ffufrc",
+      "sha256": "483bd2b4417fb4cebb1126cd962cb16151659cb6569de1d74eff611c3e627477",
+      "bytes": 59
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/fixture-wordlist.txt",
+      "sha256": "6d11dc2b6986183631c0420d1e83d7d1544703cd2a80380cdf56d88ab4664498",
+      "bytes": 58
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/model-response.json",
+      "sha256": "cdac02980914603d859187f4022884b525e82a98335e9c79b3619974f286193b",
+      "bytes": 487
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/all-404/summary.json",
+      "sha256": "7832986e31499e8a707c715bc707e0f2a3d112508a19a15e00798431b7825537",
+      "bytes": 329
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/command.json",
+      "sha256": "8b996a32887b739f3343ae4f27936602cf30110079113951a0e67a8a054406e5",
+      "bytes": 538
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/evidence.json",
+      "sha256": "968494be88df19431c1ce1e3295e55818a6828354a099aed0f69b08d91b5b333",
+      "bytes": 1163
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/ffuf.json",
+      "sha256": "f5d73f1fcfa0319171719b8ca1f7befc99910226fcabc5213aeffb3bb5ac980b",
+      "bytes": 3822
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/ffuf.log",
+      "sha256": "3d43b7d8b57fb73746083cc5278c28e379e18cac5489725c95e30d3529d24ccc",
+      "bytes": 37
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/ffufrc",
+      "sha256": "483bd2b4417fb4cebb1126cd962cb16151659cb6569de1d74eff611c3e627477",
+      "bytes": 59
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/fixture-wordlist.txt",
+      "sha256": "6d11dc2b6986183631c0420d1e83d7d1544703cd2a80380cdf56d88ab4664498",
+      "bytes": 58
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/model-response.json",
+      "sha256": "9ffbc17353ed02dd096a0c65f7245d7f92bcbad76a66b2e845e8d2bc1969123f",
+      "bytes": 1042
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/positive/summary.json",
+      "sha256": "845039b96fd682c49f43bc058bd4c42eb0f76a1a3863108ad62d1d4bfe392234",
+      "bytes": 856
+    },
+    {
+      "path": "work/recon-runs/20261023T150630Z-116713/summary.json",
+      "sha256": "795c6e5d8c947d4c2e595d57d996a003967646417de43a71161d741cc19e4d5b",
+      "bytes": 1629
+    },
+    {
+      "path": "work/recon_local.py",
+      "sha256": "a592d96bc606b3cea4a3cb780d048fd218ab379bf6edde066f2a022e63d9eb8a",
+      "bytes": 10085
+    },
+    {
+      "path": "work/wordlists/SecLists/common.txt",
+      "sha256": "74400ab9b9948c411afdf68adf5e49079801450068350cd801d0aa8fe7588d5a",
+      "bytes": 38500
+    }
+  ]
+}

@@ -1,0 +1,234 @@
+{
+  "user_request": "Ringkas observasi ffuf yang diberikan dan jelaskan keterbatasannya. Status 200 bukan bukti route atau kerentanan. Jangan jalankan alat.",
+  "policy_feedback": [],
+  "rejected_actions": [],
+  "available_endpoints": [
+    {
+      "url": "http://127.0.0.1:3000",
+      "method": "GET",
+      "kind": "observed",
+      "api_like": false,
+      "http_validated": true,
+      "surface": "http_confirmed",
+      "provenance": [
+        "seed_target"
+      ]
+    }
+  ],
+  "authorization": {
+    "type": "local_loopback",
+    "principal": null,
+    "scope_units": 1
+  },
+  "scope_window": [
+    "http://127.0.0.1:3000/"
+  ],
+  "budget": {
+    "iteration_limit": 1,
+    "tool_call_limit": 2,
+    "token_limit": 8000,
+    "iterations": 0,
+    "tool_calls": 0,
+    "tokens": 0,
+    "seconds_remaining": 357.13465332984924
+  },
+  "tool_eligibility": {},
+  "requested_endpoints": [
+    "http://127.0.0.1:3000/"
+  ],
+  "scope_summary": {
+    "total_units": 1,
+    "touched": 0,
+    "deferred": 0,
+    "remaining": 1
+  },
+  "domain_aliases": {},
+  "tool_registry": {},
+  "reflection": {
+    "uncertainty": [],
+    "errors": []
+  },
+  "stagnation": {
+    "recent": [],
+    "consecutive_no_gain": 0,
+    "no_gain_actions": 0,
+    "actions_measured": 0,
+    "planning_passes": 0,
+    "zero_action_plans": 0,
+    "consecutive_empty_plans": 0,
+    "consecutive_schema_failures": 0
+  },
+  "evidence_summary": {
+    "probe_evidence_rows": 0,
+    "request_attempts": 0,
+    "distinct_responses": 0,
+    "signature_rows": 0
+  },
+  "api_operations": [],
+  "scenario_candidates": [],
+  "documentation_attempts": [],
+  "hypotheses": [],
+  "hypothesis_tests": [],
+  "baseline_inventory": {
+    "mode": "disabled",
+    "seconds": null,
+    "tool_calls": null,
+    "stop_reason": null,
+    "route_kinds": {},
+    "api_operations": 0,
+    "documents_probed": null,
+    "entry_points": [],
+    "services": [],
+    "coverage_limitations": []
+  },
+  "nuclei_scan": {
+    "mode": "disabled",
+    "engine_version": "v3.6.2",
+    "seconds": 0.0,
+    "origins_scanned": 0,
+    "templates_attempted": 0,
+    "templates_executable": 0,
+    "templates_gated": 0,
+    "planned_request_ceiling": 0,
+    "candidates": 0,
+    "candidates_by_template": {},
+    "category_counts": [],
+    "tool_calls": 0,
+    "template_mode": "adaptive"
+  },
+  "hypothesis_seeds": [],
+  "findings": [],
+  "discovery_targets": [],
+  "identity_context_summary": {
+    "identities": [],
+    "privacy_policy_configured": false
+  },
+  "discovery_limitations": [],
+  "previous_self_reflection": "",
+  "tool_profiles": {},
+  "recent_action_outcomes": [],
+  "idor_scenarios": [],
+  "known_urls": [],
+  "services": [],
+  "observations": {
+    "http_services": [],
+    "candidates": [],
+    "browser_evidence": [],
+    "nuclei_template_selections": [],
+    "api_observations": [],
+    "scenario_validations": [],
+    "web_routes": [],
+    "probe_traces": [],
+    "ffuf_observations": [
+      {
+        "url": "http://127.0.0.1:3000/status",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:f2d962f8b8ef6b29"
+      },
+      {
+        "url": "http://127.0.0.1:3000/robots.txt",
+        "method": "GET",
+        "status_code": 200,
+        "length": 28,
+        "words": 3,
+        "lines": 2,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:ea63542060b49011"
+      },
+      {
+        "url": "http://127.0.0.1:3000/missing",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:415f00e6255def96"
+      },
+      {
+        "url": "http://127.0.0.1:3000/login",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:e82abbec6f46fe8f"
+      },
+      {
+        "url": "http://127.0.0.1:3000/health",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:88708e7c39045ed3"
+      },
+      {
+        "url": "http://127.0.0.1:3000/admin",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:d541a83cd0d9a6ab"
+      }
+    ]
+  },
+  "web_route_summary": {
+    "total": 0,
+    "application": 0,
+    "static_assets": 0,
+    "api_like": 0
+  },
+  "idor_findings": [],
+  "attempted_actions": [],
+  "stalled_actions": [],
+  "ffuf_import_summary": {
+    "mode": "operator_supplied_offline_review",
+    "files": 1,
+    "observations": 6,
+    "rejected_rows": 0,
+    "duplicate_rows": 0,
+    "context_sample_limit": 8,
+    "note": "Unverified operator observations; repeated 200 responses may be wildcard/fallback pages. Full accepted rows remain in the report. No tool execution or route promotion."
+  },
+  "controller_assessment": {
+    "objective_kind": "security_assessment",
+    "goal_status": "in_progress",
+    "evidence_refs": [
+      "ffuf_observations:415f00e6255def96",
+      "ffuf_observations:88708e7c39045ed3",
+      "ffuf_observations:d541a83cd0d9a6ab",
+      "ffuf_observations:e82abbec6f46fe8f"
+    ],
+    "uncertainty": [],
+    "failure": []
+  },
+  "grounded_status": "in_progress"
+}

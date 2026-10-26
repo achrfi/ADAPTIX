@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "mode": "operator_import_review",
+  "observations": 6,
+  "model": "ollama_chat/qwen3.5:9b-q4_K_M",
+  "real_model_calls": 1,
+  "model_tokens": 1650,
+  "executed_tool_calls": 0,
+  "verified_findings": 0,
+  "report_status": "completed_partial",
+  "stop_reason": "no_new_actions",
+  "self_reflection": "Observations show identical 9984-byte responses for distinct paths (e.g., /status, /missing, /admin), indicating a wildcard error page. Route existence is unverified per operator_e",
+  "bundle_integrity": "integrity_verified",
+  "bundle_files": 13,
+  "report_path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/report-845e91831319.json"
+}

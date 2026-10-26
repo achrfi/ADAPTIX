@@ -3,7 +3,7 @@ import ipaddress
 import socket
 import re
 from urllib.parse import urlsplit, urlunsplit
-from src.adaptix.security.ports import parse_ports
+from src.adaptix.security.ports import parse_ports, configured_ports
 
 
 def _safe_ip(value):
@@ -204,11 +204,9 @@ def domain_aliases(requested, hosts, policy):
 
 
 def scope_ports(requested, policy):
-    ports = set(parse_ports(policy['limits']['nmap_ports']))
+    limits = policy['limits']
+    ports = set(configured_ports(limits))
     ports.update((80, 443))
-    web_ports = policy['limits'].get('web_ports')
-    if web_ports:
-        ports.update(parse_ports(web_ports))
     values = [requested] if isinstance(requested, str) else requested
     for value in values:
         value = str(value)
@@ -218,7 +216,7 @@ def scope_ports(requested, policy):
                 if not 1 <= parsed.port <= 65535:
                     raise ValueError('Invalid target port')
                 ports.add(parsed.port)
-    return sorted(ports)
+    return parse_ports(sorted(ports))
 
 
 def is_scope_unit(value, manifest):

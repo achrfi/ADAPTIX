@@ -13,12 +13,14 @@ import json
 
 # Authoritative fields compression may shorten but never delete.
 ESSENTIAL_FIELDS = frozenset({
+    'ffuf_import_summary',
     'user_request', 'authorization', 'scope_window', 'requested_endpoints',
     'scope_summary', 'domain_aliases', 'budget', 'reflection', 'stagnation',
     'controller_assessment', 'policy_feedback', 'rejected_actions',
     'identity_context_summary', 'discovery_limitations', 'web_route_summary',
     'evidence_summary', 'available_endpoints', 'observations',
-    'tool_eligibility', 'documentation_attempts',
+    'tool_eligibility', 'documentation_attempts', 'verified_findings',
+    'finding_escalation_policy',
 })
 
 # Observation kinds whose rows are evidence references rather than bulk text.
@@ -328,7 +330,8 @@ STAGES = (
 )
 
 
-def compact_context(payload, system_prompt, token_budget, count_tokens):
+def compact_context(payload, system_prompt, token_budget, count_tokens,
+                    allow_over_budget=False):
     token_budget = max(0, int(token_budget))
     encoded = _encoded(payload)
     required = int(count_tokens(system_prompt, encoded))
@@ -384,7 +387,14 @@ def compact_context(payload, system_prompt, token_budget, count_tokens):
             else:
                 # Preserve the instruction and minimum decision context; stop if they cannot fit.
                 encoded = _encoded(payload)
-                return None, outcome(int(count_tokens(system_prompt, encoded)))
+                floor = int(count_tokens(system_prompt, encoded))
+                if allow_over_budget:
+                    # The requested target is unreachable, but the floor is itself a
+                    # reduction. Hand it back so the caller can decide whether it is small
+                    # enough - a caller fighting a starved provider usually needs exactly
+                    # the smallest prompt that still contains the decision context.
+                    return encoded, {**outcome(floor), 'context_target_unreachable': True}
+                return None, outcome(floor)
         violation = intact()
         if violation:
             # Never send a context stripped of authoritative control data.

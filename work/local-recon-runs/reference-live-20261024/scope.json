@@ -1,0 +1,6 @@
+{
+  "origin": "http://127.0.0.1:3000",
+  "resolved_address": "127.0.0.1",
+  "restriction": "loopback_only",
+  "same_origin_only": true
+}

@@ -148,27 +148,24 @@ def test_graph_pipeline_records_phase_runtime(monkeypatch):
     """One offline graph pass must produce attributable per-phase timing rows."""
     from src.adaptix.workflow.graph import graph
     from src.adaptix.agents import planner
-    from src.adaptix.tools import nmap as nt, httpx as ht, nuclei as nu, playwright as pw
+    from src.adaptix.tools import httpx as ht, nuclei as nu, playwright as pw
     from src.adaptix.tools import registry as reg
     from unittest.mock import MagicMock
     fake_registry = lambda: {
-        'nmap': {'path': '/bin/nmap', 'enabled': True},
         'httpx': {'path': '/bin/httpx', 'enabled': True},
         'nuclei': {'path': '/bin/nuclei', 'enabled': True},
         'playwright': {'path': None, 'enabled': False}}
-    for mod in (nt, ht, nu, pw, planner, reg):
+    for mod in (ht, nu, pw, planner, reg):
         monkeypatch.setattr(mod, 'tool_registry', fake_registry)
 
     def fake_run(argv, timeout=45, stdin=None):
-        if 'nmap' in argv[0]:
-            payload = '<nmaprun><host><ports><port protocol="tcp" portid="18080"><state state="open"/><service name="http"/></port></ports></host></nmaprun>'
-        elif 'httpx' in argv[0]:
+        if 'httpx' in argv[0]:
             payload = json.dumps({'url': 'http://127.0.0.1:18080', 'status_code': 200}) + '\n'
         else:
             payload = json.dumps({'matched-at': 'http://127.0.0.1:18080/',
                                   'template-id': 'adaptix-http-baseline', 'info': {'severity': 'info'}}) + '\n'
         return {'returncode': 0, 'stdout': payload, 'stderr': ''}
-    for mod in (nt, ht, nu):
+    for mod in (ht, nu):
         monkeypatch.setattr(mod, 'run_tool', fake_run)
     empty = {'actions': [], 'reflection': 'Assess stored evidence and remaining limits',
              'rationale': 'no untested evidence', 'hypotheses': [],

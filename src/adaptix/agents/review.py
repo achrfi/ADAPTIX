@@ -10,6 +10,13 @@ def grounded_review(state, decision):
     rows = [(name, row) for name in FIELDS for row in state.get(name, [])]
     valid_refs = {evidence_key(name, row) for name, row in rows}
     valid_refs.update(row.get('url') or row.get('target') for _, row in rows)
+    # A sealed verification record is the strongest evidence a run holds, and the
+    # planner is shown its path so it can escalate on a proven finding. That path must
+    # therefore be citable: without it here, a review that correctly names the artifact
+    # was rejected as "evidence not present", and the run stopped on its own best proof.
+    valid_refs.update(record.get('evidence_ref')
+                      for record in state.get('verification_evidence') or []
+                      if isinstance(record, dict) and record.get('evidence_ref'))
     valid_refs.discard(None)
     errors = state.get('errors', [])
     answered = findings['verified_findings'] + [x for x in findings['rejected_findings'] if x.get('verification_evidence')]

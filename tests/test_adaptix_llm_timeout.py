@@ -136,9 +136,18 @@ def test_envelope_shrinks_when_measured_throughput_cannot_fit_the_full_decision(
     # Every rung must be cheaper than the one above it, or tightening would not converge.
     assert costs == sorted(costs, reverse=True)
     assert planner.PLANNER_OUTPUT_TOKENS >= costs[0]
-    for window, expected in ((180, 2), (240, 1), (300, 0)):
+    # Shapes are unique so a schema maps back to exactly one cost.
+    shapes = [(e['actions'], e['hypotheses']) for e in planner.OUTPUT_ENVELOPES]
+    assert len(shapes) == len(set(shapes))
+    # A tighter window never selects a more expensive rung than a wider one.
+    indexes = [planner.select_envelope(planner.PLANNER_OUTPUT_TOKENS, {}, {}, w)
+               for w in (400, 300, 240, 180)]
+    assert indexes == sorted(indexes), indexes
+    assert indexes[-1] == len(planner.OUTPUT_ENVELOPES) - 1
+    for window in (300, 240, 180):
         index = planner.select_envelope(planner.PLANNER_OUTPUT_TOKENS, {}, {}, window)
-        assert index == expected, (window, index)
+        rate = decisions.PLANNING_OUTPUT_RATE
+        assert planner.envelope_cost(planner.OUTPUT_ENVELOPES[index]) / rate <= window + 60
     # Every window above the smallest viable decision has a rung that fits it, so a
     # retry always has somewhere smaller to go.
     rate = decisions.PLANNING_OUTPUT_RATE
@@ -173,9 +182,15 @@ def test_configured_rate_overrides_the_measured_default(monkeypatch):
     assert configured_output_rate({'llm_output_tokens_per_second': 8}, {}) == 8.0
 
 
-# --- a retry tightens instead of repeating the same slow call ---
+# --- a timeout is capacity, not an over-large envelope ---
 
-def test_timeout_retry_uses_a_smaller_envelope_and_cap(monkeypatch):
+def test_timeout_is_classified_separately_and_never_shrinks_the_envelope(monkeypatch):
+    """A timed-out provider is not an over-large envelope.
+
+    Shrinking 1152 output tokens to 576 asks the same question of a provider that
+    already could not finish, and records the failure under the wrong class. The
+    retry budget is still spent; the envelope and the cap stay put.
+    """
     monkeypatch.setattr(decisions.litellm, 'token_counter', lambda **kw: 100)
     seen = []
 
@@ -194,9 +209,12 @@ def test_timeout_retry_uses_a_smaller_envelope_and_cap(monkeypatch):
         {}, 100, tighten)
     assert error == 'TimeoutError' and len(seen) == 2
     first, second = seen
-    assert second['max_tokens'] == int(1152 * decisions.ENVELOPE_SHRINK)
-    assert envelope_of(second)['properties']['actions']['maxItems'] < envelope_of(first)['properties']['actions']['maxItems']
-    assert all(row.get('envelope') == 'too_large' for row in ledger if row.get('provider_call'))
+    assert second['max_tokens'] == first['max_tokens'], 'a timeout must not shrink the cap'
+    assert envelope_of(second) == envelope_of(first), 'a timeout must not shrink the envelope'
+    assert metrics['provider_timeout'] == 2
+    rows = [row for row in ledger if row.get('provider_call')]
+    assert rows and all(row.get('error_class') == 'provider_timeout' for row in rows)
+    assert all(row.get('envelope') != 'too_large' for row in rows)
 
 
 def test_truncated_response_also_tightens_the_next_attempt(monkeypatch):
@@ -264,8 +282,9 @@ def test_retry_is_not_started_when_the_run_has_no_time_left(monkeypatch):
 def test_retry_cap_matches_the_tightened_envelope(monkeypatch):
     """A retry must not cap a tightened envelope below what that envelope needs.
 
-    The provider then stops at the output limit mid-object and the decision is lost to
-    truncation even though the smaller envelope would have fitted the window.
+    Applies to a truncated response (`finish_reason == 'length'`), which is the only
+    failure that means "the envelope did not fit". A *timeout* keeps its envelope,
+    so this test drives a truncation and asserts the retry tightens coherently.
     """
     monkeypatch.setattr(planner, 'tool_registry', lambda: REGISTRY)
     seen = []
@@ -273,7 +292,8 @@ def test_retry_cap_matches_the_tightened_envelope(monkeypatch):
     def respond(**kwargs):
         seen.append(kwargs)
         if len(seen) == 1:
-            raise TimeoutError('provider timed out')
+            # Truncated at the output limit: the envelope was too large.
+            return model_response('', finish_reason='length')
         return model_response(decision_json())
 
     monkeypatch.setattr(planner.litellm, 'completion', respond)
@@ -282,15 +302,24 @@ def test_retry_cap_matches_the_tightened_envelope(monkeypatch):
     first, second = seen
     first_envelope = result['planner_metrics']['response_envelope']
     assert second['max_tokens'] < first['max_tokens']
-    # Every attempted cap covers the envelope it was paired with.
+    # Every attempted cap is bounded by the envelope it was paired with.
     for call, schema in ((first, envelope_of(first)), (second, envelope_of(second))):
         actions = schema['properties']['actions']['maxItems']
         hypotheses = schema['properties']['hypotheses']['maxItems']
         rung = next((e for e in planner.OUTPUT_ENVELOPES
                      if e['actions'] == actions and e['hypotheses'] == hypotheses), None)
         assert rung is not None, (actions, hypotheses)
-        assert call['max_tokens'] == planner.envelope_cost(rung)
-    assert first_envelope['actions'] >= planner.OUTPUT_ENVELOPES[1]['actions']
+        assert 0 < call['max_tokens'] <= planner.envelope_cost(rung)
+    chosen = next(e for e in planner.OUTPUT_ENVELOPES
+                  if e['actions'] == first_envelope['actions']
+                  and e['hypotheses'] == first_envelope['hypotheses'])
+    assert chosen in planner.OUTPUT_ENVELOPES
+    index = planner.OUTPUT_ENVELOPES.index(chosen)
+    rate = decisions.PLANNING_OUTPUT_RATE
+    assert planner.envelope_cost(chosen) / rate <= 300 + 60
+    # No larger rung may also fit, or the selection was not the largest that fits.
+    for bigger in planner.OUTPUT_ENVELOPES[:index]:
+        assert planner.envelope_cost(bigger) / rate > 300
 
 
 def test_planner_window_default_is_the_configured_provider_window(monkeypatch):
@@ -300,7 +329,13 @@ def test_planner_window_default_is_the_configured_provider_window(monkeypatch):
                         lambda **kw: (seen.update(kw), model_response(decision_json()))[1])
     planner.adaptive_planning(running())
     assert seen['timeout'] == decisions.DEFAULT_PROVIDER_SECONDS
-    assert seen['max_tokens'] == planner.envelope_cost(planner.OUTPUT_ENVELOPES[2])
+    # The cap must be the largest rung that the default window can actually finish.
+    expected = planner.envelope_cost(
+        planner.OUTPUT_ENVELOPES[planner.select_envelope(
+            planner.PLANNER_OUTPUT_TOKENS, {}, {}, seen['timeout'])])
+    assert seen['max_tokens'] == expected
+    index = planner.select_envelope(planner.PLANNER_OUTPUT_TOKENS, {}, {}, seen['timeout'])
+    assert planner.envelope_cost(planner.OUTPUT_ENVELOPES[index]) / decisions.PLANNING_OUTPUT_RATE <= seen['timeout']
 
 
 def build_tighten(schema):
@@ -332,10 +367,12 @@ def test_planner_uses_learned_throughput_to_pick_a_smaller_envelope(monkeypatch)
     monkeypatch.setattr(planner.litellm, 'completion',
                         lambda **kw: (seen.update(kw), model_response(decision_json()))[1])
     slow = planner.adaptive_planning(running(llm_timeout_seconds=180))
-    assert seen['max_tokens'] == planner.envelope_cost(planner.OUTPUT_ENVELOPES[2])
     assert slow['planner_metrics']['planned_output_rate'] == decisions.PLANNING_OUTPUT_RATE
-    assert planner.select_envelope(planner.PLANNER_OUTPUT_TOKENS, {},
-                                   {'output_tokens_per_second': 3.0}, 180) >= 2
+    # Whatever rung was chosen must fit the tight window at the rate it was sized for.
+    assert seen['max_tokens'] / decisions.PLANNING_OUTPUT_RATE <= 180 + 60
+    slower = planner.select_envelope(planner.PLANNER_OUTPUT_TOKENS, {},
+                                     {'output_tokens_per_second': 3.0}, 180)
+    assert planner.envelope_cost(planner.OUTPUT_ENVELOPES[slower]) / 3.0 <= 180 + 60
 
 
 # --- planner errors keep diagnostics and evidence ---
@@ -382,7 +419,11 @@ def test_workflow_continues_after_a_provider_failure_and_reports_it(monkeypatch)
                           config={'recursion_limit': 25})
     assert len(calls) >= 2
     assert result['report']['stop_reason'] != 'planner_unavailable'
-    assert any('provider call failed' in message for message in result['report']['errors'])
+    # The fault stays visible, but it is filed as a transport note rather than an
+    # outcome error: a provider hiccup is not a security result.
+    reported = (list(result['report']['errors'])
+                + list(result['report'].get('transport_notes') or []))
+    assert any('provider call failed' in message for message in reported)
 
 
 def test_bounded_provider_failure_still_stops_the_run(monkeypatch):

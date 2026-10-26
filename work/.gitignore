@@ -1,0 +1,11 @@
+# Disposable regression snapshots and generated test fixtures.
+/audit/*/project/
+/audit/*/pytest-tmp/
+__pycache__/
+
+# ffuf's isolated runtime configuration/history is not source evidence.
+/recon-runs/*/*/config/
+/lab3000-runs/*/config/
+/ffuf-import-runs/*/project/src/
+/ffuf-import-runs/*/project/config/
+/ffuf-import-runs/*/project/templates/

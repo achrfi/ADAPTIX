@@ -272,10 +272,11 @@ def nuclei_check(state):
             # Scanner verdicts ride out of the adapter in the state keys the whole
             # workflow already carries: the findings bucket is what the reports,
             # checkpoints and audit bundle preserve, whatever planning does next.
-            # Nuclei findings are now independently verified through the template match contract
+            # Nuclei matches carry the nuclei_template_match basis as scanner
+            # matches; independently verified rows come from replay/review only.
             'verified_findings': list(state.get('verified_findings', [])) + scanner_findings,
             'nuclei_observations': list(state.get('nuclei_observations', [])) + scanner_observations,
-            'errors': errors, 'events': log({'events': events}, f'Nuclei: {len(candidates)} unverified matches, {len(scanner_findings)} verified findings')}
+            'errors': errors, 'events': log({'events': events}, f'Nuclei: {len(candidates)} unverified matches, {len(scanner_findings)} scanner matches')}
 
 
 def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl_ref, jsonl_canon, run_id,
@@ -283,11 +284,14 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
                            seen_finding_ids, seen_observation_ids, findings, observations):
     """Attach a Nuclei template match to the state in the role the engine decided.
 
-    The template matchers are the evaluation: a positive vulnerability match
-    registers immediately as a verified finding using the nuclei_template_match
-    verification contract. The Nuclei engine's matchers provide objective evidence
-    that the vulnerability condition is met. Template matches are now treated as
-    valid vulnerability findings (like in standard Nuclei), not just observations.
+    The template matchers are the evaluation the *scanner engine* ran: a positive
+    vulnerability match registers with its own stable finding id, provenance
+    (JSONL artifact, matcher name/status) and the nuclei_template_match basis.
+    This is a ``scanner_matched`` result, not an independently verified one: the
+    match is not browser execution, not a replay record and not human review, and
+    it is always labelled 'nuclei_template_match' so downstream schemas,
+    evaluators and report renderers can keep scanner matches apart from
+    independently verified findings (audit D04).
     """
     matched_location = row.get('matched-at') or row.get('host', '')
     matcher_name = row.get('matcher-name', '')
@@ -307,7 +311,7 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
                 'name': info.get('name'), 'tags': info.get('tags'),
                 'classification': info.get('classification')}
     evidence = {'result': 'confirmed' if positive else 'inconclusive', 'run_id': run_id,
-                'timestamp': row.get('timestamp'), 'verification_level': 'scanner_verified',
+                'timestamp': row.get('timestamp'), 'verification_level': 'scanner_matched',
                 'verification_method': 'nuclei_template_match', 'evidence_ref': jsonl_ref,
                 'evidence_sha256': jsonl_canon, 'evidence_line': evidence_line,
                 'matcher_name': matcher_name, 'matcher_status': matcher_status}
@@ -330,7 +334,9 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
     if record_id in seen_finding_ids:
         return
     seen_finding_ids.add(record_id)
-    # All vulnerability findings from Nuclei are now verified findings
+    # Positive vulnerability matches register immediately, but as *scanner
+    # matches*: the engine's own verdict, kept distinct from independently
+    # verified evidence (deterministic replay, browser execution, reviewer).
     findings.append({
         'finding_id': record_id, 'tool_source': 'nuclei', 'source_tool': 'nuclei',
         'vulnerability_name': str(info.get('name') or template_id)[:160],
@@ -338,13 +344,14 @@ def _register_nuclei_match(row, template_id, url, severity, evidence_line, jsonl
         'target': url, 'matched_location': str(matched_location)[:240], 'matched_at': matched_location,
         'matcher_name': matcher_name, 'matcher_status': bool(matcher_status),
         'category': 'nuclei_template_match', 'finding_type': 'potential_vulnerability',
-        'verification_method': 'nuclei_template_match', 'verification_level': 'verified',
+        'verification_method': 'nuclei_template_match', 'verification_level': 'scanner_matched',
         'verification_basis': 'nuclei_template_match',
-        'independently_verified': True, 'verification_status': 'verified',
+        'independently_verified': False, 'verification_status': 'scanner_matched',
         'confidence': 'scanner_confirmed',
         'actual_observation': {'vulnerability_name': str(info.get('name', ''))[:160],
                                'severity': severity, 'matcher': matcher_name,
                                'host': row.get('host'), 'engine_type': row.get('type')},
         'nuclei_metadata': metadata, 'verification_evidence': evidence,
-        'reason': 'Nuclei template matchers evaluated this template as a match; '
-                  'verified through nuclei_template_match contract'})
+        'reason': 'Nuclei template matchers evaluated this template as a match; scanner match '
+                  '(verification_method=nuclei_template_match), not independently verified '
+                  'outside the scanner and never a browser-execution XSS proof'})

@@ -1,0 +1,92 @@
+{
+  "root": {
+    "path": "/",
+    "status": 200,
+    "bytes": 9984,
+    "body_sha256": "21cbe884eaf2c3b3ef828e127b2c735f280c7cb10cbfe0299c94a910e20a1b3e",
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "missing_path_control": {
+    "path": "/adaptix-missing-fdd8769f64d34f35881d95f91565d51e",
+    "status": 200,
+    "bytes": 9984,
+    "body_sha256": "21cbe884eaf2c3b3ef828e127b2c735f280c7cb10cbfe0299c94a910e20a1b3e",
+    "content_type": "text/html; charset=UTF-8"
+  },
+  "observations": [
+    {
+      "path": "/admin",
+      "status": 200
+    },
+    {
+      "path": "/health",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "status": 200
+    },
+    {
+      "path": "/missing",
+      "status": 200
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200
+    },
+    {
+      "path": "/status",
+      "status": 200
+    }
+  ],
+  "independent_checks": [
+    {
+      "path": "/admin",
+      "status": 200,
+      "bytes": 9984,
+      "body_sha256": "21cbe884eaf2c3b3ef828e127b2c735f280c7cb10cbfe0299c94a910e20a1b3e",
+      "content_type": "text/html; charset=UTF-8",
+      "matches_missing_path_response": true
+    },
+    {
+      "path": "/health",
+      "status": 200,
+      "bytes": 9984,
+      "body_sha256": "21cbe884eaf2c3b3ef828e127b2c735f280c7cb10cbfe0299c94a910e20a1b3e",
+      "content_type": "text/html; charset=UTF-8",
+      "matches_missing_path_response": true
+    },
+    {
+      "path": "/login",
+      "status": 200,
+      "bytes": 9984,
+      "body_sha256": "21cbe884eaf2c3b3ef828e127b2c735f280c7cb10cbfe0299c94a910e20a1b3e",
+      "content_type": "text/html; charset=UTF-8",
+      "matches_missing_path_response": true
+    },
+    {
+      "path": "/missing",
+      "status": 200,
+      "bytes": 9984,
+      "body_sha256": "21cbe884eaf2c3b3ef828e127b2c735f280c7cb10cbfe0299c94a910e20a1b3e",
+      "content_type": "text/html; charset=UTF-8",
+      "matches_missing_path_response": true
+    },
+    {
+      "path": "/robots.txt",
+      "status": 200,
+      "bytes": 28,
+      "body_sha256": "09f7c2328189ecdd2e687cccdafb34a16b3d2166f50f0a7962ed4de5b3aaf696",
+      "content_type": "text/plain; charset=utf-8",
+      "matches_missing_path_response": false
+    },
+    {
+      "path": "/status",
+      "status": 200,
+      "bytes": 9984,
+      "body_sha256": "21cbe884eaf2c3b3ef828e127b2c735f280c7cb10cbfe0299c94a910e20a1b3e",
+      "content_type": "text/html; charset=UTF-8",
+      "matches_missing_path_response": true
+    }
+  ]
+}

@@ -144,6 +144,34 @@ def derive_candidates(state):
     return list(result.values())
 
 
+def collection_index(state):
+    """Return the discovery targets that hold collection rows for a documented detail.
+
+    Candidate derivation needs a 200 observation of the collection, not the detail.
+    The planner only fetches it if it happens to choose that URL, so an application
+    with an obvious BOLA produced `scenario_candidates: 0` across whole runs while
+    every requirement was actually satisfiable. This picks the collections that the
+    documented operations and the identity context jointly justify, deterministically.
+    """
+    names = {i.get('name') for i in (state.get('identity_context') or {}).get('identities', [])}
+    if not names:
+        return []
+    observed = {o['url'].rstrip('/') for o in state.get('api_observations', []) if o.get('status_code') == 200}
+    targets = []
+    for op in state.get('api_operations', []):
+        params = re.findall(r'\{([^{}]+)\}', op['url'])
+        if op.get('method') != 'GET' or len(params) != 1 or not op.get('authenticated'):
+            continue
+        param = params[0]
+        collection = op['url'].split('/{' + param + '}')[0].rstrip('/')
+        if op['url'] != collection + '/{' + param + '}' or collection in observed:
+            continue
+        if collection in targets or not permitted(state, collection):
+            continue
+        targets.append(collection)
+    return targets
+
+
 def api_discover(state):
     url = state['planned_actions'][0]['target']
     if url not in discovery_targets(state) or is_destructive(url):
@@ -169,7 +197,16 @@ def api_discover(state):
         elif isinstance(body, dict) and isinstance(body.get('paths'), dict) and ('openapi' in body or 'swagger' in body):
             # OpenAPI servers/basePath may point elsewhere. Resolve, then pin every URL.
             servers = body.get('servers') or []
-            base = urljoin(url, servers[0].get('url', '/')) if servers else origin(url) + body.get('basePath', '')
+            declared = str((servers[0] or {}).get('url') or '') if servers else ''
+            # An empty or missing server URL means "this document's own origin".
+            # urljoin('/openapi.json', '') returns '/openapi.json' itself, which would
+            # append every documented route to the spec path (measured: routes became
+            # http://host/openapi.json/users/v1 and nothing downstream could match
+            # their documented collection/detail relationship).
+            if not declared.strip():
+                base = origin(url) + str(body.get('basePath') or '')
+            else:
+                base = urljoin(url, declared).rstrip('/') + str(body.get('basePath') or '')
             for route, methods in list(body['paths'].items())[:512]:
                 if not isinstance(route, str) or not route.startswith('/') or not isinstance(methods, dict):
                     continue
@@ -217,7 +254,28 @@ def api_discover(state):
 
 
 def at_path(body, parts):
-    for part in parts:
+    """Walk a dotted path such as ``data.username`` through a decoded JSON body.
+
+    The operator supplies ``identity_json_path`` as a string. Iterating that string
+    directly walks it one character at a time ('d', 'a', 't', 'a', ...), which never
+    matches a real key: every session then failed validation with "Session identity
+    not validated" even though the response plainly identified the caller. A list is
+    still accepted for callers that prefer segments.
+    """
+    if isinstance(parts, str):
+        segments = [seg for seg in parts.split('.') if seg]
+    else:
+        segments = list(parts or [])
+    for part in segments:
+        if isinstance(body, list):
+            try:
+                index = int(part)
+            except (TypeError, ValueError):
+                return None
+            if index < 0 or index >= len(body):
+                return None
+            body = body[index]
+            continue
         if not isinstance(body, dict) or part not in body:
             return None
         body = body[part]

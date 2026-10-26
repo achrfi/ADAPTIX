@@ -1,0 +1,21 @@
+{
+  "identities": [
+    {
+      "name": "adaptix_owner",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTI4OTgyNDEsImlhdCI6MTc5Mjg5NDY0MSwic3ViIjoiYWRhcHRpeF9vd25lciJ9.7ltMVoJ2ic29-7gmP5F6bEGUxM-K920NmJoQwQGzYHU"
+      }
+    },
+    {
+      "name": "adaptix_other",
+      "headers": {
+        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTI4OTgyNDEsImlhdCI6MTc5Mjg5NDY0MSwic3ViIjoiYWRhcHRpeF9vdGhlciJ9.5p0G0EO4nRGI9SRlfmCWUMVEVa40P2xj7DP289xJAB0"
+      }
+    }
+  ],
+  "identity_url": "http://127.0.0.1:18080/me",
+  "identity_json_path": "data.username",
+  "private_fields": [
+    "secret"
+  ]
+}

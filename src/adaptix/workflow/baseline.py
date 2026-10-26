@@ -15,8 +15,8 @@ from src.adaptix.config import config
 from src.adaptix.processing.normalize import deduplicate
 from src.adaptix.tools.registry import tool_registry
 from src.adaptix.tools.web import web_discover
-from src.adaptix.tools.discovery import api_discover, discovery_targets
-from src.adaptix.tools.nmap import reconnaissance
+from src.adaptix.tools.discovery import api_discover, collection_index, discovery_targets
+from src.adaptix.tools.static_discovery import static_discovery
 from src.adaptix.processing.observations import observation_processing
 from src.adaptix.agents.evidence_context import evidence_key
 from src.adaptix.workflow.budget import remaining_seconds
@@ -50,6 +50,31 @@ def baseline_settings():
         raise ValueError('Invalid baseline.yaml: ' + '; '.join(errors))
     return {'enabled': bool(raw.get('enabled')), **values,
             'fallback_when_tool_missing': 'record_limitation'}
+
+
+def static_settings():
+    """Static content discovery policy (ffuf), validated like every other phase."""
+    raw = config('baseline.yaml').get('static_discovery') or {}
+    errors = []
+    extras = set(raw) - {'enabled', 'profile', 'max_seconds', 'max_profiles'}
+    if extras:
+        errors.append('unknown static_discovery settings: ' + ', '.join(sorted(extras)))
+    if not isinstance(raw.get('enabled', True), bool):
+        errors.append('static_discovery.enabled must be a boolean')
+    values = {}
+    for name, minimum in (('max_seconds', 1), ('max_profiles', 0)):
+        value = raw.get(name)
+        if not isinstance(value, int) or isinstance(value, bool) or value < minimum:
+            errors.append(f'static_discovery.{name} must be an integer >= {minimum}')
+        else:
+            values[name] = value
+    from src.adaptix.tools.static_discovery import PROFILES, DEFAULT_PROFILE
+    profile = str(raw.get('profile') or DEFAULT_PROFILE)
+    if profile not in PROFILES:
+        errors.append(f'static_discovery.profile must be one of {", ".join(sorted(PROFILES))}')
+    if errors:
+        raise ValueError('Invalid baseline.yaml: ' + '; '.join(errors))
+    return {'enabled': bool(raw.get('enabled', True)), 'profile': profile, **values}
 
 
 def phase_used_calls(state, metrics):
@@ -88,10 +113,39 @@ def _stop_reason(state, metrics, settings, deadline):
     return None
 
 
+def _probe_slots_free(state, metrics, settings, remaining):
+    """Whether the reserved class-probe calls still fit under the phase cap."""
+    from src.adaptix.workflow.budget import budget_limit, DEFAULT_TOOL_CALL_BUDGET
+    used = phase_used_calls(state, metrics)
+    reserve = max(0, int(settings.get('adaptive_tool_call_reserve', 0)))
+    tool_limit = budget_limit(state, 'tool_call_budget', DEFAULT_TOOL_CALL_BUDGET)
+    cap = (int(settings['max_tool_calls']) if tool_limit is None
+           else min(int(settings['max_tool_calls']), max(0, tool_limit - reserve)))
+    return used + remaining <= cap
+
+
+# Keys a phase contributes to cumulatively. Tool results and probe results carry
+# only their own additions, so replacement would silently drop prior evidence.
+# `verified_findings` is accumulated for the same reason as the rest: a capability that
+# proves a record while the run is still going (the extraction writes its proven-impact
+# finding here) had its write replaced by the next tool result, so the proof vanished from
+# the report even though it had been executed.
+ACCUMULATING = ('verification_evidence', 'injection_findings', 'script_findings',
+                'idor_findings', 'verified_findings')
+
+
 def _merge(working, update):
-    """Thread one tool result through the working state (metrics come threaded)."""
+    """Thread one tool result through the working state (metrics come threaded).
+
+    Accumulating keys are appended, never replaced: a probe returns only the records
+    it signed, so overwriting `verification_evidence` meant each deterministic check
+    erased the previous one's proof and the report saw a single class at most.
+    """
     for key, value in (update or {}).items():
-        working[key] = value
+        if key in ACCUMULATING and isinstance(value, list) and isinstance(working.get(key), list):
+            working[key] = working[key] + value
+        else:
+            working[key] = value
     return working
 
 
@@ -121,9 +175,15 @@ def _http_seeds(services, settings):
 
 
 def _discover_origin(state, seed, settings, deadline, skipped):
-    """web discovery plus bounded documentation probes on one authorized origin."""
+    """web discovery, bounded documentation probes and one static sweep per origin."""
     working = dict(state)
     steps = []
+    # Static content discovery runs FIRST on the origin. It is the only pass that
+    # finds paths the application never links to, and it was previously scheduled
+    # last - so on every run the baseline spent its whole tool-call cap on crawl and
+    # document probes and the sweep never executed at all. The crawl then runs over
+    # the union of what it finds and what the sweep discovered, which makes the
+    # crawl's own budget go further.
     working['planned_actions'] = [{'tool': 'web_discover', 'target': seed}]
     working = _merge(working, web_discover(working))
     steps.append({'tool': 'web_discover', 'target': seed, 'routes': len(working.get('web_routes', []))})
@@ -138,6 +198,84 @@ def _discover_origin(state, seed, settings, deadline, skipped):
         working['planned_actions'] = [{'tool': 'api_discover', 'target': document}]
         working = _merge(working, api_discover(working))
         steps.append({'tool': 'api_discover', 'target': document})
+        # Object-level authorization needs the collection rows that prove ownership
+        # alongside the documented detail endpoint. Deriving candidates only from what
+        # the model happened to request left whole runs at `scenario_candidates: 0`
+        # while the collection was one deterministic, in-scope, read-only GET away.
+        # It is fetched here, immediately after the document that documents it, so a
+        # later document probe cannot exhaust the phase budget first.
+        for collection in collection_index(working):
+            if collection in probed or any(s.get('target') == collection for s in steps):
+                continue
+            reason = _stop_reason(state, working.get('execution_metrics', {}), settings, deadline)
+            if reason:
+                skipped.append(reason)
+                break
+            working['planned_actions'] = [{'tool': 'api_discover', 'target': collection}]
+            working = _merge(working, api_discover(working))
+            steps.append({'tool': 'api_discover', 'target': collection, 'purpose': 'collection_rows'})
+    # Object-level authorization is decided by two identities on a route discovery already
+    # observed. It used to require an OpenAPI entry declaring `security`, so an application
+    # with no specification produced `scenario_candidates: 0` while its basket and user
+    # routes were plainly cross-readable. This runs after the observations exist and
+    # before the sweep, and signs nothing unless the contract is satisfied.
+    # Deterministic class checks. The model could not schedule these on an application
+    # without a specification, and each check signs its own record through a replay
+    # contract, so a suspicion never becomes a finding.
+    from src.adaptix.tools.vuln_probes import authorization_probe, injection_probe, script_probe
+    probes = (('injection_probe', injection_probe, 'injection_findings'),
+              ('authorization_probe', authorization_probe, 'idor_findings'),
+              ('script_probe', script_probe, 'script_findings'))
+    # Their slots are reserved out of the phase cap, not borrowed from it: with the cap
+    # already consumed by discovery these three never executed and the run reported
+    # zero for every class they cover.
+    probe_slots = len(probes)
+    for tool_name, probe, finding_key in probes:
+        reason = _stop_reason(state, working.get('execution_metrics', {}), settings, deadline)
+        if reason and not _probe_slots_free(state, working.get('execution_metrics', {}), settings, probe_slots):
+            skipped.append(reason)
+            break
+        working['planned_actions'] = [{'tool': tool_name, 'target': seed}]
+        from src.adaptix.agents.priority import observation_facts
+        before_facts = observation_facts(working)
+        started_at = time.monotonic()
+        outcome = probe(working)
+        working = _merge(working, outcome)
+        probe_slots -= 1
+        confirmed = len(working.get(finding_key) or [])
+        steps.append({'tool': tool_name, 'target': seed, 'confirmed': confirmed})
+        from src.adaptix.agents.priority import observation_facts, record_outcome
+        _, outcome = record_outcome(working, before_facts, outcome,
+                                    {'tool': tool_name, 'target': seed},
+                                    time.monotonic() - started_at)
+        working.setdefault('action_outcomes', []).append(outcome)
+    # The sweep runs LAST on purpose: it is one tool call but consumes nearly the whole
+    # phase wall-clock, so running it first starved the cheap document probes and the
+    # collection fetch that object-level authorization needs. It keeps a reserved slot
+    # so it still executes when the probes above used the phase's call cap.
+    try:
+        static = static_settings()
+    except (ValueError, OSError, KeyError) as exc:
+        skipped.append(f'static_discovery_misconfigured:{str(exc)[:60]}')
+        static = {'enabled': False}
+    if static.get('enabled', True):
+        already = set(working.get('static_swept') or [])
+        for profile in [static['profile']] if static.get('max_profiles', 1) else []:
+            if profile in already:
+                continue
+            reason = _stop_reason(state, working.get('execution_metrics', {}), settings, deadline)
+            if reason:
+                skipped.append(reason)
+                break
+            working['planned_actions'] = [{'tool': 'static_discovery', 'target': seed,
+                                           'profile': profile}]
+            before = len(working.get('web_routes', []))
+            working = _merge(working, static_discovery(working))
+            step = {'tool': 'static_discovery', 'target': seed, 'profile': profile,
+                    'routes': len(working.get('web_routes', [])) - before}
+            if (working.get('static_discovery') or {}).get('skipped'):
+                step['skipped'] = working['static_discovery']['skipped']
+            steps.append(step)
     return working, steps
 
 
@@ -196,29 +334,9 @@ def baseline_reconnaissance(state):
         if len(urls) > len(seeds):
             limitations.append(f'{len(urls) - len(seeds)} URL target(s) above the {settings["max_web_origins"]} origin cap')
     else:
-        nmap_spec = registry.get('nmap') or {}
-        service_state = {**working, 'hosts': list(working.get('hosts', []))[:settings['max_hosts']]}
-        if not nmap_spec.get('enabled'):
-            skipped.append('nmap_disabled')
-            limitations.append('Nmap disabled; no service inventory and no assumed HTTP origin')
-            mode = 'limited'
-        elif not nmap_spec.get('path'):
-            errors.append('Nmap unavailable: ' + str(nmap_spec.get('detail', ''))[:120])
-            skipped.append('nmap_missing')
-            limitations.append('Nmap binary missing; no service inventory and no assumed HTTP origin')
-            mode = 'limited'
-        else:
-            working = _merge(working, reconnaissance(service_state))
-            services = working.get('services', [])
-            for error in working.get('errors', []):
-                if error not in errors:
-                    errors.append(error)
-            absorb(working.get('events', []))
-            steps.append({'tool': 'nmap', 'services_open': len(services)})
-            seeds = _http_seeds(services, settings)
-            if not seeds:
-                limitations.append('No HTTP service identified from the observed inventory')
-                mode = 'limited'
+        skipped.append('network_scan_retired')
+        limitations.append('Network scanning retired; provide an explicit http:// or https:// target URL')
+        mode = 'limited'
     for seed in seeds:
         reason = _stop_reason(state, working.get('execution_metrics', {}), settings, deadline)
         if reason:
@@ -258,6 +376,14 @@ def baseline_reconnaissance(state):
               'api_operations': working.get('api_operations', []),
               'http_services': working.get('http_services', []),
               'discovery_limitations': working.get('discovery_limitations', []),
+              # Deterministic class-check results travel with the phase that produced
+              # them. They were absent from this projection, so a probe could sign a
+              # record and reflection would still see zero findings.
+              'action_outcomes': working.get('action_outcomes', []),
+              'injection_findings': working.get('injection_findings', []),
+              'script_findings': working.get('script_findings', []),
+              'idor_findings': working.get('idor_findings', []),
+              'verification_evidence': working.get('verification_evidence', []),
               'errors': errors,
               'execution_metrics': execution_metrics,
               'raw_bytes': working.get('raw_bytes', 0),

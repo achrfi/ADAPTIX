@@ -42,6 +42,9 @@ def execution_identity(action, state):
             data['headers'] = hashlib.sha256(json.dumps(action['headers'], sort_keys=True, default=str).encode()).hexdigest()
         if action.get('identity'):
             data['identity'] = str(action['identity'])
+    if action['tool'] == 'static_discovery':
+        # A different wordlist profile is a different sweep over the same origin.
+        data['profile'] = str(action.get('profile') or 'common')
     return hashlib.sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
 
 

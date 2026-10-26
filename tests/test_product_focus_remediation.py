@@ -234,18 +234,20 @@ def test_schema_retry_uses_safe_field_feedback_and_accounts_both_calls(monkeypat
     seen = []
     def complete(**kwargs):
         seen.append(kwargs)
+        # `goal_status` is a Literal: unlike a null string field (now coerced),
+        # it cannot be normalised, so the retry path is still exercised.
         content = {'actions': [], 'rationale': 'Review', 'reflection': 'Stored evidence is incomplete',
-            'review': {'goal_status': 'uncertain', 'evidence_refs': [], 'uncertainty': 'Need evidence', 'failure': None, 'decision_change': 'Report the limitation'}}
+            'review': {'goal_status': 'not_a_status', 'evidence_refs': [], 'uncertainty': 'Need evidence', 'failure': '', 'decision_change': 'Report the limitation'}}
         if len(seen) == 2:
-            assert 'review.failure' in kwargs['messages'][-1]['content']
-            content['review']['failure'] = ''
+            assert 'review.goal_status' in kwargs['messages'][-1]['content']
+            content['review']['goal_status'] = 'uncertain'
         return model_response(content)
     monkeypatch.setattr(planner.litellm, 'completion', complete)
     kwargs = {'model': 'test', 'messages': [{'role': 'user', 'content': 'Lab evidence'}], 'max_tokens': 512, 'timeout': 5}
     decision, metrics, _, ledger, error = request_decision({'planner_retry_limit': 1, 'token_budget': 2000}, kwargs, {}, 100)
     assert decision and not error and len(seen) == 2
     assert metrics['tokens_used'] == sum(row['tokens_charged'] for row in ledger) == 260
-    assert ledger[0]['validation_fields'] == [{'field': 'review.failure', 'type': 'string_type'}]
+    assert [f['field'] for f in ledger[0]['validation_fields']] == ['review.goal_status']
 
 
 def test_graph_retests_same_url_only_after_discovered_technology_changes(tmp_path, monkeypatch):

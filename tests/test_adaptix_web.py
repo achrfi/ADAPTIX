@@ -153,10 +153,10 @@ def test_planner_decision_accepts_optional_hypotheses():
 
 def test_web_ports_extend_scope_without_changing_default():
     from src.adaptix.security.scope import scope_ports
-    policy = {'limits': {'nmap_ports': '22,8000-8002', 'web_ports': '3000'}}
+    policy = {'limits': {'allowed_ports': '80,443,8000', 'web_ports': '3000'}}
     assert 3000 in scope_ports(['http://127.0.0.1:3000/'], policy)
-    assert scope_ports(['http://127.0.0.1:18080/api'], {'limits': {'nmap_ports': '22,8000-8002'}}) == \
-        [22, 80, 443, 8000, 8001, 8002, 18080]
+    assert scope_ports(['http://127.0.0.1:18080/api'], {'limits': {'allowed_ports': '80,443,8000'}}) == \
+        [80, 443, 8000, 18080]
 
 
 def test_out_of_scope_endpoint_is_rejected_before_request(monkeypatch):

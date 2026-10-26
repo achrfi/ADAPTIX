@@ -95,21 +95,13 @@ def test_http_url_target_skips_port_scan_and_host_expansion(temp_artifacts, no_p
     assert result['api_operations'], 'documented GET operations are extracted with provenance'
 
 
-def test_host_target_discovers_services_then_explores_http_only(temp_artifacts, no_provider, monkeypatch):
-    from src.adaptix.tools import nmap as nmap_tool
-    monkeypatch.setattr(nmap_tool, 'reconnaissance', lambda state: {
-        'services': [{'host': '127.0.0.1', 'port': 18080, 'protocol': 'tcp', 'service': 'http',
-                      'product': 'vampi', 'version': '1', 'tunnel': '', 'status': 'open'}],
-        'recon_inventory': [{'host': '127.0.0.1', 'status': 'up', 'ports': [], 'timestamp': 0}],
-        'errors': [], 'events': ['Reconnaissance: 1 open services'], 'raw_bytes': 100})
-    _mock_documents(monkeypatch)
+def test_host_target_records_retired_scan_without_assuming_http_origin(temp_artifacts, no_provider, monkeypatch):
+    monkeypatch.setattr(web, '_request', lambda *a, **k: pytest.fail('No HTTP origin was supplied'))
     result = baseline.baseline_reconnaissance(_state(target=['127.0.0.1'], scope_ports=[18080]))
-    steps = result['baseline_metrics']['steps']
-    assert steps[0]['tool'] == 'nmap'
-    assert any(step['tool'] == 'web_discover' for step in steps)
-    assert result['discovered_documents']
-    assert all(document.startswith('http://127.0.0.1:18080')
-               for document in result['discovered_documents'])
+    assert result['baseline_recon']['mode'] == 'limited'
+    assert result['baseline_metrics']['steps'] == []
+    assert result['baseline_metrics']['skipped'] == ['network_scan_retired']
+    assert not result['discovered_documents']
 
 
 def test_expired_run_budget_skips_the_whole_phase(no_provider, monkeypatch):
@@ -120,15 +112,15 @@ def test_expired_run_budget_skips_the_whole_phase(no_provider, monkeypatch):
     assert result['baseline_metrics']['limitations']
 
 
-def test_missing_nmap_degrades_gracefully(no_provider, temp_artifacts, monkeypatch):
+def test_stale_registry_cannot_restore_network_scanning(no_provider, temp_artifacts, monkeypatch):
     monkeypatch.setattr(baseline, 'tool_registry', lambda: {
         'nmap': {'enabled': True, 'path': None, 'detail': 'not found'}})
     monkeypatch.setattr(web, '_request',
                         lambda *a, **k: (_ for _ in ()).throw(AssertionError('no HTTP origin was observed')))
     result = baseline.baseline_reconnaissance(_state(target=['127.0.0.1']))
     assert result['baseline_recon'] == {'completed': True, 'mode': 'limited'}
-    assert result['baseline_metrics']['skipped'] == ['nmap_missing']
-    assert any('Nmap' in reason for reason in result['baseline_metrics']['limitations'])
+    assert result['baseline_metrics']['skipped'] == ['network_scan_retired']
+    assert any('explicit http://' in reason for reason in result['baseline_metrics']['limitations'])
 
 
 def test_disabled_baseline_makes_the_planning_first_workflow_available(no_provider, monkeypatch):
@@ -322,7 +314,12 @@ def test_adaptive_reserve_protects_the_model_planned_budget(monkeypatch):
     assert reason == 'adaptive_reserve_protected', \
         'the baseline must stop before spending the reserve the adaptive loop needs'
     low = _state(tool_call_budget=20)
-    assert baseline._stop_reason(low, {'tool_calls_used': 8}, settings,
+    # The phase cap is configuration, not a literal: assert the boundary the settings
+    # actually define so raising max_tool_calls does not silently break the guard.
+    cap = int(settings['max_tool_calls'])
+    assert baseline._stop_reason(low, {'tool_calls_used': cap - 1}, settings,
+                                __import__('time').monotonic() + 60) is None
+    assert baseline._stop_reason(low, {'tool_calls_used': cap}, settings,
                                 __import__('time').monotonic() + 60) == 'phase_tool_call_limit'
 
 

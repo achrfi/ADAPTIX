@@ -1,0 +1,321 @@
+{
+  "records": [
+    {
+      "url": "http://127.0.0.1:3000/",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rolldown-runtime-BoHGiXSq.js",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/chunk-DBPdFzgj.js",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/polyfills.js",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/styles.css",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/chunk-1qQQGal7.js",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/chunk-Cv2YgWUq.js",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/scripts.js",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/main.js",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/i18n/en.json",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-version",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-configuration",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Challenges/",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/languages",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-version",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-configuration",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Challenges/",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-configuration",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-configuration",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-configuration",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/api/Quantitys/",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/products/search",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/JuiceShop_Logo.png",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/media/material-icons-LEZCGFVT.woff2",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/apple_juice-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/apple_pressings-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/banana_juice-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/rest/admin/application-configuration",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/basil_smoothie-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/berry_juice-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/artwork2-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/braga-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/carrot_juice-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/dragonfruit_juice-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/eggfruit_juice-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/elderflower_cordial-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/fruit_press-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/grape_juice-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/green_smoothie-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/assets/public/images/products/permafrost-1x.avif",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:3000/",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:3000/",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:3000/",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:3000/",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:3000/",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:3000/redirect",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:3000/redirect",
+      "method": "GET",
+      "status": 500,
+      "source": "playwright_network"
+    }
+  ],
+  "pages": [
+    {
+      "url": "http://127.0.0.1:3000/",
+      "title": "OWASP Juice Shop",
+      "status": 200,
+      "render_wait": "networkidle"
+    },
+    {
+      "url": "http://127.0.0.1:3000/redirect",
+      "title": "TypeError: Cannot read properties of undefined (reading 'includes')",
+      "status": 500,
+      "render_wait": "networkidle"
+    }
+  ],
+  "forms": [],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/socket.io/",
+      "reason": "realtime_disabled"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/socket.io/",
+      "reason": "realtime_disabled"
+    }
+  ],
+  "errors": [],
+  "requests_sent": 41,
+  "client_routes": [
+    "http://127.0.0.1:3000/#/about",
+    "http://127.0.0.1:3000/#/chatbot",
+    "http://127.0.0.1:3000/#/contact",
+    "http://127.0.0.1:3000/#/login",
+    "http://127.0.0.1:3000/#/photo-wall"
+  ],
+  "remaining_pages": 0,
+  "limits": {
+    "pages": 24,
+    "requests": 240
+  }
+}

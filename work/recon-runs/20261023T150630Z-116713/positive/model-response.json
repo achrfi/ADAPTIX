@@ -1,0 +1,17 @@
+{
+  "model": "qwen3.5:9b-q4_K_M",
+  "created_at": "2026-10-23T15:08:05.202274857Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"endpoints\": [\n    {\n      \"path\": \"/admin\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    },\n    {\n      \"path\": \"/api\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    },\n    {\n      \"path\": \"/login\",\n      \"status\": 302,\n      \"classification\": \"redirect\"\n    },\n    {\n      \"path\": \"/redirect\",\n      \"status\": 302,\n      \"classification\": \"redirect\"\n    },\n    {\n      \"path\": \"/robots.txt\",\n      \"status\": 403,\n      \"classification\": \"protected\"\n    }\n  ],\n  \"observed_count\": 5,\n  \"verified_vulnerabilities\": 0\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 89926453600,
+  "load_duration": 35230725385,
+  "prompt_eval_count": 162,
+  "prompt_eval_cached_count": 0,
+  "prompt_eval_duration": 11067850000,
+  "eval_count": 197,
+  "eval_duration": 43581929000
+}

@@ -1,6 +1,8 @@
 flowchart TD
   U[Free natural-language instruction and selected target] --> S[Signed scope guard and DNS pins]
-  S -->|allowed| P[Adaptive planner: evidence, reflection, remaining budget]
+  S -->|allowed| D[Baseline discovery: explicit HTTP URL]
+  D --> N[Configured deterministic Nuclei phase]
+  N --> P[Adaptive planner: evidence, reflection, remaining budget]
   S -->|denied| B[Blocked report]
   P --> C[Rank feasible model candidates by benefit and cost]
   C -->|one action| G[Execution scope, operation and human-approval gate]

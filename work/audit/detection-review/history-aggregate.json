@@ -1,0 +1,113 @@
+{
+  "reported_verified_by_class": {
+    "broken_object_level_authorization": 18,
+    "potential_vulnerability": 32,
+    "unspecified": 7,
+    "sql_injection": 1
+  },
+  "reported_verification_methods": {
+    "deterministic_replay": 17,
+    "nuclei_template_match": 34,
+    "unspecified": 7
+  },
+  "top_stop_reasons": [
+    [
+      "no_new_actions",
+      1565
+    ],
+    [
+      "policy_rejections_exhausted",
+      423
+    ],
+    [
+      "None",
+      220
+    ],
+    [
+      "context_budget_exhausted",
+      216
+    ],
+    [
+      "budget_exhausted",
+      211
+    ],
+    [
+      "planning_failure_no_decision",
+      209
+    ],
+    [
+      "planner_unavailable",
+      165
+    ],
+    [
+      "tool_call_budget_exhausted",
+      25
+    ],
+    [
+      "no_feasible_action",
+      14
+    ],
+    [
+      "time_budget_exhausted",
+      8
+    ]
+  ],
+  "tool_calls_recorded": {
+    "nuclei": 627,
+    "httpx": 591,
+    "nmap": 217,
+    "http_request": 577,
+    "api_discover": 82,
+    "idor": 106,
+    "playwright": 31
+  },
+  "reports_with_xss_label": 0,
+  "xss_examples": [],
+  "other_verified_examples": [
+    {
+      "path": "artifacts/scans/05a5eac423ef/report-845e91831319.json",
+      "methods": {
+        "deterministic_replay": 1
+      },
+      "classes": {
+        "broken_object_level_authorization": 1
+      }
+    },
+    {
+      "path": "artifacts/scans/181edfea9154/report-845e91831319.json",
+      "methods": {
+        "deterministic_replay": 1
+      },
+      "classes": {
+        "broken_object_level_authorization": 1
+      }
+    },
+    {
+      "path": "artifacts/scans/1bc5a57c5a39/report-845e91831319.json",
+      "methods": {
+        "deterministic_replay": 1
+      },
+      "classes": {
+        "broken_object_level_authorization": 1
+      }
+    },
+    {
+      "path": "artifacts/scans/309c18bbd0c2/report-845e91831319.json",
+      "methods": {
+        "nuclei_template_match": 1
+      },
+      "classes": {
+        "potential_vulnerability": 1
+      }
+    },
+    {
+      "path": "artifacts/scans/32c3cd7997c0/report-845e91831319.json",
+      "methods": {
+        "nuclei_template_match": 1
+      },
+      "classes": {
+        "potential_vulnerability": 1
+      }
+    }
+  ]
+}

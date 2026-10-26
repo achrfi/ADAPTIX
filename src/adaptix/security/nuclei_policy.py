@@ -170,6 +170,11 @@ def prepare_scan(state, target, settings):
         row['risk'] = 'state_change' if reasons else 'observe'
         row['is_vuln_template'] = is_vuln_template
         row['allowlisted'] = allowlisted
+        # Permanent-deny is independent of approval: a hash-reviewed allowlist
+        # entry is the ONLY thing that can clear it. Tracked as its own flag so
+        # 'chosen' can enforce it regardless of what authorization['result'] is,
+        # instead of relying on it surviving inside the free-text reasons list.
+        row['hard_denied'] = bool(permanent) and not allowlisted
         row['reasons'] = sorted(set(reasons))
         files.append(row)
     all_evaluated = len(files)
@@ -249,7 +254,12 @@ def prepare_scan(state, target, settings):
         # state change; the executor independently reaches the same observe verdict.
         authorization = {'required': False, 'result': 'allowed', 'operation': 'nuclei_observation_subset',
                          'reason': 'Manifest selected only observation-class templates'}
-    chosen = files if authorization['result'] == 'allowed' else [row for row in files if row['risk'] == 'observe']
+    # Mechanical safety never bends for review (see comment above): approval can
+    # only release approval-required templates, never a hard_denied row that
+    # hasn't cleared hash review. Filter is applied identically whether approval
+    # was allowed or denied, so this can't regress silently on either branch.
+    base_chosen = files if authorization['result'] == 'allowed' else [row for row in files if row['risk'] == 'observe']
+    chosen = [row for row in base_chosen if not row.get('hard_denied')]
     manifest = {**profile, 'manifest_sha256': fingerprint, 'templates': files,
                 'selected_count': len(files), 'executable_count': len(chosen), 'approval_required_count': len(active),
                 'coverage': 'full_selected_manifest' if not active or authorization['result'] == 'allowed' else 'observation_subset',

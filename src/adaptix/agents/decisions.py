@@ -5,7 +5,22 @@ import os
 import time
 import litellm
 from pydantic import ValidationError
-from src.adaptix.agents.schema import PlannerDecision
+
+litellm.suppress_debug_info = True
+litellm.set_verbose = False
+from src.adaptix.agents.schema import PlannerDecision, salvage_truncated_json
+from src.adaptix.agents.prose_fit import fit_prose
+from src.adaptix.agents.schema import strip_code_fence
+
+
+class ProviderStarvation(Exception):
+    """The provider returned reasoning but no content, and did not say why.
+
+    Distinct from a timeout and from a schema failure: the call completed, cost
+    tokens, and produced nothing usable. It is retryable because it is
+    intermittent at the provider (measured: the identical request returned empty
+    content twice and valid content on the third and fourth attempts).
+    """
 from src.adaptix.workflow.budget import remaining_seconds, remaining_tokens, STORE_CACHE_BOUND
 
 
@@ -168,8 +183,21 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
     repair = None
     envelope_too_large = False
     compat_stripped = False
+    effort_stripped = False
     reported_prompt_tokens = 0
-    for attempt in range(retries + 1):
+    # Starvation is intermittent at the gateway (measured: empty, empty, valid on
+    # an identical request; ui-182632 also starved three times before the caller
+    # could recompact). It costs one short call and no envelope changes, so it gets
+    # a small fixed allowance on top of the operator's retry budget rather than
+    # consuming it. Four calls stay bounded while giving the gateway one more
+    # chance before the planner changes the prompt size.
+    starvation_attempts = 0
+    max_starvation_attempts = 3
+    attempt = -1
+    while True:
+        attempt += 1
+        if attempt > retries:
+            break
         remaining = remaining_tokens(state, tokens)
         parameters = dict(kwargs)
         attempt_prompt_cost = prompt_cost
@@ -252,7 +280,41 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
                 # Learn this provider's real throughput so later passes size their own
                 # envelope from measurement instead of a hardcoded constant.
                 metrics['output_tokens_per_second'] = round(completion_tokens / elapsed, 3)
-            decision = PlannerDecision.model_validate_json(response.choices[0].message.content)
+            raw_content = response.choices[0].message.content
+            reasoning_chars = len(getattr(response.choices[0].message, 'reasoning_content', '') or '')
+            if not (raw_content or '').strip() and reasoning_chars:
+                # Measured against a real gateway: reasoning_effort=none is honoured
+                # most of the time but not always, and when it is ignored the model
+                # spends the whole 2048-token cap on reasoning_content and returns
+                # empty content. The same request succeeds on a later attempt, so
+                # this is a provider-side inconsistency, not a wrong decision.
+                metrics['reasoning_starvation'] = metrics.get('reasoning_starvation', 0) + 1
+                entry['result'] = 'reasoning_starvation'
+                raise ProviderStarvation('provider returned reasoning with empty content')
+            raw_content = strip_code_fence(raw_content)
+            try:
+                decision = PlannerDecision.model_validate_json(raw_content)
+            except ValidationError as first_error:
+                # A provider that ignores max_tokens and caps output hard can cut
+                # the JSON off mid-string. Salvage the actions that completed
+                # instead of losing the whole planning pass.
+                salvaged = salvage_truncated_json(raw_content)
+                if salvaged is not None:
+                    decision = PlannerDecision.model_validate_json(salvaged)
+                    metrics['salvaged_truncated_decision'] = True
+                else:
+                    # A complete decision can still fail on prose length alone:
+                    # `string_too_long` rejects a whole plan because a rationale ran
+                    # 500 characters past a presentation cap. The prose carries no
+                    # structured meaning, so fit it to the declared limit and keep the
+                    # decision; every structured field stays exactly as the model sent
+                    # it and is still validated below.
+                    fitted, trimmed = fit_prose(raw_content)
+                    if fitted is None or not trimmed:
+                        raise first_error
+                    decision = PlannerDecision.model_validate_json(fitted)
+                    metrics['prose_fitted'] = metrics.get('prose_fitted', 0) + 1
+                    entry['prose_fitted'] = trimmed
             entry['result'] = 'valid_decision'
             entry['finish_reason'] = finish_reason
             cache[actual_key] = decision.model_dump()
@@ -269,6 +331,39 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
             # Do not persist provider errors that may echo prompt credentials.
             last_error = type(exc).__name__
             entry.update(result='failed', error_type=last_error)
+            if isinstance(exc, ProviderStarvation):
+                metrics['provider_starvation'] = metrics.get('provider_starvation', 0) + 1
+            if isinstance(exc, ProviderStarvation):
+                # Not an envelope problem and not a schema problem: the provider
+                # completed a call with reasoning only. Retrying the same request is
+                # correct because the failure is intermittent at the gateway, so the
+                # envelope is left untouched.
+                entry['error_class'] = 'provider_starvation'
+                entry['seconds'] = round(time.monotonic() - started, 6)
+                ledger.append(entry)
+                metrics['seconds'] = metrics.get('seconds', 0) + entry['seconds']
+                starvation_attempts += 1
+                if starvation_attempts <= max_starvation_attempts:
+                    retries += 1  # spend the starvation allowance, not the operator's
+                    continue
+                # The allowance is spent. Starvation at one prompt size was measured to be
+                # deterministic (5 of 5 empty at 32,275 tokens, while 31,664 succeeded), so
+                # resending the identical request cannot win: it only burns clock. Return
+                # the class to the caller, which can shrink the prompt and try once more.
+                break
+
+            # A provider that does not know reasoning_effort rejects the whole
+            # request (measured: litellm.UnsupportedParamsError on openai/gpt-4.1-mini).
+            # The parameter is an optimisation, never a requirement, so drop it once
+            # and retry: without it the model simply reasons by its own default.
+            if not effort_stripped and 'reasoning_effort' in str(exc) and 'reasoning_effort' in parameters:
+                effort_stripped = True
+                parameters.pop('reasoning_effort', None)
+                kwargs.pop('reasoning_effort', None)
+                entry['result'] = 'reasoning_effort_unsupported'
+                metrics['reasoning_effort_unsupported'] = metrics.get('reasoning_effort_unsupported', 0) + 1
+                ledger.append(entry)
+                continue
             if not compat_stripped and 'response_format' in str(exc).lower() and 'response_format' in parameters:
                 # A provider that refuses the declared response_format is a
                 # compatibility fact, not a failure of the decision; strip the
@@ -281,8 +376,28 @@ def request_decision(state, kwargs, metrics, prompt_cost, tighten=None):
                 entry['result'] = 'compat_fallback'
                 metrics['response_format_compat_fallback'] = metrics.get('response_format_compat_fallback', 0) + 1
             if is_timeout_error(last_error) or isinstance(exc, TimeoutError) or finish_reason == 'length':
-                # Cut off at the output limit means the envelope, not the schema, was
-                # too large for the window; the next attempt must be smaller.
+                # Two different failures were previously collapsed into one. A
+                # `finish_reason == 'length'` response means the output envelope was too
+                # large for the window, so the next attempt must be smaller. A *timeout*
+                # means the provider did not finish in time: shrinking 520 tokens to 500
+                # changes nothing and burns the run's whole wall-clock budget on a
+                # decision the model was never going to return in that window. The
+                # honest classification lets the caller report provider capacity and
+                # stop, instead of mislabelling it as an output-constraint problem.
+                if is_timeout_error(last_error) or isinstance(exc, TimeoutError):
+                    # A timeout is a capacity fact: the provider did not finish in the
+                    # window. Shrinking 520 output tokens to 500 changes nothing, so it
+                    # must not be retried as an "envelope too large" case - that both
+                    # burns the run's clock and records the failure under the wrong
+                    # class. The retry budget is still spent (the window may have been
+                    # clamped by the run clock on the first attempt), while `last_error`
+                    # keeps the provider's own exception name so diagnostics stay exact.
+                    entry['error_class'] = 'provider_timeout'
+                    metrics['provider_timeout'] = metrics.get('provider_timeout', 0) + 1
+                    entry['seconds'] = round(time.monotonic() - started, 6)
+                    ledger.append(entry)
+                    metrics['seconds'] = metrics.get('seconds', 0) + entry['seconds']
+                    continue
                 envelope_too_large = True
                 entry['envelope'] = 'too_large'
                 # Native JSON-Schema has overhead that plain JSON lacks; when the envelope

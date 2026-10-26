@@ -1,0 +1,16 @@
+{
+  "status": "complete",
+  "cli_flag": "--ffuf-results FILE",
+  "state_fields": [
+    "ffuf_imports",
+    "ffuf_observations"
+  ],
+  "real_model": "passed",
+  "observations": 6,
+  "executed_tools": 0,
+  "full_regression": "515 passed",
+  "post_guard_focused_tests": "24 passed",
+  "evidence_files_verified": 18,
+  "instructions": "INTEGRATION.md",
+  "writeup": "writeup.md"
+}

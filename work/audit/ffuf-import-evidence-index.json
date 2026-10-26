@@ -1,0 +1,94 @@
+{
+  "files": [
+    {
+      "path": "src/adaptix/processing/ffuf.py",
+      "bytes": 7295,
+      "sha256": "8fe791d07693398683b0776c1d6323609993d42b426afb2b313b8d25038f4b90"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/model-context.json",
+      "bytes": 4312,
+      "sha256": "5fffdb59c6eb95a5e7ca0ca9039afcfb5f272d0dd6878a40e8d2d9c6ae8195fe"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/approval-audit-c4eef423ec64.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/checkpoint-0001-90375e8a9980.json",
+      "bytes": 17569,
+      "sha256": "fbf2beee3b016a8b3c39f33150ad745dd9f127911240e24c716671981f091f26"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/decisions-3183d37be506.json",
+      "bytes": 161,
+      "sha256": "c85295434b8a178670fb1d3a93ce05cfadae672abef5796ea21d7aef2d8da706"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/events-862417b9e7c3.json",
+      "bytes": 483,
+      "sha256": "c4235fccc88c747a5a3461ba05bebbce70d3cc395af38394d6b413fc68f71dec"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/evidence-ee8250fb76e0.json",
+      "bytes": 74,
+      "sha256": "8202f1b547153a401e0b277df043f16e79681ec1c709c18d69a174f0f914fbc0"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/evidence-index-bd3323c2704f.json",
+      "bytes": 2456,
+      "sha256": "babb34ebf39e3305883ac939c8c121f6301ac32919b25bc07876d293132f92d2"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/ffuf-imports-4089a40dbedd.json",
+      "bytes": 2777,
+      "sha256": "1c75541a91851da18ef9fdc78d37f39efd5d09339a98839d27cf9b4168076f4c"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/observations-bfc5a6b45b6a.json",
+      "bytes": 2651,
+      "sha256": "6684dca6f0c66d8c375deea877e90d7750a99952ad83b47d35debafaf35b6de0"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/recon-6b7d902199e9.json",
+      "bytes": 2,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/reflection-f30409c51a78.json",
+      "bytes": 1588,
+      "sha256": "a34d866b3ef1338c56e589bfbace481d93e741630785cd522702ca961a29e15f"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/report-761b7ad8ad43.md",
+      "bytes": 1229,
+      "sha256": "188ecc80d7cb79e7dd6b3e0f2c57cefa1ae4901af6481931eb7d57e099e75965"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/report-845e91831319.json",
+      "bytes": 15938,
+      "sha256": "b1bde153acb2888a1d3c954541cc1cd54a96bb437802f1bff5382d0855a6db60"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/run-config-c7ea817b07eb.json",
+      "bytes": 990,
+      "sha256": "39cc60c3a906509cfa7ddde749953dd9f5d0ba34220b871fa944b035b92aa1f9"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/project/artifacts/scans/operator-ffuf-review/token-ledger-716752b07f75.json",
+      "bytes": 2775,
+      "sha256": "4e6bc65502ca22d92a869e4adeccf2924e99e95b93e8e61ca2dafbc00fb88dd0"
+    },
+    {
+      "path": "work/ffuf-import-runs/20261023T155531Z-659e19/summary.json",
+      "bytes": 711,
+      "sha256": "369223abced890cec51b82a771cebe34c33d0385b5742c135a1aa6e7d5bae369"
+    },
+    {
+      "path": "work/validate_ffuf_import.py",
+      "bytes": 4656,
+      "sha256": "e320c3f77f3c41c3278e92bbede857b11933e2112d83ff8a7c399ccc840c87ad"
+    }
+  ]
+}

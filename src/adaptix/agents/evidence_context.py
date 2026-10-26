@@ -5,6 +5,8 @@ from urllib.parse import urlsplit
 from src.adaptix.security.scope import endpoint_key
 
 FIELDS = {
+    'ffuf_observations': ('url', 'method', 'status_code', 'length', 'words', 'lines',
+                          'source', 'source_sha256', 'verification_status', 'route_existence_verified'),
     'api_observations': ('url', 'status_code', 'document_kind', 'links', 'records'),
     'scenario_validations': ('name', 'validated', 'reason', 'evidence_ref'),
     'services': ('host', 'port', 'protocol', 'service', 'product', 'version', 'tunnel', 'status'),

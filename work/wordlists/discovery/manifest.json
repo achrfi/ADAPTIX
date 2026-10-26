@@ -1,0 +1,40 @@
+{
+  "purpose": "Static content discovery wordlists for the adaptive static_discovery capability",
+  "upstream": "https://github.com/danielmiessler/SecLists",
+  "package_version": "2025.3-0kali1",
+  "installed_source_root": "/usr/share/seclists/Discovery/Web-Content",
+  "retrieval": "Copied verbatim from the preinstalled Kali package; no network access",
+  "files": {
+    "api-endpoints.txt": {
+      "sha256": "8379249c57bf98e51cf67fed1f7ca3f7f21ea21b144043a30afe2c0e0da204a5",
+      "bytes": 4123,
+      "entries": 269,
+      "upstream_path": "Discovery/Web-Content/api/api-endpoints.txt"
+    },
+    "backup-files.txt": {
+      "sha256": "a5a8848350fb54b3af0ef6ad9ce75b5d24eb558bf378a37fba2b9d4f6a041fb5",
+      "bytes": 2726,
+      "entries": 221,
+      "upstream_path": "derived: fixed backup/config literals plus extension-filtered Common-DB-Backups.txt"
+    },
+    "common.txt": {
+      "sha256": "74400ab9b9948c411afdf68adf5e49079801450068350cd801d0aa8fe7588d5a",
+      "bytes": 38500,
+      "entries": 4750,
+      "upstream_path": "Discovery/Web-Content/common.txt"
+    },
+    "quick.txt": {
+      "sha256": "04a5b9678da9d3a7df8638bbc4c9e17c3011b830593ac5f46d3a7c8b63808d75",
+      "bytes": 7590,
+      "entries": 585,
+      "upstream_path": "derived: curated high-signal core + api-endpoints.txt + backup-files.txt, deduplicated"
+    },
+    "raft-small-directories.txt": {
+      "sha256": "06e1ac7b390c17eb9e0da416d0599c785a1541813daa95b01c676bc92d55185f",
+      "bytes": 163210,
+      "entries": 20115,
+      "upstream_path": "Discovery/Web-Content/raft-small-directories.txt"
+    }
+  },
+  "note": "This manifest records provenance only. Verification of use is that each run records the wordlist file name, entry count and match count in its static-discovery artifact. quick.txt is the default because it completes inside the configured rate cap; larger corpora are explicit operator choices."
+}

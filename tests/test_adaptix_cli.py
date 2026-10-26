@@ -11,7 +11,8 @@ def test_instruction_reaches_planner_state_unchanged(monkeypatch, capsys):
     updates = ['scope-ok', {'report': {}, 'events': []}]
     stream = MagicMock(return_value=iter(updates[1:]))
     monkeypatch.setattr(graph, 'stream', stream)
-    monkeypatch.setattr(cli, 'authorize_cli_targets', lambda *a: ('operator-grant.json', 'operator'))
+    monkeypatch.setattr(cli, 'authorize_cli_targets',
+                        lambda *a, **k: ('operator-grant.json', 'operator'))
     monkeypatch.setattr(sys, 'argv', ['adaptix', '--instruction', instruction,
                                     '--target', '127.0.0.1'])
     main()
@@ -25,7 +26,8 @@ def test_instruction_reaches_planner_state_unchanged(monkeypatch, capsys):
 def test_cli_exposes_context_budget_and_sampling(monkeypatch):
     stream = MagicMock(return_value=iter([{'report': {}, 'events': []}]))
     monkeypatch.setattr(graph, 'stream', stream)
-    monkeypatch.setattr(cli, 'authorize_cli_targets', lambda *a: ('operator-grant.json', 'operator'))
+    monkeypatch.setattr(cli, 'authorize_cli_targets',
+                        lambda *a, **k: ('operator-grant.json', 'operator'))
     monkeypatch.setattr(sys, 'argv', ['adaptix', '--instruction', 'Observe', '--target', '127.0.0.1',
                                     '--model-context-tokens', '2048', '--temperature', '0.1'])
     main()

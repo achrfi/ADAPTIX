@@ -1,0 +1,17 @@
+{
+  "model": "qwen3.5:9b-q4_K_M",
+  "created_at": "2026-10-23T15:33:59.646648039Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"endpoints\": [\n    {\n      \"path\": \"/admin\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    },\n    {\n      \"path\": \"/health\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    },\n    {\n      \"path\": \"/login\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    },\n    {\n      \"path\": \"/missing\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    },\n    {\n      \"path\": \"/robots.txt\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    },\n    {\n      \"path\": \"/status\",\n      \"status\": 200,\n      \"classification\": \"content\"\n    }\n  ],\n  \"observed_count\": 6,\n  \"verified_vulnerabilities\": 0\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 103470734636,
+  "load_duration": 39874674282,
+  "prompt_eval_count": 176,
+  "prompt_eval_cached_count": 0,
+  "prompt_eval_duration": 11984018000,
+  "eval_count": 230,
+  "eval_duration": 51599900000
+}

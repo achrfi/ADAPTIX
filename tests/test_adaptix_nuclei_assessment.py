@@ -233,6 +233,56 @@ def test_approved_assessment_manifest_runs_the_gated_templates(manifest_state, c
     assert approved['approval']['result'] == 'allowed'
 
 
+@pytest.fixture
+def catalog_with_hard_denied(tmp_path, monkeypatch):
+    """Same as `catalog`, plus one permanently-denied template (bruteforce/intrusive)
+    that must never become executable regardless of approval."""
+    root = tmp_path / 'catalog-hard-denied'
+    _write_template(root, 'vulnerabilities', 'sqli-post', 'sqli,vuln', 'POST')
+    _write_template(root, 'vulnerabilities', 'xss-script', 'xss,vuln')
+    _write_template(root, 'misconfiguration', 'actuator', 'misconfig,panel')
+    _write_template(root, 'exposures', 'git-exposure', 'exposure')
+    _write_template(root, 'exposed-panels', 'admin-panel', 'panel,tech,detect')
+    _write_template(root, 'vulnerabilities', 'brute-login', 'bruteforce,intrusive,vuln')
+    monkeypatch.setattr(nuclei_policy, 'template_root', lambda: root)
+    return root
+
+
+def test_hard_denied_template_never_executable_even_when_approved(manifest_state, catalog_with_hard_denied):
+    """Mechanical safety never bends for review: a permanently-denied template
+    (bruteforce/intrusive/dos/oast/fuzz/default-login) must never enter _chosen,
+    before or after a valid exact-manifest approval. Only a hash-reviewed
+    allowlist entry can clear it. Regression test for the bug where
+    `chosen = files if authorization['result'] == 'allowed' else ...` let an
+    approved manifest carry hard-denied rows straight into execution."""
+    from src.adaptix.security.action_policy import issue_action_approval
+
+    pending = nuclei_policy.prepare_scan(manifest_state, 'http://127.0.0.1:8080/',
+                                         {'nuclei_templates': 'assessment'})
+    pending_hard_denied = [row for row in pending['templates'] if row.get('hard_denied')]
+    assert pending_hard_denied, 'fixture template with a hard_denied tag was not found among evaluated templates'
+    pending_chosen_ids = {row['sha256'] for row in pending['_chosen']}
+    for row in pending_hard_denied:
+        assert row['sha256'] not in pending_chosen_ids, (
+            f"hard_denied template {row.get('id')} leaked into _chosen before approval")
+
+    path = issue_action_approval(manifest_state['run_id'], manifest_state['principal'], 'nuclei',
+                                 'http://127.0.0.1:8080/', 'execute_manifest_once',
+                                 manifest_sha256=pending['manifest_sha256'])
+    approved = nuclei_policy.prepare_scan({**manifest_state, 'action_approvals': [str(path)]},
+                                          'http://127.0.0.1:8080/', {'nuclei_templates': 'assessment'})
+    assert approved['approval']['result'] == 'allowed'
+
+    approved_hard_denied = [row for row in approved['templates'] if row.get('hard_denied')]
+    assert approved_hard_denied, 'hard_denied classification did not persist across the approved re-run'
+    approved_chosen_ids = {row['sha256'] for row in approved['_chosen']}
+    for row in approved_hard_denied:
+        assert row['sha256'] not in approved_chosen_ids, (
+            f"hard_denied template {row.get('id')} leaked into executable _chosen despite approval")
+    # The manifest-level count must reflect the exclusion too, not just the row list.
+    assert approved['executable_count'] < approved['selected_count']
+
+
 def test_planner_payload_exposes_assessment_candidates(preview_settings, manifest_state, catalog):
     """Category-aware candidates reach the planner payload as plain records."""
     from src.adaptix.workflow import scanner as wf

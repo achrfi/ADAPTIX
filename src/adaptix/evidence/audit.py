@@ -7,6 +7,7 @@ from pathlib import Path
 from src.adaptix.config import ROOT
 from src.adaptix.evidence.storage import artifact_path, save_text
 from src.adaptix.evidence.sanitize import sanitize, scenario_secrets
+from src.adaptix.processing.ffuf import import_summary
 
 
 def write_json(state, stage, value):
@@ -31,7 +32,7 @@ def checkpoint(state):
         # The directory holds another run's evidence. Rewriting it would destroy an
         # audit trail; a diagnostic replay must carry a fresh run ID.
         return None
-    safe = {k: v for k, v in state.items() if k not in ('planner_cache', 'idor_scenarios', 'identity_context', 'grant', 'action_approvals')}
+    safe = {k: v for k, v in state.items() if k not in ('planner_cache', 'idor_scenarios', 'identity_context', 'grant', 'action_approvals', 'llm_api_key', 'ffuf_import_documents')}
     return str(write_json(state, stage, safe))
 
 
@@ -53,11 +54,15 @@ def export_bundle(state, report, events):
         'recon': state.get('recon_inventory', []), 'decisions': state.get('planning_history', []),
         'reflection': state.get('reflection_history', []), 'token-ledger': state.get('token_ledger', []),
         'approval-audit': state.get('approval_audit', []),
+        'ffuf-imports': {'imports': state.get('ffuf_imports', []),
+                         'observations': state.get('ffuf_observations', []),
+                         'mode': import_summary(state)['mode'] if state.get('ffuf_imports') else None},
         'evidence': {'verified': state.get('verified_findings', []), 'rejected': state.get('rejected_findings', []),
                      'inconclusive': state.get('inconclusive_findings', []), 'idor': state.get('idor_findings', [])},
         'run-config': {'target': state.get('target'), 'scope': state.get('scope_manifest'),
                        'authorization': state.get('authorization'), 'lab': state.get('lab_manifest', {}),
                        'model': state.get('llm_model'), 'temperature': state.get('llm_temperature', 0.2),
+                       'report_model_enabled': bool(state.get('report_model_enabled')),
                        'tools': state.get('tool_catalog', {}),
                        'git_base_commit': git_head, 'source_tree_sha256': source_digest.hexdigest(),
                        'python': platform.python_version(), 'platform': platform.platform(),

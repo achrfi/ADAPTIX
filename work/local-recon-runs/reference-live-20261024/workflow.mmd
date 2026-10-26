@@ -1,0 +1,22 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	ffuf_discovery(ffuf_discovery)
+	browser_discovery(browser_discovery)
+	merge(merge)
+	summarize(summarize)
+	write_report(write_report)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> ffuf_discovery;
+	browser_discovery --> merge;
+	ffuf_discovery --> browser_discovery;
+	merge --> summarize;
+	summarize --> write_report;
+	write_report --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc

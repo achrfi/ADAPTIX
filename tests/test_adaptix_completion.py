@@ -40,12 +40,12 @@ def test_empty_recon_is_unknown_not_open():
     assert inventory[0]['status'] == 'unknown' and warnings
 
 
-def test_timeout_inventory_does_not_make_up_service(monkeypatch):
-    from src.adaptix.tools import nmap
-    monkeypatch.setattr(nmap, 'tool_registry', lambda: {'nmap': {'enabled': True, 'path': 'nmap'}})
-    monkeypatch.setattr(nmap, 'run_tool', lambda *a, **kw: {'returncode': -1, 'stdout': '', 'stderr': 'timeout'})
+def test_retired_inventory_adapter_does_not_make_up_service(monkeypatch):
+    from src.adaptix.tools import nmap, registry
+    monkeypatch.setattr(registry, 'run_tool', lambda *a, **kw: pytest.fail('Retired scanner invoked'))
     result = nmap.reconnaissance({'hosts': ['127.0.0.1']})
-    assert result['services'] == [] and result['recon_inventory'][0]['status'] == 'error'
+    assert 'services' not in result and 'recon_inventory' not in result
+    assert 'retired' in result['events'][-1]
 
 
 def test_batch_dedup_preserves_separate_templates_and_paths():

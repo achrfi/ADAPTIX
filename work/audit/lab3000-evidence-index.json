@@ -1,0 +1,59 @@
+{
+  "files": [
+    {
+      "path": "config/scope.yaml",
+      "sha256": "c83fe7fceccfd61731a441272e61de53fca2e349bd4705acde73d8e8fa76a29d",
+      "bytes": 1341
+    },
+    {
+      "path": "src/adaptix/security/ports.py",
+      "sha256": "e38c3b89c3c3f3a4fca95979823575d05ece4428cd2a8040c07838351f1a1426",
+      "bytes": 2053
+    },
+    {
+      "path": "work/check_lab3000.py",
+      "sha256": "347930968fd8c784fe18f7948765291790ebcbb18f25fd7fb46ee88c5ca3ed49",
+      "bytes": 6001
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/command.json",
+      "sha256": "ba1f96d3053d41a817ce7bfcf90832068a7ad00ce2cd26eb524ad776b3873df7",
+      "bytes": 502
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/evidence.json",
+      "sha256": "883259ba50ea19c3dba116e4ecf9a31d38fd569a1b7ef0d456d5ed4a27c8c71c",
+      "bytes": 2465
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/ffuf.json",
+      "sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+      "bytes": 4058
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/ffuf.log",
+      "sha256": "c7e935be5e756f11a69cdffa46f70649c55a849bddea6b1704be96edde4b0fd0",
+      "bytes": 46
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/ffufrc",
+      "sha256": "483bd2b4417fb4cebb1126cd962cb16151659cb6569de1d74eff611c3e627477",
+      "bytes": 59
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/model-response.json",
+      "sha256": "1772c05c6720ff003bbda6ff344fdc51838a6a6eed96967458b38286790464b6",
+      "bytes": 1149
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/summary.json",
+      "sha256": "29c91e97b2409a5663108606f9052cab10ec547deee56232aa53a6a54a76ca0d",
+      "bytes": 1199
+    },
+    {
+      "path": "work/lab3000-runs/20261023T153207Z-7a7b8e/wordlist.txt",
+      "sha256": "6d11dc2b6986183631c0420d1e83d7d1544703cd2a80380cdf56d88ab4664498",
+      "bytes": 58
+    }
+  ]
+}

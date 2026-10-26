@@ -1,4 +1,4 @@
-"""Test that Nuclei template matches produce verified findings."""
+"""Test that Nuclei template matches register as scanner matches (audit D04)."""
 import hashlib
 import json
 from pathlib import Path
@@ -9,8 +9,8 @@ from src.adaptix.tools import nuclei
 from src.adaptix.evidence import verification
 
 
-def test_nuclei_template_match_is_verified_finding():
-    """Nuclei template matches should be treated as verified findings."""
+def test_nuclei_template_match_is_scanner_matched_row():
+    """A positive template match is the scanner's own verdict, labelled scanner_matched."""
     row = {
         'template-id': 'CVE-2021-1234',
         'matched-at': 'http://example.com/vuln',
@@ -53,10 +53,10 @@ def test_nuclei_template_match_is_verified_finding():
     assert len(observations) == 0
     
     finding = findings[0]
-    assert finding['verification_status'] == 'verified'
+    assert finding['verification_status'] == 'scanner_matched'
     assert finding['verification_method'] == 'nuclei_template_match'
     assert finding['verification_basis'] == 'nuclei_template_match'
-    assert finding['independently_verified'] is True
+    assert finding['independently_verified'] is False
     assert finding['confidence'] == 'scanner_confirmed'
     assert finding['severity'] == 'high'
 
@@ -123,7 +123,7 @@ def test_verification_contract_supports_nuclei():
 
 
 def test_verified_findings_count_in_report():
-    """Test that report correctly counts all verified findings together."""
+    """Older labelled scanner rows still split per provenance in the report."""
     from src.adaptix.reporting.report import final_report
     
     state = {
@@ -172,14 +172,17 @@ def test_verified_findings_count_in_report():
     assert result['status'] in ['scan_completed', 'completed_partial']
     metrics = result['report']['metrics']
     
+    # Scanner matches are distinguished from independently verified findings
+    # (audit D04): the independently verified total stays 0 here.
     total_verified = metrics['finding_classes']['total_verified_findings']
-    assert total_verified == 2
+    assert total_verified == 0
     
     nuclei_verified = metrics['finding_classes']['nuclei_verified']
     other_verified = metrics['finding_classes']['other_verified']
     assert nuclei_verified == 2
     assert other_verified == 0
-    assert len(result['report']['nuclei_verified_findings']) == 2
+    assert len(result['report']['scanner_matched_findings']) == 2
+    assert len(result['report']['independently_verified_findings']) == 0
     assert 'Prometheus Metrics - Detect' in result['markdown_report']
 
 

@@ -137,15 +137,19 @@ if __name__ == '__main__':
     main()
 
 
-def authorize_cli_targets(targets, principal=None, grant=None):
+def authorize_cli_targets(targets, principal=None, grant=None, hours=1):
     """The local operator's CLI invocation attests permission for this run.
 
     The signing key is worker-local. Public API callers cannot issue grants.
+    ``hours`` is supplied by the entrypoint from the run's own wall-clock budget:
+    a grant that expires while the adaptive loop is still planning turns every
+    later ``execute_action`` into a silent ``authorization_invalid`` stop, which
+    looks like a completed assessment but measured nothing.
     """
     import getpass
     principal = principal or getpass.getuser()
     if grant:
         return grant, principal
     _key(create=True)
-    path, _ = issue_grant(targets, principal, hours=1)
+    path, _ = issue_grant(targets, principal, hours=hours)
     return str(path), principal

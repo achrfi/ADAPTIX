@@ -2,30 +2,36 @@
 import re
 from functools import lru_cache
 
+MAX_PORT_SELECTION = 32
+
 
 def _spec(value):
-    if isinstance(value, (list, tuple, set, range)):
+    if isinstance(value, range):
+        raise ValueError('Port ranges are disabled; name individual web ports')
+    if isinstance(value, (list, tuple, set)):
+        if len(value) > MAX_PORT_SELECTION:
+            raise ValueError(f'At most {MAX_PORT_SELECTION} explicit ports are permitted')
         value = ','.join(str(item) for item in value)
     if isinstance(value, bool) or value is None:
-        raise ValueError('Port selection must be \'all\', a port, or comma-separated ranges')
+        raise ValueError('Port selection must name individual ports separated by commas')
     return str(value).strip().lower()
 
 
 @lru_cache(maxsize=64)
 def _parsed(spec):
     """Cached parse: the same selection is re-resolved for every single URL check."""
-    if spec in ('all', '-'):
-        return tuple(range(1, 65536))
+    tokens = spec.split(',')
+    if len(tokens) > MAX_PORT_SELECTION:
+        raise ValueError(f'At most {MAX_PORT_SELECTION} explicit ports are permitted')
     ports = set()
-    for token in spec.split(','):
-        match = re.fullmatch(r'(\d+)(?:\s*-\s*(\d+))?', token.strip())
+    for token in tokens:
+        match = re.fullmatch(r'\d+', token.strip())
         if not match:
             raise ValueError(f'Invalid port selection: {token!r}')
-        start = int(match[1])
-        end = int(match[2] or start)
-        if not 1 <= start <= end <= 65535:
-            raise ValueError('Ports must be between 1 and 65535 with ascending ranges')
-        ports.update(range(start, end + 1))
+        number = int(match[0])
+        if not 1 <= number <= 65535:
+            raise ValueError('Port number outside the valid TCP interval')
+        ports.add(number)
     return tuple(sorted(ports))
 
 
@@ -34,24 +40,19 @@ def parse_ports(value):
 
 
 def format_ports(value):
-    """Collapse consecutive ports without changing selection or model context size."""
-    ports = parse_ports(value)
-    ranges = []
-    start = end = ports[0]
-    for port in ports[1:]:
-        if port == end + 1:
-            end = port
-        else:
-            ranges.append(f'{start}' if start == end else f'{start}-{end}')
-            start = end = port
-    ranges.append(f'{start}' if start == end else f'{start}-{end}')
-    return ','.join(ranges)
+    """Display the explicit allowlist without introducing scan ranges."""
+    return ','.join(str(port) for port in parse_ports(value))
+
+
+def configured_ports(limits):
+    """Only the current HTTP policy can grant ports; ignore retired Nmap settings."""
+    ports = set(parse_ports(limits.get('allowed_ports', '80,443')))
+    if limits.get('web_ports'):
+        ports.update(parse_ports(limits['web_ports']))
+    return parse_ports(sorted(ports))
 
 
 def ports_for_state(state, limits):
     if state.get('scope_ports'):
         return parse_ports(state['scope_ports'])
-    ports = set(parse_ports(limits['nmap_ports']))
-    if limits.get('web_ports'):
-        ports.update(parse_ports(limits['web_ports']))
-    return sorted(ports)
+    return configured_ports(limits)

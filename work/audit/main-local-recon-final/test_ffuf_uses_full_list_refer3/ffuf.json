@@ -1,0 +1,20 @@
+{
+  "results": [
+    {
+      "url": "http://127.0.0.1:3000/robots.txt",
+      "method": "GET",
+      "status": 200,
+      "source": "ffuf",
+      "content_type": "text/plain"
+    }
+  ],
+  "progress": {
+    "complete": false,
+    "completed": 0,
+    "total": 0,
+    "errors": 0
+  },
+  "config": {
+    "method": "GET"
+  }
+}

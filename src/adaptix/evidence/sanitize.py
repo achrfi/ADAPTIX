@@ -2,7 +2,7 @@
 import re
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-SENSITIVE = re.compile(r'(?i)(authorization|proxy-authorization|cookie|set-cookie|password|passwd|secret|token|access[-_]?token|refresh[-_]?token|api[-_]?key|session[-_]?id)')
+SENSITIVE = re.compile(r'(?i)(authorization|proxy-authorization|cookie|set-cookie|password|passwd|secret|token|access[-_]?token|refresh[-_]?token|(?:llm[-_])?api[-_]?key|session[-_]?id)')
 
 
 def clean_url(value):
@@ -54,6 +54,7 @@ def response_record(response, secrets=()):
 
 
 def scenario_secrets(state):
-    return [v for identity in state.get('identity_context', {}).get('identities', []) for v in identity.get('headers', {}).values()] + [v for sc in state.get('idor_scenarios', [])
+    provider_secrets = [state['llm_api_key']] if state.get('llm_api_key') else []
+    return provider_secrets + [v for identity in state.get('identity_context', {}).get('identities', []) for v in identity.get('headers', {}).values()] + [v for sc in state.get('idor_scenarios', [])
             for role in ('owner_identity', 'other_identity')
             for v in sc.get(role, {}).get('headers', {}).values()]

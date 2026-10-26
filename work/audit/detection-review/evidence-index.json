@@ -1,0 +1,37 @@
+[
+  {
+    "path": "work/audit/detection-review/audit.log",
+    "sha256": "780a771e33bee38e342d988243df24aabb88e409f214c388da21c7177ad3403b",
+    "bytes": 3540
+  },
+  {
+    "path": "work/audit/detection-review/history-aggregate.json",
+    "sha256": "ee3812959ce123d920599bec32ad06fc2d6f8200bd012d6541a1a62eff91d3e3",
+    "bytes": 2190
+  },
+  {
+    "path": "work/audit/detection-review/report.md",
+    "sha256": "f758b6bdb634820eaae764bca516a1d65d2622c5521d01fd0749b2c9e5bad1a2",
+    "bytes": 10877
+  },
+  {
+    "path": "work/audit/detection-review/run-metadata.json",
+    "sha256": "98fe38666e70b455b91a79bd0b33a9068b12474e94c38d5a004cd7b3a79ab5a5",
+    "bytes": 2737362
+  },
+  {
+    "path": "work/audit/detection-review/source-inventory.json",
+    "sha256": "4f08acb84c93fa3f69d7816051f42890910af576073c64e3e7f1cbf719ebc58d",
+    "bytes": 23385
+  },
+  {
+    "path": "work/audit/detection-review/summary.json",
+    "sha256": "f417b469f2590fa03de248c39cf5ca31120f96dba630f0a93ca91709c7170835",
+    "bytes": 266
+  },
+  {
+    "path": "work/audit/detection-review/verification-labels.json",
+    "sha256": "3e1143d66dab1faa967f0eea4368efa098e09fe32e72c03ab28643192818aae3",
+    "bytes": 1701
+  }
+]

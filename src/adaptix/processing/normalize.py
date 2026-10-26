@@ -8,6 +8,9 @@ def record_key(kind, row):
         return (row.get('host'), row.get('protocol'), row.get('port'))
     if kind == 'recon_inventory':
         return (row.get('host'),)
+    if kind == 'ffuf_observations':
+        return (row.get('source_sha256'), endpoint_key(row.get('url', '')), row.get('method'),
+                row.get('status_code'), row.get('length'), row.get('words'), row.get('lines'))
     if kind == 'candidates':
         return (row.get('template_id'), endpoint_key(row.get('url', '')))
     if kind in ('http_services', 'browser_evidence'):

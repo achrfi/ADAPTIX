@@ -40,7 +40,15 @@ _ROBOTS_LINE = re.compile(r'(?im)^\s*(?:allow|disallow|sitemap)\s*:\s*(\S+)')
 # Quoted absolute-path literals in JavaScript bundles often name real routes.
 # Query strings, template interpolations and encoded characters are allowed so
 # client-constructed API calls still surface; values are stripped later.
-_JS_PATH = re.compile(r"""["'`](/[A-Za-z0-9_\-./{}:~%$?=&@+]*)["'`]""")
+# A path literal in a client bundle is not always written directly after a quote.
+# Angular/React code overwhelmingly concatenates a base host with the literal:
+# `` `${this.hostServer}/rest/basket/${t}` `` and ``this.host + `/api/Users` ``.
+# Requiring the opening delimiter to be a quote dropped exactly those, so whole
+# specification-free applications yielded no API routes at all - `/rest/basket/{id}`
+# and `/rest/products/search?q=` were never extracted while the bundle clearly
+# contained both. A closing quote/backtick is still required so ordinary prose and
+# division expressions are not read as routes.
+_JS_PATH = re.compile(r"""(?:["'`]|\}|\+|,|\()\s*(/[A-Za-z0-9_\-./{}:~%$?=&@+]*)\s*["'`]""")
 # Client-side bundle/font/image/stylesheet extensions are references, not endpoints.
 _ASSET = re.compile(r'\.(?:js|mjs|css|map|ico|png|jpe?g|gif|svg|webp|avif|bmp|woff2?|ttf|otf|eot|mp4|webm|ogg|wav|mp3|pdf|zip)(?:$|\?)', re.I)
 _API_LIKE = re.compile(r'^/(?:api|rest|graphql|gql|v[0-9]+|rpc|services?|data)(?:/|$)', re.I)
@@ -618,8 +626,11 @@ def http_request(state):
                                             'identity': identity},
                                 **record, 'detected': detected}, ensure_ascii=False))
     from src.adaptix.processing.normalize import deduplicate
-    traces = deduplicate('probe_traces', list(state.get('probe_traces', [])) + [trace])
-    audit = deduplicate('request_audit', list(state.get('request_audit', [])) + [{
+    # A state key that exists with an explicit None is not an empty list: `list(None)`
+    # raised TypeError, and the only caller that surfaced it reported "Tool failed:
+    # TypeError" with no location. Treat an absent or null accumulator as empty.
+    traces = deduplicate('probe_traces', list(state.get('probe_traces') or []) + [trace])
+    audit = deduplicate('request_audit', list(state.get('request_audit') or []) + [{
         'tool': 'http_request', 'method': method, 'path_key': path_key(url),
         'url': sanitize(url), 'parameter': trace['parameter'], 'payload': trace['payload'],
         'identity': identity or None, 'request_body_sha256': request_body_sha256,

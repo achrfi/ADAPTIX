@@ -1,6 +1,7 @@
 import json
 from unittest.mock import MagicMock
 from src.adaptix.agents import planner
+from src.adaptix.agents.schema import PlannerDecision
 
 
 def _fake_response(data):
@@ -90,6 +91,48 @@ def test_repeated_provider_failures_stop_the_run(monkeypatch):
     result = planner.adaptive_planning(state)
     assert result['stop_reason'] == 'planner_unavailable'
     assert result['planned_actions'] == []
+
+
+def test_repeated_starvation_is_named_as_transport_not_planner_unavailable(monkeypatch):
+    monkeypatch.setattr(planner, 'tool_registry', _registry)
+    def starve(_state, _kwargs, _metrics, _prompt_cost, _tighten=None):
+        return (None, {'llm_calls': 1, 'tokens_used': 100}, {},
+                [{'provider_call': True, 'result': 'failed', 'error_type': 'ProviderStarvation'}],
+                'ProviderStarvation')
+    monkeypatch.setattr(planner, 'request_decision', starve)
+    state = {**_state(), 'consecutive_provider_failures': 1, 'model_context_tokens': 32768}
+    result = planner.adaptive_planning(state)
+    assert result['stop_reason'] == 'provider_starved'
+    assert result['stop_reason'] != 'planner_unavailable'
+
+
+def test_starvation_recompaction_uses_unlimited_token_budget(monkeypatch):
+    monkeypatch.setattr(planner, 'tool_registry', _registry)
+    monkeypatch.setattr(planner.litellm, 'token_counter',
+                        lambda **kw: sum(len(m.get('content', '')) for m in kw.get('messages', [])) // 4)
+    real_compact = planner.compact_context
+    def compact(payload, system, budget, count, allow_over_budget=False):
+        if allow_over_budget:
+            return 'RECOMPACTED PROMPT', {'context_compressed_tokens': 40}
+        return real_compact(payload, system, budget, count, allow_over_budget=allow_over_budget)
+    monkeypatch.setattr(planner, 'compact_context', compact)
+    decision = PlannerDecision.model_validate_json(json.dumps({
+        'actions': [], 'rationale': 'recompacted retry',
+        'reflection': 'the smaller prompt answered', 'advance_scope': True}))
+    calls = []
+    def respond(state, kwargs, metrics, _prompt_cost, _tighten=None):
+        calls.append(kwargs['messages'][1]['content'])
+        if len(calls) == 1:
+            return (None, {**metrics, 'llm_calls': 1, 'tokens_used': 100}, {},
+                    [{'provider_call': True, 'result': 'failed', 'error_type': 'ProviderStarvation'}],
+                    'ProviderStarvation')
+        return (decision, {**metrics, 'llm_calls': 1, 'tokens_used': 100}, {}, [], None)
+    monkeypatch.setattr(planner, 'request_decision', respond)
+    state = {**_state(), 'token_budget': None, 'model_context_tokens': 32768}
+    result = planner.adaptive_planning(state)
+    assert len(calls) >= 2
+    assert calls[1] == 'RECOMPACTED PROMPT'
+    assert result['planner_metrics'].get('context_recompaction_retries') == 1
 
 
 def test_repeated_actions_terminate_without_scanning_again(monkeypatch):

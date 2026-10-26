@@ -265,6 +265,9 @@ def browser_test(state):
         finally:
             page.remove_listener('dialog', on_dialog)
 
+    prior_candidates = list(state.get('candidates', []))
+    prior_verification = list(state.get('verification_evidence', []))
+    prior_browser_evidence = list(state.get('browser_evidence', []))
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch(headless=True, timeout=int(tool_timeout(state, 30) * 1000),
@@ -283,10 +286,17 @@ def browser_test(state):
             finally:
                 browser.close()
     except Exception as exc:
-        return {'execution_metrics': execution_metrics, 'raw_bytes': raw_bytes,
+        # An aborted or timed-out session captured no new decisive evidence:
+        # the candidate and verification ledgers are carried through unchanged
+        # so a failed browser session can never look like "no findings".
+        return {'candidates': prior_candidates, 'verification_evidence': prior_verification,
+                'browser_evidence': prior_browser_evidence,
+                'browser_test_outcome': 'error_before_capture',
+                'execution_metrics': execution_metrics, 'raw_bytes': raw_bytes,
                 'payload_dialogs': payload_dialogs, 'control_dialogs': control_dialogs,
                 'errors': list(state.get('errors', [])) + ['Browser Test: ' + str(exc)[:150]],
-                'events': log(state, 'Browser Test: failed before executable evidence was captured')}
+                'events': log(state, 'Browser Test: failed before executable evidence was captured; '
+                                      'prior candidates and evidence retained')}
     marker_lower = marker.casefold()
     marker_payload = [row['message'] for row in payload_dialogs if marker_lower in row['message'].casefold()]
     marker_control = [row['message'] for row in control_dialogs if marker_lower in row['message'].casefold()]
@@ -321,14 +331,25 @@ def browser_test(state):
     result = replay_result(record)
     if result is not None:
         verification.append(write_verification_record(state, record))
+    outcome = result or 'inconclusive_no_marker_dialog'
     events_tail = (f'Browser Test: {len(payload_dialogs) + len(control_dialogs)} dialog(s); '
                    + ('execution recorded: ' + result if result else 'no execution observed; inconclusive'))
-    return {'candidates': list(state.get('candidates', [])) + [{
-                'template_id': 'browser-' + marker[:32], 'url': url, 'source_tool': 'browser',
-                'finding_type': 'cross_site_scripting', 'severity': 'high',
-                'status': 'candidate_unverified', 'evidence': [{'marker': marker}]},
-            ] if result is not None else [],
+    if result is not None:
+        new_candidate = {'template_id': 'browser-' + marker[:32], 'url': url, 'source_tool': 'browser',
+                         'finding_type': 'cross_site_scripting', 'severity': 'high',
+                         'status': 'candidate_unverified', 'evidence': [{'marker': marker}]}
+        from src.adaptix.processing.normalize import deduplicate
+        candidates = deduplicate('candidates', prior_candidates + [new_candidate])
+    else:
+        # Inconclusive outcome (no marker dialog ever fired): retain the previous
+        # candidates and their evidence verbatim. An empty, timed-out or
+        # nondiagnostic browser result is a coverage limitation, not an absence
+        # of findings, and must not erase the candidate ledger.
+        candidates = prior_candidates
+    return {'candidates': candidates,
             'verification_evidence': verification,
+            'browser_evidence': prior_browser_evidence,
+            'browser_test_outcome': outcome,
             'execution_metrics': execution_metrics, 'raw_bytes': raw_bytes,
             'payload_dialogs': payload_dialogs, 'control_dialogs': control_dialogs,
             'errors': list(state.get('errors', [])),

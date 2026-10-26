@@ -1,0 +1,39 @@
+{
+  "requests": [
+    {
+      "path": "/admin",
+      "method": "GET"
+    },
+    {
+      "path": "/api",
+      "method": "GET"
+    },
+    {
+      "path": "/health",
+      "method": "GET"
+    },
+    {
+      "path": "/login",
+      "method": "GET"
+    },
+    {
+      "path": "/missing",
+      "method": "GET"
+    },
+    {
+      "path": "/redirect",
+      "method": "GET"
+    },
+    {
+      "path": "/robots.txt",
+      "method": "GET"
+    },
+    {
+      "path": "/status",
+      "method": "GET"
+    }
+  ],
+  "redirect_trap_requests": [],
+  "observations": [],
+  "expected": []
+}

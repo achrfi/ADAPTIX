@@ -14,7 +14,6 @@ from lab.api_fixture import FixtureLab, ACCOUNTS, OBJECT
 from src.adaptix.workflow.graph import graph
 from src.adaptix.workflow.nodes import scope_guard
 from src.adaptix.tools.registry import tool_registry
-from src.adaptix.tools.nmap import reconnaissance
 from src.adaptix.tools.httpx import httpx_probe
 from src.adaptix.tools.nuclei import nuclei_check
 from src.adaptix.tools.playwright import browser_observe
@@ -45,7 +44,8 @@ def main():
         assert state['status'] == 'scope_ok'
         state['scope_ports'] = [lab.server.server_address[1]]
         catalog = tool_registry(); state['tool_catalog'] = catalog
-        assert all(catalog[n].get('path') for n in ('nmap', 'httpx', 'nuclei', 'playwright'))
+        assert all(catalog[n].get('path') for n in ('httpx', 'nuclei', 'playwright'))
+        assert catalog['nmap']['enabled'] is False and catalog['nmap']['path'] is None
         def record_adapter(name, adapter, target, scenarios=None):
             previous = {**state, 'planned_actions': [{'tool': name, 'target': target}], 'action_cursor': 0}
             if scenarios is not None:
@@ -60,13 +60,12 @@ def main():
             state.setdefault('action_outcomes', []).append(outcome)
             state.setdefault('attempted_actions', []).append(action)
             return result
-        for name, adapter in [('nmap', reconnaissance), ('httpx', httpx_probe), ('nuclei', nuclei_check), ('playwright', browser_observe)]:
-            state['planned_actions'] = [{'tool': name, 'target': '127.0.0.1' if name == 'nmap' else lab.url}]
+        for name, adapter in [('httpx', httpx_probe), ('nuclei', nuclei_check), ('playwright', browser_observe)]:
+            state['planned_actions'] = [{'tool': name, 'target': lab.url}]
             state['action_cursor'] = 0
             print('LIVE ADAPTER', name, flush=True)
-            record_adapter(name, adapter, '127.0.0.1' if name == 'nmap' else lab.url)
+            record_adapter(name, adapter, lab.url)
         assert not state['errors'], state['errors']
-        assert any(x['port'] == lab.server.server_address[1] and x['status'] == 'open' for x in state['services'])
         assert state['http_services'] and state['browser_evidence']
         assert state.get('nuclei_template_selections'), 'Selection/policy audit required, even when no template matches'
         assert all(row['execution_status'] in ('completed', 'no_matching_templates') for row in state['nuclei_template_selections'])

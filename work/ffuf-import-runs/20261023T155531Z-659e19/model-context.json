@@ -1,0 +1,131 @@
+{
+  "user_request": "Ringkas observasi ffuf yang diberikan dan jelaskan keterbatasannya. Status 200 bukan bukti route atau kerentanan. Jangan jalankan alat.",
+  "authorization": {
+    "type": "local_loopback",
+    "principal": null,
+    "scope_units": 1
+  },
+  "scope_window": [
+    "http://127.0.0.1:3000/"
+  ],
+  "budget": {
+    "iteration_limit": 1,
+    "tool_call_limit": 2,
+    "token_limit": 8000,
+    "iterations": 0,
+    "tool_calls": 0,
+    "tokens": 0,
+    "seconds_remaining": 537.1010265350342
+  },
+  "tool_eligibility": {},
+  "scope_summary": {
+    "total_units": 1,
+    "touched": 0,
+    "deferred": 0,
+    "remaining": 1
+  },
+  "ffuf_import_summary": {
+    "mode": "operator_supplied_offline_review",
+    "files": 1,
+    "observations": 6,
+    "rejected_rows": 0,
+    "duplicate_rows": 0,
+    "context_sample_limit": 8,
+    "note": "Unverified operator observations; repeated 200 responses may be wildcard/fallback pages. Full accepted rows remain in the report. No tool execution or route promotion."
+  },
+  "observations": {
+    "http_services": [],
+    "candidates": [],
+    "browser_evidence": [],
+    "nuclei_template_selections": [],
+    "api_observations": [],
+    "scenario_validations": [],
+    "web_routes": [],
+    "probe_traces": [],
+    "ffuf_observations": [
+      {
+        "url": "http://127.0.0.1:3000/status",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:f2d962f8b8ef6b29"
+      },
+      {
+        "url": "http://127.0.0.1:3000/robots.txt",
+        "method": "GET",
+        "status_code": 200,
+        "length": 28,
+        "words": 3,
+        "lines": 2,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:ea63542060b49011"
+      },
+      {
+        "url": "http://127.0.0.1:3000/missing",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:415f00e6255def96"
+      },
+      {
+        "url": "http://127.0.0.1:3000/login",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:e82abbec6f46fe8f"
+      },
+      {
+        "url": "http://127.0.0.1:3000/health",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:88708e7c39045ed3"
+      },
+      {
+        "url": "http://127.0.0.1:3000/admin",
+        "method": "GET",
+        "status_code": 200,
+        "length": 9984,
+        "words": 474,
+        "lines": 34,
+        "source": "operator_ffuf_json",
+        "source_sha256": "7ae9113f2f4af9b4ab0365004ad2c7fd274c073fc3452429a192e07f1c3a3879",
+        "verification_status": "operator_supplied_unverified",
+        "route_existence_verified": false,
+        "evidence_ref": "ffuf_observations:d541a83cd0d9a6ab"
+      }
+    ]
+  },
+  "tool_registry": {},
+  "services": [],
+  "known_urls": [],
+  "attempted_actions": [],
+  "idor_findings": []
+}

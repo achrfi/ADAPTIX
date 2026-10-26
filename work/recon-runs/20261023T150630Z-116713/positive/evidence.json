@@ -1,0 +1,81 @@
+{
+  "requests": [
+    {
+      "path": "/admin",
+      "method": "GET"
+    },
+    {
+      "path": "/api",
+      "method": "GET"
+    },
+    {
+      "path": "/health",
+      "method": "GET"
+    },
+    {
+      "path": "/login",
+      "method": "GET"
+    },
+    {
+      "path": "/missing",
+      "method": "GET"
+    },
+    {
+      "path": "/redirect",
+      "method": "GET"
+    },
+    {
+      "path": "/robots.txt",
+      "method": "GET"
+    },
+    {
+      "path": "/status",
+      "method": "GET"
+    }
+  ],
+  "redirect_trap_requests": [],
+  "observations": [
+    {
+      "path": "/admin",
+      "status": 200
+    },
+    {
+      "path": "/api",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "status": 302
+    },
+    {
+      "path": "/redirect",
+      "status": 302
+    },
+    {
+      "path": "/robots.txt",
+      "status": 403
+    }
+  ],
+  "expected": [
+    {
+      "path": "/admin",
+      "status": 200
+    },
+    {
+      "path": "/api",
+      "status": 200
+    },
+    {
+      "path": "/login",
+      "status": 302
+    },
+    {
+      "path": "/redirect",
+      "status": 302
+    },
+    {
+      "path": "/robots.txt",
+      "status": 403
+    }
+  ]
+}

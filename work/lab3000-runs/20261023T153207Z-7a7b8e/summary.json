@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "target": "http://127.0.0.1:3000",
+  "autonomous_graph_integration": false,
+  "mode": "operator-run-fixed-local-lab",
+  "wordlist_entries": 8,
+  "http_observations": 6,
+  "matching_missing_path_responses": 5,
+  "route_existence_verified": false,
+  "scope": "HTTP response discovery/classification only; no vulnerability testing",
+  "model": "qwen3.5:9b-q4_K_M",
+  "assessment": {
+    "endpoints": [
+      {
+        "path": "/admin",
+        "status": 200,
+        "classification": "content"
+      },
+      {
+        "path": "/health",
+        "status": 200,
+        "classification": "content"
+      },
+      {
+        "path": "/login",
+        "status": 200,
+        "classification": "content"
+      },
+      {
+        "path": "/missing",
+        "status": 200,
+        "classification": "content"
+      },
+      {
+        "path": "/robots.txt",
+        "status": 200,
+        "classification": "content"
+      },
+      {
+        "path": "/status",
+        "status": 200,
+        "classification": "content"
+      }
+    ],
+    "observed_count": 6,
+    "verified_vulnerabilities": 0
+  },
+  "prompt_tokens": 176,
+  "completion_tokens": 230,
+  "elapsed_seconds": 103.492
+}

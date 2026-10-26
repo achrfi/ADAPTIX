@@ -63,28 +63,25 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
     """Mocks scanner/model boundaries, exercises one-graph tool routing."""
     from src.adaptix.workflow.graph import graph
     from src.adaptix.agents import planner
-    from src.adaptix.tools import nmap as nt, httpx as ht, nuclei as nu, playwright as pw
+    from src.adaptix.tools import httpx as ht, nuclei as nu, playwright as pw
     fake_registry = lambda: {
-        'nmap': {'path': '/bin/nmap', 'enabled': True},
         'httpx': {'path': '/bin/httpx', 'enabled': True},
         'nuclei': {'path': '/bin/nuclei', 'enabled': True},
         'playwright': {'path': None, 'enabled': False}}
-    for mod in (nt, ht, nu, pw, planner):
+    for mod in (ht, nu, pw, planner):
         monkeypatch.setattr(mod, 'tool_registry', fake_registry)
     from src.adaptix.tools import registry
     monkeypatch.setattr(registry, 'tool_registry', fake_registry)
     calls = []
     def fake_run(argv, timeout=45, stdin=None, stderr_limit=2500):
         calls.append(argv[0])
-        if 'nmap' in argv[0]:
-            payload = '<nmaprun><host><ports><port protocol="tcp" portid="18080"><state state="open"/><service name="http"/></port></ports></host></nmaprun>'
-        elif 'httpx' in argv[0]:
+        if 'httpx' in argv[0]:
             payload = json.dumps({'url': 'http://127.0.0.1:18080', 'status_code': 200}) + '\n'
         else:
             payload = json.dumps({'matched-at': 'http://127.0.0.1:18080/',
                      'template-id': 'adaptix-http-baseline', 'info': {'severity': 'info'}}) + '\n'
         return {'returncode': 0, 'stdout': payload, 'stderr': ''}
-    for mod in (nt, ht, nu):
+    for mod in (ht, nu):
         monkeypatch.setattr(mod, 'run_tool', fake_run)
     from unittest.mock import MagicMock
     decisions = iter([
@@ -108,33 +105,29 @@ def test_graph_invoke_offline_loopback_pipeline(monkeypatch):
                           'max_iterations': 4, 'tool_call_budget': 10, 'token_budget': 4000},
                          config={'recursion_limit': 100})
     assert len(state['verified_findings']) == 0
-    print('DBGSTOP', state['report']['stop_reason']); print('DBGEV', state['events'][-6:]); print('DBGMODE', state['planner_metrics'].get('mode'))
     assert len(state['candidates']) == 1
-    # Two consecutive empty decisions with authorized alternatives remain a planning
-    # failure, never an honest completion.
-    assert state['report']['stop_reason'] == 'planning_failure_no_decision'
+    # Both executable HTTP tools have completed. Retiring Nmap removes the last
+    # unused alternative, so this empty decision honestly exhausts the catalog.
+    assert state['report']['stop_reason'] == 'no_new_actions'
     assert state['report']['termination']['cause'] == 'planning_stagnation'
-    assert state['report']['planning_diagnostics']['zero_action_passes'] == 2
+    assert state['report']['planning_diagnostics']['zero_action_passes'] == 1
+    assert state['report']['status'] == 'completed_partial'
     assert state['report']['mode'] == 'llm'
     assert state['metrics']['tool_calls_used'] == 2
     assert calls == ['/bin/httpx', '/bin/nuclei']
 
 
-def test_budget_limits_tool_execution_and_report_reason(monkeypatch):
+def test_retired_scanner_preserves_execution_budget(monkeypatch):
     from src.adaptix.tools import nmap as nt
-    from src.adaptix.reporting.report import final_report
-    monkeypatch.setattr(nt, 'tool_registry', lambda: {
-        'nmap': {'path': '/bin/nmap', 'enabled': True}})
+    from src.adaptix.tools import registry
     invocations = []
     def fake_run(argv, **kwargs):
         invocations.append(argv[-1])
         return {'returncode': 0,
                 'stdout': '<nmaprun><host><ports/></host></nmaprun>', 'stderr': ''}
-    monkeypatch.setattr(nt, 'run_tool', fake_run)
+    monkeypatch.setattr(registry, 'run_tool', fake_run)
     state = {'hosts': ['127.0.0.1', '127.0.0.2'], 'tool_call_budget': 1,
              'target': ['127.0.0.1', '127.0.0.2'], 'run_id': 'budget-test'}
     state.update(nt.reconnaissance(state))
-    assert invocations == ['127.0.0.1']
-    assert state['execution_metrics']['tool_calls_used'] == 1
-    report = final_report(state)['report']
-    assert report['stop_reason'] == 'tool_call_budget_exhausted'
+    assert invocations == []
+    assert state.get('execution_metrics', {}).get('tool_calls_used', 0) == 0

@@ -2,16 +2,15 @@
 import json
 from src.adaptix.workflow import nodes
 from src.adaptix.agents import planner
-from src.adaptix.tools import nmap as nmap_tool, httpx as httpx_tool, nuclei as nuclei_tool, playwright as browser_tool
+from src.adaptix.tools import httpx as httpx_tool, nuclei as nuclei_tool, playwright as browser_tool
 
 
 def test_legacy_adapters_with_explicit_model_decision(monkeypatch):
     fake_registry = lambda: {
-        'nmap': {'path': '/bin/nmap', 'enabled': True},
         'httpx': {'path': '/bin/httpx', 'enabled': True},
         'nuclei': {'path': '/bin/nuclei', 'enabled': True},
         'playwright': {'path': None, 'enabled': True, 'detail': 'missing'}}
-    for module in (nmap_tool, httpx_tool, nuclei_tool, browser_tool, planner):
+    for module in (httpx_tool, nuclei_tool, browser_tool, planner):
         monkeypatch.setattr(module, 'tool_registry', fake_registry)
     from unittest.mock import MagicMock
     response = MagicMock()
@@ -20,12 +19,9 @@ def test_legacy_adapters_with_explicit_model_decision(monkeypatch):
     response.usage.prompt_tokens = 50
     response.usage.completion_tokens = 20
     monkeypatch.setattr(planner.litellm, 'completion', lambda **kw: response)
-    xml = '<nmaprun><host><ports><port protocol="tcp" portid="18080"><state state="open"/><service name="http" product="nginx" version="1.31.6"/></port></ports></host></nmaprun>'
     calls = []
     def fake_run_tool(argv, timeout=45, stdin=None):
         calls.append((argv, stdin))
-        if 'nmap' in argv[0]:
-            return {'stdout': xml, 'stderr': '', 'returncode': 0}
         if 'httpx' in argv[0]:
             assert '-no-stdin' in argv
             from pathlib import Path
@@ -35,9 +31,9 @@ def test_legacy_adapters_with_explicit_model_decision(monkeypatch):
         return {'stdout': json.dumps({'matched-at': 'http://127.0.0.1:18080/',
                 'template-id': 'adaptix-http-baseline', 'info': {'severity': 'info'}})+'\n',
                 'stderr': '', 'returncode': 0}
-    for module in (nmap_tool, httpx_tool, nuclei_tool):
+    for module in (httpx_tool, nuclei_tool):
         monkeypatch.setattr(module, 'run_tool', fake_run_tool)
-    state = {'target': ['127.0.0.1'], 'authorization_confirmed': True,
+    state = {'target': ['http://127.0.0.1:18080'], 'authorization_confirmed': True,
              'events': [], 'errors': [], 'tool_call_budget': 20}
     for node in (nodes.scope_guard, nodes.reconnaissance, nodes.adaptive_planning):
         state.update(node(state))
@@ -50,10 +46,10 @@ def test_legacy_adapters_with_explicit_model_decision(monkeypatch):
                  nodes.state_update, nodes.final_report):
         state.update(node(state))
     assert state['report']['status'] == 'scan_completed'  # Missing tool is not chosen by planner
-    assert len(state['services']) == 1
+    assert state.get('services', []) == []
     assert len(state['http_services']) == 1
     assert len(state.get('candidates', [])) == 0
     assert state['verified_findings'] == []
     assert state['metrics']['llm_calls'] == 1
-    assert state['metrics']['tool_calls_used'] == 2
-    assert len(calls) == 2
+    assert state['metrics']['tool_calls_used'] == 1
+    assert len(calls) == 1

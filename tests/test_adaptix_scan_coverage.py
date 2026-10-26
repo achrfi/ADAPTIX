@@ -9,36 +9,31 @@ from src.adaptix.security.transport import bind_url
 from src.adaptix.tools import nmap, nuclei
 
 
-def test_all_ports_ranges_and_explicit_url_port_share_one_parser():
-    ports = parse_ports('all')
-    assert len(ports) == 65535 and ports[0] == 1 and ports[-1] == 65535
-    assert format_ports(ports) == '1-65535'
-    assert parse_ports('443,22,8000-8002,22') == [22, 443, 8000, 8001, 8002]
-    assert format_ports([8002, 22, 8000, 8001]) == '22,8000-8002'
-    selected = scope_ports(['http://127.0.0.1:18080/api'], {'limits': {'nmap_ports': '22,8000-8002'}})
-    assert selected == [22, 80, 443, 8000, 8001, 8002, 18080]
-    assert bind_url('http://127.0.0.1:65535/', {'hosts': ['127.0.0.1'], 'scope_ports': ports})[0].endswith(':65535/')
+def test_explicit_web_ports_and_url_port_share_one_parser():
+    ports = parse_ports('443,3000,8080,3000')
+    assert ports == [443, 3000, 8080]
+    assert format_ports(ports) == '443,3000,8080'
+    selected = scope_ports(['http://127.0.0.1:18080/api'], {'limits': {'allowed_ports': '80,443,3000'}})
+    assert selected == [80, 443, 3000, 18080]
+    assert bind_url('http://127.0.0.1:3000/', {'hosts': ['127.0.0.1'], 'scope_ports': ports})[0].endswith(':3000/')
 
 
-@pytest.mark.parametrize('spec', ['', '0', '65536', '90-80', '1-65536', '80,,443', '80;id', True, None])
+@pytest.mark.parametrize('spec', ['', '0', '65536', '90-80', '1-65536', '80,,443', '80;id', True, None,
+                                'all', '-', '1-65535', '8000-8099', range(1, 65536),
+                                list(range(1, 34)), ','.join(str(port) for port in range(1, 34))])
 def test_invalid_port_selection_rejected(spec):
     with pytest.raises(ValueError):
         parse_ports(spec)
 
 
-@pytest.mark.parametrize('selected,expected', [(None, '1-65535'), ([22, 80, 443], '22,80,443')])
-def test_nmap_compact_command_preserves_scope_and_global_time_budget(monkeypatch, selected, expected):
-    monkeypatch.setattr(nmap, 'tool_registry', lambda: {'nmap': {'enabled': True, 'path': '/bin/nmap'}})
-    def run(argv, timeout, **kwargs):
-        assert argv[argv.index('-p') + 1] == expected
-        assert '-sT' in argv and argv[-1] == '127.0.0.1'
-        assert 0 < timeout <= 120
-        return {'returncode': 0, 'stdout': '<nmaprun><host><status state="up"/><ports><port protocol="tcp" portid="65535"><state state="open"/><service name="http"/></port></ports></host></nmaprun>', 'stderr': ''}
-    monkeypatch.setattr(nmap, 'run_tool', run)
+@pytest.mark.parametrize('selected', [None, [22, 80, 443]])
+def test_retired_nmap_never_executes_for_any_port_selection(monkeypatch, selected):
+    from src.adaptix.tools import registry
+    monkeypatch.setattr(registry, 'run_tool', lambda *a, **kw: pytest.fail('Retired scanner executed'))
     result = nmap.reconnaissance({'run_id': 'scan-coverage-test', 'hosts': ['127.0.0.1'], 'scope_ports': selected,
                                  'run_started_at': time.time(), 'time_budget_seconds': 120})
-    assert result['services'][0]['port'] == 65535
-    assert result['execution_metrics']['tool_calls_used'] == 1
+    assert set(result) == {'events'}
+    assert 'retired' in result['events'][-1]
 
 
 def _mock_nuclei(monkeypatch, rows, mode='default'):
@@ -93,20 +88,20 @@ def test_template_selection_supports_baseline_and_local_paths():
         nuclei.template_selection({'nuclei_templates': []})
 
 
-def test_all_ports_remain_compact_in_model_prompt(monkeypatch):
+def test_only_explicit_web_ports_appear_in_model_prompt(monkeypatch):
     from src.adaptix.agents import planner
     from unittest.mock import MagicMock
-    monkeypatch.setattr(planner, 'tool_registry', lambda: {'nmap': {'enabled': True, 'path': '/bin/nmap'}})
+    monkeypatch.setattr(planner, 'tool_registry', lambda: {'httpx': {'enabled': True, 'path': '/bin/httpx'}})
     captured = {}
     def completion(**kwargs):
         captured.update(kwargs)
         message = MagicMock(content=json.dumps({'actions': [], 'reflection': 'Coverage request evaluated.', 'rationale': 'Stop.'}))
         return MagicMock(choices=[MagicMock(message=message)], usage=MagicMock(prompt_tokens=50, completion_tokens=20, total_tokens=70))
     monkeypatch.setattr(planner.litellm, 'completion', completion)
-    result = planner.adaptive_planning({'hosts': ['127.0.0.1'], 'scope_ports': parse_ports('all')})
+    result = planner.adaptive_planning({'hosts': ['127.0.0.1'], 'scope_ports': [80, 443, 3000]})
     assert result['planner_metrics']['mode'] == 'llm'
     system = captured['messages'][0]['content']
-    assert 'Allowed TCP ports: 1-65535.' in system
+    assert 'Allowed TCP ports: 80,443,3000.' in system
     assert len(system) < 10000
 
 

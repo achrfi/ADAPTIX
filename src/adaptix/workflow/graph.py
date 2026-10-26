@@ -6,11 +6,17 @@ from src.adaptix.workflow.nodes import (
     reflection_verification, state_update, final_report, blocked_report,
 )
 from src.adaptix.workflow.baseline import baseline_reconnaissance
+from src.adaptix.workflow.progress import write_progress
 from src.adaptix.workflow.scanner import nuclei_scan
 from src.adaptix.agents.planner import budget_exhausted
 
 
 class AgentState(TypedDict, total=False):
+    ffuf_import_documents: list[dict[str, Any]]
+    ffuf_into_assessment: bool
+    ffuf_imports: list[dict[str, Any]]
+    ffuf_observations: list[dict[str, Any]]
+    operator_recon_review_only: bool
     identity_context: dict[str, Any]
     api_observations: list[dict[str, Any]]
     api_operations: list[dict[str, Any]]
@@ -82,6 +88,14 @@ class AgentState(TypedDict, total=False):
     browser_evidence: list[dict[str, Any]]
     idor_scenarios: list[dict[str, Any]]
     idor_findings: list[dict[str, Any]]
+    authorization_findings: list[dict[str, Any]]
+    injection_findings: list[dict[str, Any]]
+    script_findings: list[dict[str, Any]]
+    authorization_probe: dict[str, Any]
+    vuln_probes: dict[str, Any]
+    # Deterministic UNION escalation output; undeclared keys are dropped by LangGraph
+    # before the planner can read them, which is how a working tool reads as no result.
+    union_extract: dict[str, Any]
     web_routes: list[dict[str, Any]]
     discovered_documents: list[str]
     probe_traces: list[dict[str, Any]]
@@ -90,6 +104,8 @@ class AgentState(TypedDict, total=False):
     findings: list[dict[str, Any]]
     structured_observations: dict[str, Any]
     verified_findings: list[dict[str, Any]]
+    scanner_matched_findings: list[dict[str, Any]]
+    browser_test_outcome: str
     nuclei_observations: list[dict[str, Any]]
     markdown_report: str
     rejected_findings: list[dict[str, Any]]
@@ -115,6 +131,20 @@ class AgentState(TypedDict, total=False):
     token_budget: int | None
     planner_metrics: dict[str, Any]
     llm_model: str
+    report_model_enabled: bool
+    # Provider selection values reach the planner only through this schema. When a
+    # key is absent here LangGraph drops it from the very first node's input, so a
+    # hosted provider silently ran with defaults (no api_base, no native JSON).
+    llm_api_base: str | None
+    llm_api_key: str | None
+    llm_native_json: bool | str | None
+    llm_reasoning_effort: str | None
+    # Static content discovery (ffuf) stage outputs.
+    static_discovery: dict[str, Any]
+    static_profiles: list[str]
+    static_swept: list[str]
+    static_enabled: bool
+    recon_wordlist: str | None
 
 
 def next_action(state):
@@ -138,7 +168,16 @@ def _timed(name, func):
     """
     def wrapped(state):
         started = _time.monotonic()
-        out = func(state)
+        current_events = state.get('events') or []
+        write_progress(state, name, 'running', started_at=started,
+                       event=current_events[-1] if current_events else '')
+        try:
+            out = func(state)
+        except Exception:
+            write_progress(state, name, 'failed', started_at=started,
+                           duration=_time.monotonic() - started,
+                           event=current_events[-1] if current_events else '')
+            raise
         duration = round(_time.monotonic() - started, 3)
         out = {**out}
         rows = list(out.get('phase_runtime', []))
@@ -146,6 +185,10 @@ def _timed(name, func):
             rows = [*state['phase_runtime'], *rows]
         rows.append({'pass': int(state.get('iterations', 0)), 'phase': name, 'seconds': duration})
         out['phase_runtime'] = rows
+        result_state = {**state, **out}
+        result_events = out.get('events') or current_events
+        write_progress(result_state, name, 'completed', started_at=started, duration=duration,
+                       event=result_events[-1] if result_events else '')
         return out
     return wrapped
 

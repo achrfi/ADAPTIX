@@ -1,0 +1,42 @@
+{
+  "case": "positive",
+  "status": "passed",
+  "requests": 8,
+  "observations": 5,
+  "redirect_trap_requests": 0,
+  "model": "qwen3.5:9b-q4_K_M",
+  "assessment": {
+    "endpoints": [
+      {
+        "path": "/admin",
+        "status": 200,
+        "classification": "content"
+      },
+      {
+        "path": "/api",
+        "status": 200,
+        "classification": "content"
+      },
+      {
+        "path": "/login",
+        "status": 302,
+        "classification": "redirect"
+      },
+      {
+        "path": "/redirect",
+        "status": 302,
+        "classification": "redirect"
+      },
+      {
+        "path": "/robots.txt",
+        "status": 403,
+        "classification": "protected"
+      }
+    ],
+    "observed_count": 5,
+    "verified_vulnerabilities": 0
+  },
+  "prompt_tokens": 162,
+  "completion_tokens": 197,
+  "elapsed_seconds": 90.032
+}

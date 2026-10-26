@@ -6,15 +6,14 @@ limits:
   rate_per_second: 2
   concurrent_requests: 2
   timeout_seconds: 45
-  # All TCP ports. Also accepts e.g. '22,80,443,8000-9000'.
-  nmap_ports: 'all'
+  # HTTP ports; an explicit target URL adds its own port for that run.
+  allowed_ports: '80,443,3000,5000,8000,8080,8081,8443,9443,18080'
   # Extra ports trusted for in-process web_discover/http_request probing.
-  web_ports: '80,443,3000,8080,8000-8099'
-  nmap_timeout_seconds: 900
+  web_ports: '80,443,3000,5000,8000,8080,8081,8443,9443,18080'
   # Scheme heuristic for deriving base URLs from observed services: a service
   # whose label names http always wins; otherwise these are the fallback ports.
   # Editable because deciding which ports deserve a base URL is operator policy.
-  http_service_ports: '80,443,8080,8443,9443,18080'
+  http_service_ports: '80,443,3000,5000,8000,8080,8081,8443,9443,18080'
   https_service_ports: '443,8443,9443'
   # Select HTTP template tags from observed products/technology. Unknown -> native -as.
   # 'default' restores full native selection; 'baseline' or local path lists also work.

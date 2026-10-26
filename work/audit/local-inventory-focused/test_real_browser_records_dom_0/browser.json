@@ -1,0 +1,108 @@
+{
+  "records": [
+    {
+      "url": "http://127.0.0.1:41861/",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:41861/api/info",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:41861/next",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:41861/jump",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:41861/archive.zip",
+      "method": "GET",
+      "source": "playwright_link"
+    },
+    {
+      "url": "http://127.0.0.1:41861/write",
+      "method": "POST",
+      "source": "playwright_form"
+    },
+    {
+      "url": "http://127.0.0.1:41861/next",
+      "method": "GET",
+      "status": 200,
+      "source": "playwright_network"
+    },
+    {
+      "url": "http://127.0.0.1:41861/jump",
+      "method": "GET",
+      "status": 302,
+      "source": "playwright_network"
+    }
+  ],
+  "pages": [
+    {
+      "url": "http://127.0.0.1:41861/",
+      "title": "Live fixture",
+      "status": 200,
+      "render_wait": "networkidle"
+    },
+    {
+      "url": "http://127.0.0.1:41861/next",
+      "title": "Next",
+      "status": 200,
+      "render_wait": "networkidle"
+    },
+    {
+      "url": "http://127.0.0.1:41861/jump",
+      "title": "",
+      "status": 302,
+      "render_wait": "networkidle"
+    }
+  ],
+  "forms": [
+    {
+      "action": "http://127.0.0.1:41861/write",
+      "method": "POST",
+      "fields": [
+        "record"
+      ],
+      "submitted": false
+    }
+  ],
+  "blocked": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:34555/must-not-load",
+      "reason": "outside_lab"
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:41861/write",
+      "reason": "non_read_method"
+    },
+    {
+      "method": "WEBSOCKET",
+      "reason": "websocket_disabled",
+      "url": "ws://127.0.0.1:41861/socket"
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:41861/jump",
+      "reason": "outside_lab"
+    }
+  ],
+  "errors": [],
+  "requests_sent": 4,
+  "client_routes": [],
+  "remaining_pages": 0,
+  "limits": {
+    "pages": 8,
+    "requests": 40
+  }
+}

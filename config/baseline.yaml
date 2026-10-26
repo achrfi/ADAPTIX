@@ -8,11 +8,14 @@ baseline_reconnaissance:
   # Wall-clock cap for the whole phase (bounded by the remaining run budget).
   max_seconds: 120
   # Phase-local tool-call cap; the run's own tool_call_budget is never exceeded.
-  max_tool_calls: 8
+  # Sized for discovery plus the three deterministic class probes, which each hold a
+  # reserved slot: at 8 the phase stopped at `phase_tool_call_limit` right after
+  # web_discover and one document probe, so no class check ever ran.
+  max_tool_calls: 16
   # Tool calls the adaptive planning loop may always spend: the baseline caps
   # itself below the run budget by this reserve so model-planned work has room.
   adaptive_tool_call_reserve: 4
-  # Hosts scanned with nmap for a host/IP/network target (URL targets skip nmap).
+  # Legacy host-inventory cap. Network scanning is retired; use explicit HTTP URLs.
   max_hosts: 4
   # Distinct HTTP origins explored with web/ API discovery.
   max_web_origins: 2
@@ -22,3 +25,20 @@ baseline_reconnaissance:
   max_web_routes: 400
   # Only supported value: record unavailable tools as limitations, never fabricate scans.
   fallback_when_tool_missing: record_limitation
+
+# Static content discovery (ffuf) — the only pass that finds paths the
+# application never links to (admin panels, API prefixes, backups, upload dirs).
+# It runs on each authorized origin during the baseline, counts as ONE tool call,
+# and every match is stored as an observed route, never as a finding.
+static_discovery:
+  enabled: true
+  # Operator-facing wordlist profile; each maps to one bundled file in
+  # work/wordlists/discovery. Available: quick (default, ~585 curated names),
+  # common (4.7k), raft-small-dirs (20k), api (269), backup (221).
+  # A larger profile needs a larger max_seconds or the sweep is trimmed to what
+  # the rate permits and the trim is recorded in the run's artifact.
+  profile: quick
+  # Hard wall-clock cap per sweep, clamped by the remaining run budget.
+  max_seconds: 420
+  # Sweeps per origin during the baseline (1 = the configured profile only).
+  max_profiles: 1

@@ -1,0 +1,55 @@
+{
+  "browser_test_actions_recorded": 0,
+  "nuclei_template_rows": 34,
+  "xss_named_template_rows": [],
+  "template_examples": [
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    },
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    },
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    },
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    },
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    },
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    },
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    },
+    {
+      "template_id": "prometheus-metrics",
+      "finding_type": "potential_vulnerability",
+      "verification_method": "nuclei_template_match",
+      "independently_verified": true
+    }
+  ]
+}

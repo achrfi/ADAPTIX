@@ -1,0 +1,8 @@
+admin
+api
+health
+login
+missing
+redirect
+robots.txt
+status

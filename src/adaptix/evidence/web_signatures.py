@@ -71,7 +71,7 @@ SQL_ERROR_RULES = [
     ('mssql_unclosed_quote', re.compile(r'(?i)unclosed quotation mark after the character string')),
     ('mssql_odbc', re.compile(r'(?i)(?:microsoft ole db provider for sql server|odbc sql server driver)')),
     ('postgres_syntax', re.compile(r'(?i)(?:pg_query\(|pg_exec\(|postgresql.{0,40}error|syntax error at or near)')),
-    ('sqlite_error', re.compile(r'(?i)(?:sqlite3?\.operationalerror|sqlite error|unrecognized token)')),
+    ('sqlite_error', re.compile(r'(?i)(?:sqlite3?\.operationalerror|sqlite error|sqlite_error|unrecognized token)')),
     ('oracle_error', re.compile(r'(?i)\bora-\d{5}\b')),
     ('generic_sqlstate', re.compile(r'(?i)sqlstate\[\w+\]')),
 ]
