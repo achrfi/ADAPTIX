@@ -388,7 +388,7 @@ def _scan_run(manifest_state, tmp_path, monkeypatch, manifest, run_tool_stub):
 def test_engine_argv_bounds_templates_to_snapshot_without_update_flags(manifest_state, catalog, tmp_path, monkeypatch):
     captured = {}
 
-    def stub(argv, timeout=None, stdin=None, stderr_limit=2500):
+    def stub(argv, timeout=None, stdin=None, stderr_limit=2500, **kwargs):
         captured['argv'] = argv
         captured['timeout'] = timeout
         return {'returncode': 0, 'stdout': '', 'stderr': ''}
@@ -418,7 +418,7 @@ def test_loaded_executed_and_matched_telemetry_is_recorded_separately(manifest_s
              '[0:00:15] | Templates: 4 | Requests: 26/52 (50%)\n[WRN] 1 templates with runtime error\n'
     assert snapshot.is_dir()
     result = _scan_run(manifest_state, tmp_path, monkeypatch, manifest,
-                       lambda argv, timeout=None, stdin=None, stderr_limit=2500:
+                       lambda argv, timeout=None, stdin=None, stderr_limit=2500, **kwargs:
                        {'returncode': 0, 'stdout': stdout, 'stderr': stderr})
     selection = result['nuclei_template_selections'][0]
     assert selection['selected_count'] == len(manifest['_chosen']) == selection['executable_count']
@@ -437,7 +437,7 @@ def test_snapshot_integrity_violation_after_execution_is_reported(manifest_state
     manifest = _approved(manifest_state, tmp_path)
     target_file = Path(manifest['_chosen'][0]['sha256'] + '.yaml')
 
-    def stub(argv, timeout=None, stdin=None, stderr_limit=2500):
+    def stub(argv, timeout=None, stdin=None, stderr_limit=2500, **kwargs):
         base = Path(argv[argv.index('-t') + 1])
         base / target_file  # path sanity
         (base / target_file).write_bytes(b'tampered in-flight')
@@ -481,7 +481,7 @@ def test_wall_clock_budget_derives_from_the_approved_request_ceiling(manifest_st
     import src.adaptix.config as cfgmod
     captured = {}
 
-    def stub(argv, timeout=None, stdin=None, stderr_limit=2500):
+    def stub(argv, timeout=None, stdin=None, stderr_limit=2500, **kwargs):
         captured['timeout'] = timeout
         return {'returncode': 0, 'stdout': '', 'stderr': ''}
 

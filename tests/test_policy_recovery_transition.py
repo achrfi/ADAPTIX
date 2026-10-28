@@ -78,9 +78,11 @@ def test_recovery_executes_evidence_ranked_input_surface(monkeypatch):
               [(r.get('code'), r.get('action', {}).get('tool'), r.get('action', {}).get('target'))
                for r in (row.get('rejections') or [])])
     metrics = result.get('planner_metrics') or {}
-    assert metrics.get('recovery_executions') == 2
-    assert executed == [('http_request', ROUTE), ('httpx', BASE), ('httpx', ROUTE)]
+    # A second HTTP client on the same already-probed URL does not create
+    # independent evidence: recovery must not waste a request on it.
+    assert metrics.get('recovery_executions') == 1
+    assert executed == [('http_request', ROUTE), ('httpx', BASE)]
     recovery_rows = [row for row in (result.get('attempted_actions') or [])
                      if row.get('action_source') == 'policy_recovery']
-    assert [row['target'] for row in recovery_rows] == [ROUTE, ROUTE]
+    assert [row['target'] for row in recovery_rows] == [ROUTE]
     assert any(trace.get('url') == ROUTE for trace in result.get('probe_traces') or [])

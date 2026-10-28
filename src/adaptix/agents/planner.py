@@ -528,10 +528,22 @@ def _alternatives(state, action, available=None, limit=6):
             key = endpoint_key(row.get('url')) if row.get('url') else None
             category = hyp_by_key.get(key[:4] if key else None) or hyp_any
             pairs.append({'tool': tool, 'target': name, 'http_validated': False,
+                          # A named authorization scenario is a new evidence modality,
+                          # even if its underlying URL was previously observed by GET.
+                          # already_completed() above excludes any repeated scenario.
+                          '_novel': True,
                           '_rank': len(ranking), '_section': 0 if category else 1,
                           '_hypothesis': category})
     # Sections in evidential-specificity order, then by observed endpoint rank.
-    pairs.sort(key=lambda row: (row['_section'], row['_rank'], row['tool'], row['target']))
+    # Evidence novelty outranks a cosmetic switch of HTTP adapter on a URL already probed.
+    # Browser execution checks are a different evidence modality from GET probes;
+    # prefer them when the open hypothesis needs browser-level validation.
+    browser_hypotheses = {'xss', 'dom_xss', 'reflected_xss', 'client_side_xss'}
+    for row in pairs:
+        row['_browser_gain'] = (0 if row['tool'] == 'browser_test' and
+                                str(row.get('_hypothesis') or '').lower() in browser_hypotheses else 1)
+    pairs.sort(key=lambda row: (row['_section'], not row['_novel'], row['_browser_gain'],
+                                row['_rank'], row['tool'], row['target']))
     unique, seen = [], set()
     for row in pairs:
         # One suggestion per endpoint: repeating the same URL under several tools
@@ -1500,7 +1512,10 @@ def adaptive_planning(state):
                     if key:
                         done_keys.add(key)
             novel = [pair for pair in pairs if _endpoint_key(pair['target']) not in done_keys]
-            ordered_pairs = novel or pairs
+            # Do not recover by re-probing a completed surface with another
+            # generic HTTP client. If no new surface remains, let the planner
+            # report the evidence limitation instead of consuming requests.
+            ordered_pairs = novel
             recovery_inputs = []
             for pair in ordered_pairs:
                 recovery_inputs.append({
