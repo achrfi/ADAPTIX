@@ -32,6 +32,12 @@ TOOL_CLASSES = {
     'injection_probe': ('sql_injection',),
     'authorization_probe': ('broken_object_level_authorization',),
     'script_probe': ('cross_site_scripting',),
+    # `traversal_probe` sends real traversal payloads (`.` `..` dot-dot, percent-encoded
+    # separators, doubled separators, NUL-truncated names) at observed file-backed
+    # directories and signs only through the path_traversal replay contract, with a
+    # clean control required first. Unlike the NoSQL case above, a payload of this
+    # class really is sent, so counting it as tested is honest.
+    'traversal_probe': ('path_traversal',),
 }
 
 BASE_CLASSES = ('cross_site_scripting', 'sql_injection', 'nosql_injection',

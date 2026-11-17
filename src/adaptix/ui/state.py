@@ -146,7 +146,8 @@ def finding_rows(state, include_unverified=True) -> list[dict]:
         for row in state.get(key) or []:
             if isinstance(row, dict):
                 rows.append(row)
-    for key in ('injection_findings', 'idor_findings', 'script_findings'):
+    for key in ('injection_findings', 'idor_findings', 'script_findings',
+                'traversal_findings'):
         for row in state.get(key) or []:
             if isinstance(row, dict):
                 rows.append(row)

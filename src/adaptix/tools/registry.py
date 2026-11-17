@@ -135,11 +135,11 @@ def tool_handlers():
     from src.adaptix.tools.playwright import browser_test
     from src.adaptix.tools.static_discovery import static_discovery
     from src.adaptix.tools.vuln_probes import (authorization_probe, injection_probe,
-                                              script_probe)
+                                              script_probe, traversal_probe)
     from src.adaptix.tools.union_extract import union_extract
     return {'httpx': httpx_probe, 'nuclei': nuclei_check,
             'playwright': browser_observe, 'browser_test': browser_test, 'idor': idor_test, 'api_discover': api_discover,
             'scenario': build_scenario, 'web_discover': web_discover, 'http_request': http_request,
             'static_discovery': static_discovery, 'authorization_probe': authorization_probe,
             'injection_probe': injection_probe, 'script_probe': script_probe,
-            'union_extract': union_extract}
+            'traversal_probe': traversal_probe, 'union_extract': union_extract}

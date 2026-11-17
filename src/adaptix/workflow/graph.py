@@ -92,6 +92,9 @@ class AgentState(TypedDict, total=False):
     authorization_findings: list[dict[str, Any]]
     injection_findings: list[dict[str, Any]]
     script_findings: list[dict[str, Any]]
+    # Declared for the same reason `union_extract` is: the traversal probe can confirm
+    # a finding and the graph would still drop the list, so reflection rebuilt zero.
+    traversal_findings: list[dict[str, Any]]
     authorization_probe: dict[str, Any]
     vuln_probes: dict[str, Any]
     # Deterministic UNION escalation output; undeclared keys are dropped by LangGraph

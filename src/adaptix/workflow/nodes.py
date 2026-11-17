@@ -223,7 +223,7 @@ def execute_action(state):
         # there, the next tool result replaced the list, and the report showed the plain
         # SQLi match with no impact - the proof existed and never reached the deliverable.
         for key in ('services', 'idor_findings', 'injection_findings', 'script_findings',
-                    'verified_findings', 'verification_evidence'):
+                    'traversal_findings', 'verified_findings', 'verification_evidence'):
             if key in result:
                 merged = list(state.get(key) or [])
                 for entry in (result[key] or []):

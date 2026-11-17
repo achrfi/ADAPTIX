@@ -322,6 +322,38 @@ def collect_findings(state):
                 entry['reason'] = 'IDOR proof missing, invalid or from another run; rerun the two-identity check'
         add(entry)
 
+    # A path-traversal finding is proven by the replay contract, not by an impact stage:
+    # the probe sent a payload, the server returned a file it should not have served, and
+    # a clean control on the same directory showed the marker was not already there. Like
+    # IDOR it carries no candidate row of its own, so without this loop a run could sign a
+    # traversal record and still report zero findings -- the exact defect class this
+    # function exists to close for `injection_findings`.
+    for finding in state.get('traversal_findings', []):
+        if not isinstance(finding, dict):
+            continue
+        candidate = {'template_id': finding.get('template_id'), 'url': finding.get('target', '')}
+        proof = finding.get('verification_evidence')
+        proof, record = _proof_for(candidate, [proof] if isinstance(proof, dict) else [],
+                                   state.get('run_id'))
+        entry = {**(record or finding), 'source_tool': 'traversal_probe',
+                 'target': finding.get('target', ''),
+                 'finding_type': 'path_traversal',
+                 'verification_evidence': proof,
+                 'severity': finding.get('severity') or ('high' if proof else 'medium'),
+                 'cwe': finding.get('cwe') or 'CWE-22',
+                 'owasp': finding.get('owasp') or 'A01:2021 Broken Access Control'}
+        if record:
+            entry.update(target=record['url'], evidence_ref=proof['evidence_ref'],
+                         raw_evidence_ref=finding.get('evidence_ref'),
+                         verification_status='verified' if proof['result'] == 'confirmed' else 'rejected',
+                         confidence='supported')
+        else:
+            entry.update(verification_status='inconclusive', confidence='unconfirmed')
+            if finding.get('verification_status') != 'inconclusive':
+                entry['reason'] = ('traversal proof missing, invalid or from another run; '
+                                   'rerun the payload against the observed directory')
+        add(entry)
+
     # A capability that executed an escalation proves its class directly. Those records
     # live in `injection_findings`, and this function rebuilds `verified_findings` from the
     # candidate and oracle buckets only - so a run that extracted a real password hash
