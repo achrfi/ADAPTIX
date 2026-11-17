@@ -4,8 +4,8 @@ Measured defect this locks: the probe built `/#/search?q=` as a literal, so the 
 stage could only ever find XSS on an application whose sink sits on that exact route.
 """
 import sys
+import pathlib
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.evidence.xss_sinks import candidate_sinks, ROUTER_PARAMETERS
 
@@ -64,5 +64,6 @@ def test_candidates_are_bounded_and_deterministic():
 
 
 def test_the_probe_module_no_longer_carries_a_literal_fragment():
-    source = open('/root/projects/adaptix/src/adaptix/tools/vuln_probes.py').read()
+    root = pathlib.Path(__file__).resolve().parents[1]
+    source = (root / 'src/adaptix/tools/vuln_probes.py').read_text()
     assert '/#/search?q=' not in source, 'the literal sink is still in the probe'

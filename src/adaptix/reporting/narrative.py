@@ -201,6 +201,24 @@ def _empty(meta, ledger=None):
     return {'meta': meta, 'ledger': list(ledger or []), 'narrative': None}
 
 
+# Provider bookkeeping that must never reach the prompt. The ledger echoes each call's
+# request parameters - including the provider key - and the sanitized report holds a
+# ``[REDACTED]`` marker where that key was. Sending either one to the provider either
+# leaks a credential or makes the provider reject the request, so neither is prompt data.
+_PROMPT_EXCLUDED = ('token_ledger', 'report_generation', 'metrics', 'llm_api_key',
+                    'llm_api_base', 'secrets')
+
+
+def _prompt_report(report):
+    clean = {key: value for key, value in report.items() if key not in _PROMPT_EXCLUDED}
+    budget = clean.get('budget_status')
+    if isinstance(budget, dict):
+        # Consumption counters are useful context; the configured limits are not.
+        clean['budget_status'] = {name: {k: v for k, v in row.items() if k in ('used', 'used_seconds')}
+                                  for name, row in budget.items() if isinstance(row, dict)}
+    return clean
+
+
 def generate_narrative(state, report):
     state = state or {}
     report = report or {}
@@ -219,10 +237,11 @@ def generate_narrative(state, report):
         meta['status'] = 'time_exhausted'
         return _empty(meta)
     context = int(state.get('model_context_tokens') or 4096)
+    prompt_report = _prompt_report(report)
     facts = _report_facts(report)
     allowed = {row['finding_id']: row for row in facts['findings']}
     messages = [{'role': 'system', 'content': _system_prompt()},
-                {'role': 'user', 'content': _user_prompt(report)}]
+                {'role': 'user', 'content': _user_prompt(prompt_report)}]
     try:
         prompt_tokens = int(litellm.token_counter(model=model, messages=messages))
     except Exception:  # noqa: BLE001 - any tokenizer failure falls back to bytes
@@ -254,8 +273,10 @@ def generate_narrative(state, report):
               'max_tokens': int(max_tokens), 'timeout': max(1.0, timeout), 'num_retries': 0}
     if state.get('llm_api_base'):
         kwargs['api_base'] = state['llm_api_base']
-    if state.get('llm_api_key'):
-        kwargs['api_key'] = state['llm_api_key']
+    from src.adaptix.evidence.checkpoint import usable_key
+    api_key = usable_key(state.get('llm_api_key')) or usable_key(os.getenv('ADAPTIX_API_KEY'))
+    if api_key:
+        kwargs['api_key'] = api_key
     if state.get('llm_reasoning_effort'):
         kwargs['reasoning_effort'] = state['llm_reasoning_effort']
     ledger = []

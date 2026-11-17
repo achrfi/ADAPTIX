@@ -8,7 +8,8 @@ hash reported two rows with no impact at all.
 import ast
 import pathlib
 
-SOURCE = pathlib.Path('/root/projects/adaptix/src/adaptix/workflow/nodes.py').read_text()
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+SOURCE = (ROOT / 'src/adaptix/workflow/nodes.py').read_text()
 
 
 def test_execute_action_accumulates_every_provable_key():
@@ -31,7 +32,6 @@ def test_execute_action_accumulates_every_provable_key():
 
 
 def test_the_extraction_writes_where_the_report_reads():
-    tool = pathlib.Path(
-        '/root/projects/adaptix/src/adaptix/tools/union_extract.py').read_text()
+    tool = (ROOT / 'src/adaptix/tools/union_extract.py').read_text()
     assert "'verified_findings': verified" in tool, 'the proven record is not exported'
     assert "'impact_proven': True" in tool, 'the impact flag is not on the record'

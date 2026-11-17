@@ -25,16 +25,24 @@ def _parse_target(value):
         parsed = urlsplit(value if '://' in value else 'http:' + value)
         if parsed.scheme not in ('http', 'https') or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError(f'URL target tidak valid: {value}')
-        return canonical_host(parsed.hostname)
+        host = canonical_host(parsed.hostname)
+        if parsed.port is not None and not 1 <= parsed.port <= 65535:
+            raise ValueError('Port target di luar batas')
+        return f'{host}:{parsed.port}' if parsed.port is not None else host
     if '/' in value:
         return value
-    # domain:port and [IPv6]:port allowed, but port scan remains centrally configured
+    # domain:port and [IPv6]:port allowed. The port is preserved: validating it and
+    # then dropping it meant `127.0.0.1:3000` became `127.0.0.1`, was probed on :80,
+    # and was reported unreachable while the service was in fact serving.
     parsed = urlsplit('//' + value)
     if not parsed.hostname or parsed.username or parsed.password or parsed.path:
         raise ValueError(f'Target tidak valid: {value}')
-    if parsed.port is not None and not 1 <= parsed.port <= 65535:
-        raise ValueError('Port target di luar batas')
-    return canonical_host(parsed.hostname)
+    host = canonical_host(parsed.hostname)
+    if parsed.port is not None:
+        if not 1 <= parsed.port <= 65535:
+            raise ValueError('Port target di luar batas')
+        return f'{host}:{parsed.port}'
+    return host
 
 def normalize_requests(requested):
     """Normalize request identifiers for equality checks on signed grants."""
@@ -69,22 +77,41 @@ def resolve_scope(requested, settings, require_allowlist=False):
                 raise ValueError(f'CIDR di luar allowlist: {net}')
             networks.append(net)
             continue
-        try:
-            ipaddress.ip_address(target)
-        except ValueError:
-            if require_allowlist and target not in allowed_names:
-                raise ValueError(f'Domain di luar allowlist: {target}')
+        # `target` may carry a port. Resolving "127.0.0.1:3000" as a *name* failed
+        # with "Gagal DNS", so the host is separated before any resolution attempt.
+        # The alias map stays keyed by bare host: `unit_host()` is the lookup key in
+        # planner.py and nuclei_profiles.py, so a port-suffixed key would never match
+        # and pinned DNS addresses would silently stop being applied.
+        # IPv6 and CIDR are recognized BEFORE urlsplit sees them:
+        # `urlsplit('//2001:db8::10').hostname` is `'2001'`, because the parser reads
+        # the first colon group as the host and the rest as a port. A truncated
+        # address then fell through to DNS and resolved garbage.
+        host_part = target
+        if '://' in target:
+            host_part = urlsplit(target).hostname or target
+        elif '/' in target:
+            host_part = target
+        else:
             try:
-                resolved = sorted({check_ip(row[4][0]) for row in socket.getaddrinfo(target, None, type=socket.SOCK_STREAM)})
+                ipaddress.ip_address(target)
+            except ValueError:
+                host_part = target.rsplit(':', 1)[0] if target.count(':') == 1 else target
+        try:
+            ipaddress.ip_address(host_part)
+        except ValueError:
+            if require_allowlist and host_part not in allowed_names:
+                raise ValueError(f'Domain di luar allowlist: {host_part}')
+            try:
+                resolved = sorted({check_ip(row[4][0]) for row in socket.getaddrinfo(host_part, None, type=socket.SOCK_STREAM)})
             except socket.gaierror as exc:
-                raise ValueError(f'Gagal DNS untuk {target}') from exc
+                raise ValueError(f'Gagal DNS untuk {host_part}') from exc
             if not resolved:
                 raise ValueError('Domain has no resolved addresses')
-            aliases[target] = resolved
+            aliases[host_part] = resolved
             hosts.extend(resolved)
             units.append(target)
         else:
-            ip = check_ip(target)
+            ip = check_ip(host_part)
             if require_allowlist and not any(ipaddress.ip_address(ip).version == n.version and ipaddress.ip_address(ip) in n for n in allowed_nets):
                 raise ValueError(f'IP di luar allowlist: {ip}')
             hosts.append(ip)
@@ -210,12 +237,30 @@ def scope_ports(requested, policy):
     values = [requested] if isinstance(requested, str) else requested
     for value in values:
         value = str(value)
-        if '://' in value or value.startswith('//'):
-            parsed = urlsplit(value if '://' in value else 'http:' + value)
-            if parsed.port is not None:
-                if not 1 <= parsed.port <= 65535:
-                    raise ValueError('Invalid target port')
-                ports.add(parsed.port)
+        # A bare `host:port` carries a port too. Only looking at scheme URLs meant a
+        # target of `127.0.0.1:3000` contributed nothing, so the service on :3000 was
+        # never probed while :80 and :443 -- where nothing was listening -- were.
+        text = value if '://' in value else '//' + value
+        # A CIDR is a network, not an origin, and a bare IPv6 address has colons that
+        # are not a port. `urlsplit('//2001:db8::/64').port` raises
+        #   ValueError: Port could not be cast to integer value as 'db8::'
+        # so only a single colon after a non-bracketed host may be a port.
+        if '/' in value and '://' not in value:
+            continue
+        scheme_less = value if '://' in value else '//' + value
+        host_and_port = urlsplit(scheme_less).netloc if '://' not in value else urlsplit(value).netloc
+        if host_and_port.startswith('['):
+            tail = host_and_port.partition(']')[2]
+            candidate = tail[1:] if tail.startswith(':') else ''
+        elif host_and_port.count(':') == 1:
+            candidate = host_and_port.rsplit(':', 1)[1]
+        else:
+            # A bare IPv6 address, or a CIDR: no port is expressed.
+            candidate = ''
+        if candidate:
+            if not candidate.isdigit() or not 1 <= int(candidate) <= 65535:
+                raise ValueError(f'Invalid target port: {value}')
+            ports.add(int(candidate))
     return parse_ports(sorted(ports))
 
 

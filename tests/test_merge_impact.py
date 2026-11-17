@@ -8,7 +8,6 @@ impact the run did not have.
 """
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.agents.reflector import _merge_entry, _merge_report_findings
 

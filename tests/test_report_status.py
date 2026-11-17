@@ -15,7 +15,6 @@ import sys
 
 import pytest
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 import src.adaptix.agents.reflector as reflector_module
 from src.adaptix.reporting.report import final_report, _outcome_errors, _transport_notes, _termination

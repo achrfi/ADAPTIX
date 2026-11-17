@@ -8,7 +8,6 @@ an operator reading the report could not tell they were one hole.
 """
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.agents.reflector import _merge_report_findings, _parameter_name
 

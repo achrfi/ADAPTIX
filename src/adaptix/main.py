@@ -10,6 +10,9 @@ from src.adaptix.config import ROOT, load_dotenv
 from src.adaptix.tools.registry import tool_registry
 from src.adaptix.security.authorization import authorize_cli_targets
 from src.adaptix.workflow.budget import parse_budget, unlimited_remote_risk
+from src.adaptix.evidence.checkpoint import (open_checkpoint, pending_nodes,
+                                                 resumable_snapshot, restore_runtime_secrets,
+                                                 thread_id_for)
 
 # Engine transport parameter, not an execution budget: LangGraph requires an
 # integer recursion limit and unlimited cumulative budgets cannot be expressed
@@ -17,8 +20,46 @@ from src.adaptix.workflow.budget import parse_budget, unlimited_remote_risk
 # termination in unlimited mode comes from progress/accounting logic in the
 # graph itself (stagnation, provider failures, cancellation), never from this
 # transport number.
+# Limit and progress knobs a resumed process may legitimately change. They are written
+# onto the fork point; everything else comes from the checkpoint.
+BUDGET_KNOBS = ('tool_call_budget', 'token_budget', 'time_budget_seconds', 'max_iterations',
+                'execution_metrics')
+
 ENGINE_RECURSION_LIMIT = 2_147_483_000
 
+
+# Usage counters that measure spend against a budget. A resume issues a new budget, so
+# these restart; the run's earlier totals are kept under the history key.
+_USAGE_COUNTERS = ('tool_calls_used', 'tokens_used', 'iterations_used', 'tool_calls_by_phase')
+
+
+def _prior_usage(values):
+    """Spend recorded by the process that wrote the checkpoint, if any."""
+    metrics = (values or {}).get('execution_metrics') or {}
+    spent = {name: metrics[name] for name in _USAGE_COUNTERS if name in metrics}
+    spent['history'] = list(metrics.get('history') or [])
+    return spent
+
+
+def _reset_usage_counters(metrics, previous=None):
+    """Return `metrics` with the live usage counters cleared and the old totals archived.
+
+    Called on resume only. Without it the counters keep their value from the earlier
+    process while `tool_call_budget` is replaced, so a report compares a new limit
+    against the old spend and claims a budget was exceeded when it was not.
+    """
+    metrics = dict(metrics or {})
+    if previous:
+        archived = dict(previous)
+        archived['resumed_at'] = metrics.get('resumed_at') or None
+        metrics['history'] = list(metrics.get('history') or []) + [archived]
+    metrics['tool_calls_used'] = 0
+    metrics['tokens_used'] = 0
+    metrics['iterations_used'] = 0
+    metrics.pop('tool_calls_by_phase', None)
+    metrics['by_tool'] = {}
+    metrics['resumed'] = True
+    return metrics
 
 def _env_budget(name, fallback, caster=int):
     """Default a budget from the environment, falling back to a literal.
@@ -94,6 +135,11 @@ def build_arg_parser():
     parser.add_argument('--no-report-model', action='store_true',
                         help='Render the report without a model-written narrative; recorded findings and evidence stay unchanged')
     parser.add_argument('--run-id', help='Operator-chosen run identity for replay/audit and exact action approval')
+    parser.add_argument('--resume', metavar='RUN_ID',
+                        help='Continue a run that stopped at a checkpoint instead of starting over: '
+                             'reuses the run directory and its evidence, re-runs only the phases the '
+                             'previous process did not finish. Requires that run\'s checkpoint database, '
+                             'which holds sanitized state only')
     parser.add_argument('--confirm-unlimited-remote', action='store_true',
                         help='Explicit operator confirmation that allows unlimited cumulative budgets on a remote or paid provider')
     return parser
@@ -135,7 +181,7 @@ def _run_model_preflight(args):
     return 1
 
 
-def run_stream(graph, state, config, cancelled):
+def run_stream(graph, state, config, cancelled, seed=None):
     """Invoke the graph one node at a time, returning the merged state.
 
     Merging node updates reproduces graph.invoke's final state while letting an
@@ -145,14 +191,27 @@ def run_stream(graph, state, config, cancelled):
     and the caller still receives a complete partial report from the merged
     checkpoints the run already wrote.
     """
-    merged = dict(state)
+    merged = dict(seed if seed is not None else state)
     # LangGraph's default `updates` mode yields one mapping per node
     # (``{node_name: delta}``), which is not the run state and made the CLI print
     # an empty report. `values` yields complete state snapshots, so the final
     # snapshot (or the last one before cancellation) is the authoritative merge.
-    for update in graph.stream(state, config=config, stream_mode='values'):
+    for update in graph.stream(None if seed is not None else state, config=config,
+                               stream_mode='values'):
         if isinstance(update, dict):
             merged = {**merged, **update}
+            if seed is not None and isinstance(update.get('execution_metrics'), dict):
+                # LangGraph replays the thread's earlier snapshots before it runs the
+                # next node, and those carry the PREVIOUS process's usage totals. A
+                # resumed run reset those counters because it was given a new budget,
+                # so a replayed snapshot must not put the old spend back: the report
+                # would then measure an earlier run's tool calls against this run's
+                # limit. Node spend from THIS process is added to the seed below.
+                replayed = int((update['execution_metrics'] or {}).get('tool_calls_used', 0) or 0)
+                baseline = int((seed.get('execution_metrics') or {}).get('tool_calls_used', 0) or 0)
+                if replayed < baseline:
+                    merged['execution_metrics'] = dict(update['execution_metrics'],
+                                                       tool_calls_used=baseline)
         if cancelled():
             break
     return merged
@@ -219,6 +278,29 @@ def main(argv=None):
         if unlimited_remote_risk(args.model, args.api_base, args.api_key) and not args.confirm_unlimited_remote:
             parser.error('unlimited budgets are only allowed on the default local provider; pass '
                          '--confirm-unlimited-remote to accept uncapped spending on a remote or paid provider explicitly')
+    if not args.target and getattr(args, 'resume', None):
+        # A resume continues work that already had a target, and that target is in the
+        # checkpoint. Demanding it again was pure friction -- but the target is also the
+        # authorization boundary, so it is never taken silently: the value from the
+        # checkpoint is used only when the operator named none, and it is reported. A
+        # differing --target still wins, because widening or narrowing scope is the
+        # operator's decision, not an artifact's.
+        inherited = None
+        try:
+            point = resumable_snapshot(args.resume)
+            inherited = (point.values or {}).get('target') if point is not None else None
+        except Exception:
+            inherited = None
+        if inherited:
+            args.target = list(inherited) if isinstance(inherited, (list, tuple)) else [inherited]
+            args._target_from_checkpoint = True
+            print(f'resume {args.resume}: target inherited from its checkpoint '
+                  f'({", ".join(map(str, args.target))}); pass --target to override', flush=True)
+        elif point is None:
+            # Nothing to inherit because there is no checkpoint. Saying "--target is
+            # required" here sends the operator to add a flag that would not help.
+            parser.error(f'--resume {args.resume}: no resumable checkpoint for that run '
+                         f'(start it normally first, or it already completed)')
     if not args.target:
         parser.error('--target is required unless --check-tools is used')
     from src.adaptix.processing.ffuf import load_ffuf_files
@@ -247,10 +329,17 @@ def main(argv=None):
         recon_wordlist = resolve_wordlist(args.wordlist)
     except ValueError as exc:
         parser.error(str(exc))
-    from src.adaptix.workflow.graph import graph
+    from src.adaptix.workflow.graph import graph, resumable_graph
+    resume_run_id = str(args.resume).strip() if args.resume else None
+    if resume_run_id and args.run_id and args.run_id != resume_run_id:
+        parser.error('--resume and a different --run-id disagree about which run this is')
+    if resume_run_id and not pending_nodes(resume_run_id):
+        parser.error(f'--resume {resume_run_id}: no resumable checkpoint for that run '
+                     f'(start it normally first, or it already completed)')
     state = {'target': args.target,
              'grant': grant, 'principal': principal,
-             'run_id': args.run_id or uuid.uuid4().hex[:12], 'events': [], 'errors': [],
+             'run_id': resume_run_id or args.run_id or uuid.uuid4().hex[:12],
+             'events': [], 'errors': [],
              'user_prompt': instruction,
              'ffuf_import_documents': ffuf_documents,
              'ffuf_into_assessment': bool(args.ffuf_into_assessment),
@@ -280,14 +369,92 @@ def main(argv=None):
 
     def _cancel(signum, frame):
         cancelled['flag'] = True
+    # Every run writes a checkpoint database under its own run directory, so the
+    # next process can continue instead of restarting from zero; --resume reuses an
+    # existing one. The saver scrubs state before it reaches the disk.
+    if resume_run_id:
+        with open_checkpoint(state['run_id']) as (saver, _checkpoint_file):
+            engine = resumable_graph(saver)
+            pending = pending_nodes(resume_run_id)
+        if not pending:
+            print(f'run {resume_run_id}: nothing resumable (it completed, or never started)')
+            return 0
+        print(f"resuming run {resume_run_id}: continuing at {' -> '.join(pending)}")
+
+    resume_key = None
+    if resume_run_id:
+        # The checkpoint stores a placeholder where the provider key was, so the loaded
+        # state cannot authenticate. The environment (or --api-key) is the source of
+        # truth; with no key the run reports a real provider failure instead of sending
+        # a placeholder as a credential.
+        resume_key = (args.api_key or os.environ.get('ADAPTIX_API_KEY') or '').strip() or None
     try:
-        signal.signal(signal.SIGINT, _cancel)
-        signal.signal(signal.SIGTERM, _cancel)
-        try:
-            result = run_stream(graph, state, config={'recursion_limit': recursion_limit}, cancelled=lambda: cancelled['flag'])
-        finally:
-            signal.signal(signal.SIGINT, previous_int)
-            signal.signal(signal.SIGTERM, previous_term)
+        with open_checkpoint(state['run_id']) as (saver, _checkpoint_file):
+            # Every run streams an engine bound to its own checkpoint: a fresh run writes
+            # a thread it could later resume, and a resume reads the one already there.
+            # `graph` stays the plain, unbound object for callers that only need the
+            # graph's shape; durability is a property of the run, not of the module.
+            engine = resumable_graph(saver)
+            config = {'recursion_limit': recursion_limit,
+                      'configurable': {'thread_id': thread_id_for(state['run_id'])}}
+            try:
+                signal.signal(signal.SIGINT, _cancel)
+                signal.signal(signal.SIGTERM, _cancel)
+                # A fresh run starts from the operator state. A resume re-enters the
+                # thread at the point the previous limit cut short (not at the stopping
+                # tail, which has nothing left to do), with this process's budgets and a
+                # provider key restored from the environment - the file only holds a
+                # placeholder, so a resumed run cannot authenticate from disk alone.
+                if resume_run_id:
+                    point = resumable_snapshot(resume_run_id)
+                    if point is None:
+                        parser.error(f'--resume {resume_run_id}: no resumable checkpoint for that run '
+                                     f'(start it normally first, or it already completed)')
+                    # The snapshot carries the *previous* run's limits, and a resume is a
+                    # new operator decision. Seeding those knobs back through `input`
+                    # would replay the same graph pass from the top; instead write only
+                    # the changed knobs onto the fork point, then run the graph forward.
+                    # Always write the knobs, even when the value looks unchanged: the
+                    # previous process may have stopped on a *derived* reserve, and an
+                    # identical-looking value is exactly the case that needs re-asserting.
+                    budget_only = {name: state[name] for name in BUDGET_KNOBS if name in state}
+                    # The usage counters belong to the budget they were spent against, and
+                    # a resume sets a new budget. Carry the old total forward as history and
+                    # start the live counters again, or a report would show more used than
+                    # configured (the previous run's spend counted against this one's limit).
+                    budget_only['execution_metrics'] = _reset_usage_counters(
+                        budget_only.get('execution_metrics'), previous=_prior_usage(point.values or {}))
+                    seed = restore_runtime_secrets({**(point.values or {}), **budget_only},
+                                                   env={'ADAPTIX_API_KEY': resume_key or ''})
+                    # Write onto the fork point, but never keep its checkpoint_id for the
+                    # run: a pinned id makes every later read return the *pre-write*
+                    # snapshot, so the escalated budgets would be invisible.
+                    #
+                    # The key has to go through the same write. LangGraph reads channel
+                    # values from the checkpoint, so a key restored into a local dict is
+                    # overwritten by the placeholder the moment the node runs. The write
+                    # passes through the sanitizing saver, which stores only the marker -
+                    # the credential stays out of the file for good.
+                    updates = dict(budget_only)
+                    if resume_key:
+                        updates['llm_api_key'] = resume_key
+                    at_point = {'configurable': dict(point.config['configurable'])}
+                    if updates:
+                        engine.update_state(at_point, updates, as_node=point.next[0])
+                    # Run from the thread head so the graph continues after the node the
+                    # write recorded, with this process's limits in force.
+                    fork = {**config, 'configurable': {'thread_id': config['configurable']['thread_id']}}
+                    result = run_stream(engine, None, config=fork,
+                                        cancelled=lambda: cancelled['flag'], seed=seed)
+                else:
+                    # A fresh run streams the module-level graph: it is the object every
+                    # caller instruments, and the checkpoint for this run is written by
+                    # the saver attached to it below rather than by a look-alike copy.
+                    result = run_stream(engine, state, config=config,
+                                        cancelled=lambda: cancelled['flag'])
+            finally:
+                signal.signal(signal.SIGINT, previous_int)
+                signal.signal(signal.SIGTERM, previous_term)
     except KeyboardInterrupt:
         result = {'stop_reason': 'operator_cancelled'}
     if cancelled['flag'] or result.get('stop_reason') == 'operator_cancelled':

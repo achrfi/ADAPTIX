@@ -447,6 +447,114 @@ FIXATION_CODES = ('previously_rejected', 'zero_information_gain', 'request_alrea
 _FIXATION_LIMIT = 2
 
 
+def prev_keys_hint(state):
+    """Whether a previous fixation was recorded at all (continuation signal)."""
+    value = state.get('fixated_targets')
+    return bool(value and value[1])
+
+
+def _value_bound_surfaces(state):
+    """Surfaces closed only for the query value that was refused.
+
+    ``execution_identity`` includes the full ``endpoint_key``, query string and all,
+    so a refusal recorded against ``?q=1`` says nothing about ``?q='``. Those
+    surfaces stay reachable: excluding them entirely would hide a genuine
+    blind-injection pivot behind an earlier duplicate. A surface refused for its
+    path - or already executed to completion - carries no such reprieve.
+    """
+    from src.adaptix.security.scope import endpoint_key
+    value_bound = set()
+    for row in state.get('rejected_actions', []) or []:
+        if not isinstance(row, dict):
+            continue
+        key = endpoint_key(str(row.get('target') or ''))
+        if not key:
+            continue
+        # A query present in the refused target means the refusal was recorded
+        # against that exact value; the path alone was never condemned.
+        if key[4]:
+            value_bound.add(key[:4])
+    return value_bound
+
+
+def _refused_surfaces(state):
+    """Surfaces the run has already refused, across every recorded pass.
+
+    ``_fixation`` only sees one pass, which is enough to escalate but not enough to
+    stop advertising a dead end. An observed run re-proposed the same three surfaces
+    for six passes while each rejection re-stated them as executable alternatives.
+    Reading the refusal history lets the planner stop offering what it has already
+    turned down.
+    """
+    from src.adaptix.security.scope import endpoint_key
+    surfaces = set()
+    for row in state.get('refused_surfaces', []) or []:
+        if isinstance(row, (tuple, list)) and row:
+            surfaces.add(tuple(row[:4]))
+    for row in state.get('rejected_actions', []) or []:
+        if not isinstance(row, dict):
+            continue
+        key = endpoint_key(str(row.get('target') or ''))
+        if key:
+            surfaces.add(key[:4])
+    return surfaces
+
+
+def _is_refused(state, target, refused=None, allow_value_bound=False):
+    """True when ``target``'s surface has already been refused by this run.
+
+    With ``allow_value_bound`` a surface whose refusal was tied to one query value
+    is reported as still suggestable: the endpoint was condemned for a payload, not
+    as a surface. Executed-to-completion surfaces remain closed either way.
+    """
+    from src.adaptix.security.scope import endpoint_key
+    surfaces = refused if refused is not None else _refused_surfaces(state)
+    key = endpoint_key(str(target or ''))
+    if not key or key[:4] not in surfaces:
+        return False
+    if allow_value_bound:
+        for row in state.get('attempted_actions', []) or []:
+            if not isinstance(row, dict):
+                continue
+            done = endpoint_key(str(row.get('target') or ''))
+            if done and done[:4] == key[:4]:
+                return True   # executed here: closed regardless of the value
+        # A different query string is a different request. Repeat only the exact
+        # (path, value) pair is refused again; every other value stays available.
+        for row in state.get('rejected_actions', []) or []:
+            if not isinstance(row, dict):
+                continue
+            seen = endpoint_key(str(row.get('target') or ''))
+            if seen and seen[:4] == key[:4] and seen[4] == key[4]:
+                return True
+        return False
+    return True
+
+
+def _as_surface_set(value):
+    """Normalise a persisted fixation key into a set of surfaces.
+
+    The value was a single ``endpoint_key`` tuple before multi-surface fixation was
+    tracked; a resumed run can still carry that shape in its checkpoint, so both
+    forms must read as a set.
+    """
+    if not value:
+        return set()
+    if isinstance(value, str):
+        return set()
+    if isinstance(value, (set, frozenset)):
+        return {tuple(item[:4]) for item in value if item}
+    if isinstance(value, (tuple, list)):
+        if not value:
+            return set()
+        # A single endpoint_key is a flat tuple of scalars; a collection of them is a
+        # sequence of tuples. Both shapes must read as a set of surfaces.
+        if isinstance(value[0], (tuple, list, set, frozenset)):
+            return {tuple(item[:4]) for item in value if item}
+        return {tuple(value[:4])}
+    return set()
+
+
 def _fixation(state, denial_inputs):
     """How many consecutive passes the model has re-proposed the same refused surface.
 
@@ -466,12 +574,30 @@ def _fixation(state, denial_inputs):
     # entries are the surface, which is what stays refused when only values change.
     previous_key, previous_count = state.get('fixated_targets') or (None, 0)
     keys = {key[:4] for key in (endpoint_key(target) for target in targets) if key}
-    if len(keys) != 1:
+    if not keys:
         return None, 0
-    key = keys.pop()
-    if key == previous_key:
-        return key, int(previous_count or 0) + 1
-    return key, 1
+    # Any refusal of a surface the run has already refused anywhere in its history is
+    # a continuation of the same loop, even when the immediately previous pass touched
+    # a different one.
+    historically_refused = _refused_surfaces(state)
+    count_alternating = bool(keys & historically_refused) and bool(prev_keys_hint(state))
+    # A multi-surface refusal is the model cycling through the same closed set, not
+    # a fresh attempt, so it must not clear the counter: an observed run alternated
+    # between two refused surfaces six passes in a row and reset the count to 1
+    # every time, which kept the escalation directive from ever being emitted.
+    # Only a proposal that introduces a surface not refused in the previous pass
+    # counts as a genuine restart.
+    # Backwards compatible: an old scalar key is treated as a one-surface set.
+    prev_keys = _as_surface_set(previous_key)
+    # A surface the run refused in an earlier pass is still refused now, so the
+    # counter tracks the *union*: alternating S -> M -> S is one continuing loop, not
+    # three fresh attempts. Letting a novel surface reset the count is how an observed
+    # run cycled a closed set for six passes while the counter kept returning to 1.
+    if keys & prev_keys:
+        return keys | prev_keys, int(previous_count or 0) + 1
+    if prev_keys and count_alternating:
+        return keys | prev_keys, int(previous_count or 0) + 1
+    return keys, 1
 
 
 def _alternatives(state, action, available=None, limit=6):
@@ -1285,7 +1411,10 @@ def adaptive_planning(state):
                 api_base = os.getenv('ADAPTIX_OLLAMA_BASE_URL', 'http://127.0.0.1:11434')
         if api_base:
             kwargs['api_base'] = api_base
-        api_key = state.get('llm_api_key') or os.getenv('ADAPTIX_API_KEY')
+        # A checkpointed state carries a marker, not a key; the environment is the only
+        # source of truth for a resumed run.
+        from src.adaptix.evidence.checkpoint import usable_key
+        api_key = usable_key(state.get('llm_api_key')) or usable_key(os.getenv('ADAPTIX_API_KEY'))
         if api_key:
             kwargs['api_key'] = api_key
         decision, metrics, cache, ledger, decision_error = request_decision(state, kwargs, metrics, prompt_cost, tighten)
@@ -1432,6 +1561,17 @@ def adaptive_planning(state):
     # Fixation tracking must reset on any pass that does not re-propose a refused
     # surface, so the counter is computed here and its result is what persists.
     fixated = _fixation(state, denial_inputs)
+    # Persist the refusal history for the *next* pass. Without it the planner can only
+    # see the pass it is currently in, which is why a closed set of surfaces kept
+    # coming back as suggested alternatives.
+    from src.adaptix.security.scope import endpoint_key as _surface_key
+    refused_surfaces = {tuple(row[:4]) for row in (state.get('refused_surfaces') or []) if row}
+    for denial in denial_inputs:
+        if denial.get('code') not in FIXATION_CODES:
+            continue
+        key = _surface_key(str((denial.get('action') or {}).get('target') or ''))
+        if key:
+            refused_surfaces.add(key[:4])
     redirect = bool(denial_inputs) and not actions and not review_errors
     if not redirect:
         feedback.extend({'kind': 'budget', 'code': 'cost_deferred', 'reason': row['reason'],
@@ -1439,8 +1579,28 @@ def adaptive_planning(state):
     if redirect:
         blocked = {str(denial['action'].get('target')) for denial in denial_inputs}
         usable = sorted(name for name, row in eligibility.items() if row.get('eligible'))
-        pairs = [pair for pair in _alternatives(state, {'target': None}, available, limit=6)
-                 if pair['target'] not in blocked]
+        refused = _refused_surfaces(state)
+        value_bound = _value_bound_surfaces(state)
+        pairs = []
+        for pair in _alternatives(state, {'target': None}, available, limit=12):
+            if pair['target'] in blocked:
+                continue
+            if not _is_refused(state, pair['target'], refused, allow_value_bound=True):
+                pairs.append(pair)
+                continue
+            # Reachable again only because the earlier refusal was tied to one query
+            # value. Offer it, but state the condition: a repeat of the refused value
+            # is refused again, so the model has to design a different one.
+            from src.adaptix.security.scope import endpoint_key as _ek
+            if (_ek(str(pair['target'])) or (None,) * 5)[:4] in value_bound:
+                reopened = dict(pair)
+                reopened['requires_new_parameter_value'] = True
+                pairs.append(reopened)
+        # Every offered pair was refused already: say so instead of re-advertising a
+        # dead end. The directive below still lets the model propose anything it can
+        # justify; this only stops policy from suggesting the closed set back to it.
+        exhausted_surfaces = not pairs
+        pairs = pairs[:6]
         fixated_key, fixated_count = fixated
         for denial in action_denials:
             denial['alternatives'] = pairs[:4]
@@ -1458,6 +1618,21 @@ def adaptive_planning(state):
                               'request informative; the runtime records every value you send.',
                      'alternatives': pairs,
                      'tools_with_eligible_inputs': usable[:8]}
+        if any(row.get('requires_new_parameter_value') for row in pairs):
+            directive['reason'] += (' A pair marked requires_new_parameter_value is reachable only with a '
+                                    'parameter value the run has not sent yet; re-sending the refused value '
+                                    'is refused again.')
+        if exhausted_surfaces:
+            # Every pair this directive would have carried was already refused, in this
+            # pass or an earlier one. Keeping the code (and therefore the fixation
+            # escalation below) while dropping the suggestions is the honest answer:
+            # an empty list plus the explicit statement that the offered set is closed.
+            # The model is not told to pick from a list it cannot use.
+            directive['reason'] = ('No proposed action was feasible, and every endpoint previously offered as an '
+                                   'alternative has already been refused, so the suggestion list is empty. Propose '
+                                   'an action your evidence supports that has not been refused - a different '
+                                   'endpoint, a different tool, or a state-changing test - or stop and record what '
+                                   'the evidence still cannot answer. ' + directive['reason'])
         open_hypothesis = [row for row in pairs if row.get('tests_hypothesis')]
         if open_hypothesis:
             directive['tests_hypothesis'] = open_hypothesis[0]['tests_hypothesis']
@@ -1697,6 +1872,7 @@ def adaptive_planning(state):
             'rejected_actions': list(rejected.values()),
             'consecutive_policy_rejections': rejected_passes,
             'fixated_targets': fixated,
+            'refused_surfaces': sorted(refused_surfaces),
             'consecutive_infeasible_actions': infeasible_passes,
             'consecutive_no_gain_passes': no_gain_passes,
             'scope_window': window, 'scope_deferred': deferred_scope,

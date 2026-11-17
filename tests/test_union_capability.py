@@ -8,7 +8,6 @@ calibration, and extraction contract are all asserted without a network.
 import sys
 import urllib.parse
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.evidence import union_extract as U
 

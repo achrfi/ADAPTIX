@@ -8,7 +8,6 @@ proven one - so the escalation never ran and the objective was reported not asse
 """
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.tools.union_extract import _injection_record, _target_and_parameter
 

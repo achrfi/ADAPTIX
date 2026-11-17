@@ -7,7 +7,6 @@ claims become assertions.
 """
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.ui import screen as S
 from src.adaptix.ui.state import LiveView, read_tokens

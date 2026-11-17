@@ -66,3 +66,6 @@ htmlcov/
 
 # Worker-local signed scope key
 config/.adaptix_scope_signing_key
+/artifacts/scans/
+*.bak
+*.bak_*

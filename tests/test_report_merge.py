@@ -11,11 +11,11 @@ finding without a signed proof on disk, so a synthetic state cannot reach `verif
 that is the reflector's evidence discipline working, not a gap in this test.
 """
 import glob
+import pathlib
 import json
 import os
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.agents.reflector import (_merge_report_findings, _report_identity,
                                           collect_findings)
@@ -106,7 +106,8 @@ def test_collect_findings_carries_the_extraction_reproduction_into_the_report():
 
 def test_a_real_run_reports_every_class_it_verified():
     """Regression against the measured checkpoint: one row became four."""
-    run = '/root/projects/adaptix/artifacts/scans/js-tool-194124'
+    root = pathlib.Path(__file__).resolve().parents[1]
+    run = str(root / 'artifacts/scans/js-tool-194124')
     checkpoints = sorted(glob.glob(run + '/checkpoint*.json'))
     if not checkpoints:
         return  # artifact not present in this checkout

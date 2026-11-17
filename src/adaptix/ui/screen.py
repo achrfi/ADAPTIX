@@ -36,7 +36,8 @@ BANNER = [
 
 HELP = (
     'Enter run · Ctrl-C during a run cancels it · /target URL · /model ID · '
-    '/budget tokens=N|unlimited · /identity FILE · /clear · /help · /quit'
+    '/budget tokens=N|unlimited · /identity FILE · /resume [RUN_ID|last] · '
+    '/clear · /help · /quit'
 )
 
 _ANSI = re.compile(r'\x1b\[[0-9;?]*[ -/]*[@-~]')
@@ -89,6 +90,9 @@ class Runner:
         self.process: subprocess.Popen | None = None
         self.thread: threading.Thread | None = None
         self.run_id = ''
+        # Set by /resume. Empty means the next Enter starts a new run, which is the
+        # behaviour every earlier version of this screen had.
+        self.resume_run_id = ''
         self.lock = threading.Lock()
         self.finished = threading.Event()
         self.finished.set()
@@ -133,6 +137,11 @@ class Runner:
                 '--max-iterations', str(view.max_iterations),
                 '--planner-retries', '2',
                 '--llm-timeout', '180']
+        if self.resume_run_id:
+            # Continue the chosen run instead of starting a new one. `--run-id` is
+            # still passed above because the engine reads the resumed thread and
+            # writes the continuation's artifacts; the resumed id wins inside main.
+            argv.extend(['--resume', self.resume_run_id])
         if any(value is None for value in (view.time_budget, view.tool_budget, view.token_budget)):
             argv.append('--confirm-unlimited-remote')
         for target in view.target:
@@ -148,7 +157,13 @@ class Runner:
         return argv
 
     def start(self, instruction: str, cwd: str):
-        self.run_id = time.strftime('ui-%H%M%S')
+        # A resume keeps the id it is continuing: generating a new one here is how an
+        # earlier attempt appeared to resume while it actually started over, because
+        # the checkpoint was looked up under the fresh id and not found.
+        if self.resume_run_id:
+            self.run_id = self.resume_run_id
+        else:
+            self.run_id = time.strftime('ui-%H%M%S')
         self.view.run_id = self.run_id
         self.view.objective = instruction
         self.view.status = 'starting'
@@ -205,15 +220,38 @@ class Runner:
                 return value
         return None
 
+    def _is_stale(self, base: str, progress: dict) -> bool:
+        """True when this progress file predates the run currently being shown."""
+        started = self.view.started_at or 0
+        if not started:
+            return False
+        try:
+            paths = glob.glob(os.path.join(base, 'progress-*.json'))
+            if not paths:
+                return False
+            newest = max(paths, key=os.path.getmtime)
+            return os.path.getmtime(newest) < started
+        except OSError:
+            return False
+
     def poll_artifacts(self, cwd: str):
         """Read the newest LangGraph progress, checkpoint and report into the view."""
         if not self.run_id:
             return
         base = os.path.join(cwd, 'artifacts', 'scans', self.run_id)
         progress = self._latest_json(base, 'progress-*.json')
+        # A resumed run reuses its own directory, so the progress file left by the
+        # previous attempt is still there and says whatever that attempt ended with
+        # ("final_report/completed"). Reading it at the start of the resume is why the
+        # status line kept showing the old run's last state instead of the new one.
+        if progress and self._is_stale(base, progress):
+            progress = None
         if progress:
             self.view = view_from_progress(progress, self.view)
-        checkpoints = sorted(glob.glob(os.path.join(base, 'checkpoint-*.json')))
+        # Newest by mtime, not by name: a resumed run rewrites checkpoint-0001..N,
+        # so filename order can point at a snapshot from before the resume.
+        checkpoints = sorted(glob.glob(os.path.join(base, 'checkpoint-*.json')),
+                             key=os.path.getmtime)
         merged = None
         if checkpoints:
             try:
@@ -244,6 +282,37 @@ class Runner:
             merged.elapsed = time.time() - self.view.started_at
         self.view = merged
         return merged
+
+
+def resumable_runs(cwd: str, limit: int = 8):
+    """Run ids with a checkpoint that still has work to do, newest first.
+
+    A finished run is not offered: resuming it would only report that it is already
+    complete. This mirrors what ``--resume`` itself accepts, so the screen never
+    suggests a run the engine would refuse.
+    """
+    scans = os.path.join(cwd, 'artifacts', 'scans')
+    try:
+        names = sorted(os.listdir(scans), reverse=True)
+    except OSError:
+        return []
+    found = []
+    try:
+        sys.path.insert(0, cwd)
+        from src.adaptix.evidence.checkpoint import pending_nodes
+    except Exception:
+        return []
+    for name in names:
+        if name.startswith('.'):
+            continue
+        try:
+            if pending_nodes(name):
+                found.append(name)
+        except Exception:
+            continue
+        if len(found) >= limit:
+            break
+    return found
 
 
 def _safe_addstr(win, y, x, text, attr=0):
@@ -465,6 +534,36 @@ def _run_screen(stdscr, cwd: str):
             elif command == '/model':
                 view.model = argument or configured_model()
                 view.append(f'model set to {view.model or "(from .env)"}')
+            elif command == '/resume':
+                if runner.running:
+                    view.append('/resume: a run is active; Ctrl-C cancels it first')
+                    continue
+                if not argument:
+                    choices = resumable_runs(cwd)
+                    if choices:
+                        view.append('resumable runs: ' + ', '.join(choices))
+                        view.append('use /resume ID to continue one, then press Enter '
+                                    '(or /resume none to cancel)')
+                    else:
+                        view.append('no resumable runs: every run either finished or '
+                                    'never wrote a checkpoint')
+                    continue
+                if argument in ('none', 'off', 'cancel'):
+                    runner.resume_run_id = ''
+                    view.append('resume cancelled: the next Enter starts a new run')
+                    continue
+                chosen = argument
+                if argument == 'last':
+                    choices = resumable_runs(cwd, limit=1)
+                    if not choices:
+                        view.append('/resume last: no resumable run found')
+                        continue
+                    chosen = choices[0]
+                runner.resume_run_id = chosen
+                view.run_id = chosen
+                view.append(f'resume armed for {chosen}: press Enter to continue it')
+                view.append(f'  it continues {view.target[0] if view.target else "its checkpoint target"}; '
+                            f'/target URL overrides it')
             elif command == '/identity':
                 view.identity = argument
                 view.append(f'identity file set to {argument or "(none)"}')
@@ -500,11 +599,19 @@ def _run_screen(stdscr, cwd: str):
             env_target = os.getenv('ADAPTIX_TUI_TARGET')
             if env_target:
                 view.target = [env_target]
-        if not view.target:
+        if not view.target and not runner.resume_run_id:
             view.append('no target set — use /target http://host:port before starting a run')
             continue
+        resume_from = runner.resume_run_id
         runner.start(line, cwd)
-        view.append('run started — the token meter updates from the provider ledger')
+        if resume_from:
+            # One-shot: the next Enter must be a new run, or every keystroke after the
+            # first would keep re-entering the same thread instead of moving on.
+            runner.resume_run_id = ''
+            view.append(f'resumed {resume_from} — its earlier work is kept and the run '
+                        f'continues from where it stopped')
+        else:
+            view.append('run started — the token meter updates from the provider ledger')
 
 
 def main(cwd: str | None = None) -> int:

@@ -6,7 +6,6 @@ does not contain, and an operator would trust the screen.
 """
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.ui.state import (LiveView, finding_detail, finding_rows,
                                   read_tokens, view_from_report, view_from_state)

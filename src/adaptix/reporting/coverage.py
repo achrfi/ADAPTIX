@@ -22,7 +22,14 @@ TOOL_CLASSES = {
     # an action for that class. Without these entries SQL injection could never be
     # reported as tested: `http_request` carries no class, and the probe was
     # therefore invisible to coverage even while it was proving the class.
-    'injection_probe': ('sql_injection', 'nosql_injection'),
+    #
+    # `injection_probe` proves SQL injection only. It sends boolean SQL predicates
+    # (`OR 1=1` / `AND 1=2`) and nothing else: there is no NoSQL operator payload
+    # (`$ne`, `$gt`, `$regex`, `$where`) anywhere in the tool, so counting a NoSQL
+    # pass off it reported `nosql_injection: tested` for a class no check had ever
+    # exercised. A false `tested` is the one failure mode this module exists to
+    # prevent, so the class is left out until a probe of its own exists.
+    'injection_probe': ('sql_injection',),
     'authorization_probe': ('broken_object_level_authorization',),
     'script_probe': ('cross_site_scripting',),
 }
@@ -126,6 +133,16 @@ def assessment_coverage(state, stop_reason=None):
         elif scanner_disabled:
             status = NOT_TESTED
             reason = 'scanner disabled in this run and no class action was executed'
+        elif not class_tools:
+            # The class is named in BASE_CLASSES and can be recorded when a candidate
+            # or signature suggests it, but no probe claims it. Checked before the
+            # generic "nothing ran" branch: otherwise a run that executed other
+            # actions still answered "no action was planned and executed", implying
+            # the class was skipped by circumstance rather than by having no probe.
+            status = NOT_TESTED
+            reason = ('no probe reports this class: the tool can record the signal and '
+                      'escalate it, but it holds no deterministic check for it, so this '
+                      'run makes no statement about whether the class is present')
         elif not attempted:
             status = NOT_TESTED
             reason = 'no action was planned and executed in this run'

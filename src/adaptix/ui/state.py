@@ -347,8 +347,20 @@ def view_from_state(state, view: LiveView | None = None) -> LiveView:
         target = state['target']
         view.target = list(target) if isinstance(target, (list, tuple)) else [str(target)]
     view.model = str(state.get('llm_model') or view.model)
-    view.run_id = str(state.get('run_id') or view.run_id)
-    view.iteration = _as_int(state.get('iterations'))
+    # A resumed snapshot carries the ORIGINAL run's id and iteration count. The UI
+    # already knows which run it is showing (the one /resume armed); letting a stale
+    # snapshot overwrite them is how a resume appeared to sit on its own earlier state.
+    if not view.run_id:
+        view.run_id = str(state.get('run_id') or '')
+    # ``iterations_used`` is the live counter: resume resets it to 0. The plain
+    # ``iterations`` field is the graph's own pass counter, which a resumed
+    # snapshot still carries from before the resume - showing that one is how the
+    # UI sat on "pass 3/40" while the resumed run had only just begun.
+    metrics = state.get('execution_metrics') or {}
+    if isinstance(metrics, dict) and metrics.get('iterations_used') is not None:
+        view.iteration = _as_int(metrics.get('iterations_used'))
+    elif state.get('iterations') is not None:
+        view.iteration = _as_int(state.get('iterations'))
     if state.get('max_iterations') is not None:
         view.max_iterations = _as_int(state.get('max_iterations'))
     view.tokens = read_tokens(state)

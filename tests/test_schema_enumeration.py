@@ -8,7 +8,6 @@ target answers like a SQLite application and knows nothing about this repository
 """
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.evidence.union_extract import enumerate_schema, extraction_targets
 

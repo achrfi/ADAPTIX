@@ -1,14 +1,15 @@
 """The token line reports tokens used; findings carry what the operator acts on."""
 import glob
+import pathlib
 import json
 import sys
 
-sys.path.insert(0, '/root/projects/adaptix')
 
 from src.adaptix.reporting.finding_ids import finding_ref
 from src.adaptix.ui.state import TokenMeter, finding_detail, finding_rows
 
-RUN = '/root/projects/adaptix/artifacts/scans/js-long-114926'
+ROOT = pathlib.Path(__file__).resolve().parents[1]
+RUN = str(ROOT / 'artifacts/scans/js-long-114926')
 
 
 def _state():
@@ -28,8 +29,7 @@ def test_the_token_line_prints_tokens_used_and_nothing_else():
 
 def test_no_usage_bar_is_rendered():
     import pathlib
-    screen = pathlib.Path(
-        '/root/projects/adaptix/src/adaptix/ui/screen.py').read_text()
+    screen = (ROOT / 'src/adaptix/ui/screen.py').read_text()
     assert "meter_lines = ['tokens  ' + view.tokens.summary(width)]" in screen
     assert "'usage   '" not in screen
 

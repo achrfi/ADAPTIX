@@ -26,6 +26,11 @@ include = ["src*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = [".git", ".venv", "venv", "artifacts", "build", "dist"]
+# Portable collection: the project root is prepended so src.adaptix and the
+# tests package both import no matter which directory pytest is invoked from.
+# The root conftest.py seeds the same path for a bare pytest run and for
+# tooling that ignores ini options.
+pythonpath = ["."]
 
 [project.scripts]
 adaptix = "src.adaptix.ui_entry:main"

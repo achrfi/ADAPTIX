@@ -7,7 +7,11 @@ severity field. Every IDOR this tool verifies would have been unfilterable.
 import pathlib
 import re
 
-SRC = pathlib.Path('src/adaptix/agents/reflector.py').read_text()
+# Resolve from this file's own location, never the process cwd. A relative read
+# made the module uncollectable whenever pytest ran outside the project root:
+# FileNotFoundError during collection hides every test in the file.
+SRC = (pathlib.Path(__file__).resolve().parents[1]
+       / 'src' / 'adaptix' / 'agents' / 'reflector.py').read_text(encoding='utf-8')
 BLOCK = SRC[SRC.index("for finding in state.get('idor_findings', [])"):
             SRC.index("for index, row in enumerate(state.get('verification_evidence', [])")]
 

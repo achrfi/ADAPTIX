@@ -31,6 +31,7 @@ class AgentState(TypedDict, total=False):
     consecutive_infeasible_actions: int
     consecutive_no_gain_passes: int
     fixated_targets: tuple | None
+    refused_surfaces: list
     infeasible_stop_limit: int
     consecutive_provider_failures: int
     provider_failure_limit: int
@@ -217,4 +218,28 @@ builder.add_edge('reflection_verification', 'state_update')
 builder.add_conditional_edges('state_update', after_update, {'replan': 'adaptive_planning', 'report': 'final_report'})
 builder.add_edge('final_report', END)
 builder.add_edge('blocked_report', END)
+# The graph is compiled without a checkpointer so every existing caller keeps a
+# pure in-memory invocation. Durable resume is opt-in per run: main.py uses
+# ``resumable_graph()`` for an in-process checkpointer, and ``--resume`` for a
+# sanitized on-disk one (see src/adaptix/evidence/checkpoint.py). A checkpointer
+# cannot be swapped on a compiled graph, so resume recompiles instead.
+# ``graph`` is compiled without a checkpointer: importing this module must not create or
+# open a database, and a caller that patches ``graph.stream`` (tests, tooling) has to reach
+# the object a run actually streams. Durability is a per-run decision, so it is compiled
+# separately by ``resumable_graph`` and used only where a checkpoint is wanted.
 graph = builder.compile()
+
+
+def resumable_graph(checkpointer=None):
+    """The compiled graph, bound to `checkpointer` when one is given.
+
+    With no checkpointer this returns the module-level ``graph`` itself rather than an
+    equivalent rebuild: a rebuild is a distinct object, so a caller that patches or
+    instruments ``graph`` would silently address an instance nothing else uses.
+
+    Passing a saver is how a run becomes resumable; the saver is always the sanitizing
+    wrapper, never a raw one.
+    """
+    if checkpointer is None:
+        return graph
+    return builder.compile(checkpointer=checkpointer)
