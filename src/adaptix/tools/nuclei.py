@@ -125,7 +125,10 @@ def nuclei_check(state):
         by_budget = (manifest['request_ceiling_per_target'] / max(1, int(cfg['rate_per_second']))) + room
         timeout = min(timeout, max(30, by_budget))
         argv.extend(['-retries', '0'])
-        result = run_tool(argv, timeout=timeout, stdin='\n'.join(bound_urls) + '\n', stderr_limit=200_000)
+        result = run_tool(argv, timeout=timeout, stdin='\n'.join(bound_urls) + '\n', stderr_limit=200_000,
+                          request_budget=manifest['request_ceiling_per_target'],
+                          request_rate=cfg['rate_per_second'],
+                          request_concurrency=cfg['concurrent_requests'])
         execution_metrics = record_tool_call(working, 'nuclei')
         raw = result['stdout']
         raw_bytes += len(raw.encode())
@@ -166,7 +169,12 @@ def nuclei_check(state):
         warn_errors = re.findall(r'templates with runtime error', result['stderr'])
         selection['loaded_templates'] = int(loaded.group(1)) if loaded else None
         selection['executed_templates'] = int(signed.group(1)) if signed else None
-        selection['requests_issued'] = max(requests_seen) if requests_seen else None
+        selection['requests_issued'] = max(requests_seen) if requests_seen else result.get('requests_observed')
+        selection['request_guard_tripped'] = result.get('request_guard_tripped')
+        if result.get('request_guard_tripped'):
+            selection['execution_status'] = 'guard_stopped_partial'
+            errors.append('Nuclei request guard stopped scan: ' + str(result['request_guard_tripped']) +
+                          '; treat coverage as partial and verify emitted findings separately')
         if selection['loaded_templates'] is not None and selection['loaded_templates'] != manifest['executable_count']:
             errors.append(f"Nuclei loaded {selection['loaded_templates']} templates for the approved manifest of "
                           f"{manifest['executable_count']}; engine caching or runtime errors may skew coverage")
