@@ -364,10 +364,34 @@ def test_empty_decision_feedback_names_the_open_hypothesis(monkeypatch):
     from src.adaptix.agents import capabilities, priority as priority_module, progress
     from src.adaptix.reporting import report as report_module
     modules = (planner, capabilities, decisions, priority_module, reflector, progress, report_module)
-    sources = '\n'.join(inspect.getsource(module) for module in modules).lower()
-    for needle in ('union select', '<script', "' or 1=1", ' or 1=1', 'sqlmap', 'attack_chain',
-                   'follow_up_tool', 'next_tool', 'command injection', 'payload_for', 'exploit_order'):
-        assert needle not in sources
+
+    # The rule this enforces: no payload catalogue and no fixed attack order is
+    # baked into the planning code. The old version lowercased the whole source,
+    # comments included, so documenting a past payload in a comment failed the
+    # suite while an obfuscated constant would have passed. Inspect the string
+    # constants the code can actually emit instead, via the AST.
+    import ast
+    import inspect
+
+    emitted = []
+    for module in modules:
+        tree = ast.parse(inspect.getsource(module))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                emitted.append(node.value.lower())
+            elif isinstance(node, ast.JoinedStr):
+                for part in ast.walk(node):
+                    if isinstance(part, ast.Constant) and isinstance(part.value, str):
+                        emitted.append(part.value.lower())
+    blob = '\n'.join(emitted)
+
+    forbidden = ('union select', '<script', "' or 1=1", 'sqlmap', 'attack_chain',
+                 'follow_up_tool', 'next_tool', 'command injection', 'payload_for',
+                 'exploit_order')
+    present = [needle for needle in forbidden if needle in blob]
+    assert not present, (
+        'the planning modules embed a payload or a fixed attack order: '
+        + ', '.join(repr(n) for n in present))
     state = _state(attempted_actions=[{'tool': 'web_discover', 'target': BASE}])
     pairs = planner._alternatives(state, {'target': None}, sorted(CATALOG), limit=4)
     assert pairs and all(row['target'].startswith(BASE) for row in pairs)

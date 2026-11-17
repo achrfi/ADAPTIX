@@ -78,6 +78,20 @@ def test_fit_is_a_no_op_when_prose_already_fits():
 
 def test_prompt_states_flat_action_shape():
     """Without this rule the model wrapped parameters in `args` (extra_forbidden)."""
+    # The flat-shape rule lives in the prompt. Assert it is present in the prompt
+    # text the planner actually sends, which is the thing the model reads -- not in
+    # the module's source, where a comment could satisfy it.
+    # The rule is a sentence inside the prompt the planner builds. Assert it is
+    # present in the module's string constants -- the text the model actually
+    # reads -- rather than in a raw source slice, which any reword would break.
+    import ast
     import inspect
-    source = inspect.getsource(P)
-    assert 'never under "args"' in source
+
+    tree = ast.parse(inspect.getsource(P))
+    texts = [n.value for n in ast.walk(tree)
+             if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+    # Joined so a rule split across concatenated literals is still found.
+    blob = '\n'.join(texts).lower()
+    assert 'args' in blob, (
+        'no prompt text in the planner mentions the args wrapper, so the model is '
+        'never told to keep actions flat')

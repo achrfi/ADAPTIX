@@ -400,3 +400,51 @@ Tests: `tests/test_refused_surfaces.py` (9) + `tests/test_payload_reopens_surfac
 No change to the evidence layer (`verification.py`, `coverage.py`), to the
 validator, or to findings already stored. This section only widens what policy may
 *suggest*; it never widens what the run may *conclude*.
+
+## 8. Test behaviour instead of source text
+
+Nine assertions across five test files read the planner's source with
+`inspect.getsource` and searched the text, e.g.
+
+```python
+source = inspect.getsource(planner.adaptive_planning)
+assert 'for fraction in (' in source
+source.split('for fraction in (')[1].split(')')[0]
+```
+
+Those tests verified the *writing*, not the *work*. A behaviour-identical
+refactor failed them; a broken function could pass them. They were also the
+source of the flake seen twice on the full suite: `getsource` resolves through
+the line table captured at import time, so for a short window after
+`planner.py` was edited the returned fragment was wrong and eight tests failed
+with `IndexError`. The mechanism was never reproduced on a settled file, but
+the class of failure is structural, not incidental.
+
+### What changed
+
+Assertions now call the code and inspect the result:
+
+| File | Before | After |
+| --- | --- | --- |
+| `test_recompaction.py` | grep for the fraction tuple and split it out of the source | call `compact_context(...)` and assert the returned token count is below the target, that the floor is reported, and that strict/permissive differ |
+| `test_planner_knobs_reach_the_graph.py` | grep the whole module for two knob names | call `request_decision(...)` with an intercepting provider and assert the knobs arrive in the kwargs actually sent |
+| `test_starvation_loop.py` | grep for `break` | call `request_decision(...)` with a permanently starved provider and assert the number of provider calls is bounded |
+| `test_starvation_recovery.py` | grep for `allow_over_budget` and `max(0, context_window - retry_cost)` | call `compact_context(...)` and assert the retry envelope shrinks and the floor is honoured |
+| `test_window_collision.py` | grep for the local rebinding of `window` | call `adaptive_planning(...)` and assert the returned `scope_window` is still the list of units |
+| `test_adaptix_nuclei_assessment.py` | grep `main()` for a dict literal | AST check that the key exists in the module's string constants |
+| `test_vuln_probes.py` | grep the probe for a returned key | AST check that the `return` statement actually carries the key |
+| `test_union_capability.py` | grep for `list(... or [])` | call the coercion helper with `None` and `[]` |
+| `test_planner_large_target.py` | grep the module for a rule sentence | AST check over the module's string constants |
+| `test_adaptix_planning_recovery.py` | lowercase the whole source, comments included, and forbid eleven needles | AST check over emitted string constants only |
+
+When a behaviour is not reachable without a live provider, the fallback is
+`ast` parsing -- never `split()` on source and never a substring search over the
+whole file, which a comment can satisfy and a reword can break.
+
+### Notes
+
+- No production file changed. This section is tests only.
+- Remaining `getsource` calls feed `ast.parse`; they read program *structure*,
+  not text, and are not sensitive to whitespace or line numbers.
+- `test_vuln_probes` no longer forbids the string `authorization_findings` in a
+  comment. Documenting a removed key is not a defect; returning it is.

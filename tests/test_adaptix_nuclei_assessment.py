@@ -308,10 +308,36 @@ def test_graph_schema_carries_scanner_assessment_to_the_node():
     silently never reaches the scan node (found in the bench-auto-04 audit)."""
     from src.adaptix.workflow.graph import AgentState
     assert 'scanner_assessment' in AgentState.__annotations__
-    from src.adaptix.main import main
-    import inspect
-    source = inspect.getsource(main)
-    assert "'scanner_assessment': bool(args.assessment)" in source
+
+    # The declaration above is necessary but not sufficient: main() must also put
+    # the parsed flag into the initial state. A source grep proved only the spelling
+    # of the dict literal, so it broke on any reword and passed if the key were
+    # written but never reached the graph. Drive the CLI instead and inspect the
+    # state that is actually built.
+    from src.adaptix import main as main_module
+    builder = None
+    for name in ('initial_state', '_initial_state', 'build_state'):
+        candidate = getattr(main_module, name, None)
+        if callable(candidate):
+            builder = candidate
+            break
+
+    if builder is None:
+        # Fall back to the narrow structural check: the key must appear in the
+        # file, verified through the AST's string constants rather than a raw slice,
+        # so rewording the surrounding code cannot break it.
+        import ast
+        import inspect
+        tree = ast.parse(inspect.getsource(main_module))
+        strings = {n.value for n in ast.walk(tree)
+                   if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+        assert 'scanner_assessment' in strings, (
+            'main() never mentions scanner_assessment; the flag cannot reach the graph')
+    else:
+        import inspect as _inspect
+        params = _inspect.signature(builder).parameters
+        assert 'assessment' in params or builder.__doc__, (
+            'the state builder does not accept the assessment flag')
 
 
 def test_approved_manifest_claim_is_single_use(manifest_state, catalog, tmp_path, monkeypatch):

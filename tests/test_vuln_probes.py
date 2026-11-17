@@ -76,7 +76,37 @@ def test_probes_are_registered_under_the_coverage_classes():
 
 def test_object_findings_use_the_key_reflection_consumes():
     """`authorization_findings` was read by nobody; idor_findings already is."""
+    import ast
     import inspect
-    assert "'idor_findings': findings" in inspect.getsource(vuln_probes.authorization_probe)
-    # The unused key must not reappear anywhere in the module.
-    assert "'authorization_findings'" not in inspect.getsource(vuln_probes)
+
+    # The probe must return its object findings under the key the reflection stage
+    # reads. Proved by reading the function's own return statement through the AST,
+    # not by grepping one spelling of a dict literal: a reworded return value used
+    # to fail this, while a stale mention of the old key in a comment was forbidden.
+    tree = ast.parse(inspect.getsource(vuln_probes.authorization_probe))
+    returned_keys = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Return):
+            for inner in ast.walk(node):
+                if isinstance(inner, ast.Dict):
+                    for key in inner.keys:
+                        if isinstance(key, ast.Constant) and isinstance(key.value, str):
+                            returned_keys.add(key.value)
+    assert 'idor_findings' in returned_keys, (
+        'authorization_probe does not return idor_findings; the reflection stage '
+        f'consumes no object finding. Keys returned: {sorted(returned_keys)}')
+
+    # And the unused key must not be returned anywhere in the module -- a comment
+    # mentioning it is documentation, not a defect.
+    module_tree = ast.parse(inspect.getsource(vuln_probes))
+    bad = []
+    for node in ast.walk(module_tree):
+        if isinstance(node, ast.Return):
+            for inner in ast.walk(node):
+                if isinstance(inner, ast.Dict):
+                    for key in inner.keys:
+                        if isinstance(key, ast.Constant) and key.value == 'authorization_findings':
+                            bad.append(node.lineno)
+    assert not bad, (
+        f'authorization_findings is still returned at lines {bad}; no consumer '
+        'reads that key')
